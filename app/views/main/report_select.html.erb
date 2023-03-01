@@ -1,0 +1,50 @@
+<script>
+    var tt_cancel_destination = "/";
+    tstCurrentDate = "<%= Date.current.strftime("%Y-%m-%d") %>";
+</script>
+
+
+<%= form_for :report,  :url => @report_path  do |f| %>
+    <% if params[:report_type] == 'cashier_summary' %>
+        <select id="cashier" name="cashier" helpText="Select cashier" >
+          <option></option>
+          <% (@cashier_options).each do |w| %>
+              <option value="<%= w[0] %>"><%= w[1]%></option>
+          <% end %>
+        </select>
+    <% end %>
+
+    <% if params[:report_type] != 'daily_cash_summary' %>
+    <select id="reportDuration" name="report_duration" helpText="Select report duration">
+      <option></option>
+      <% (report_options).each do |w| %>
+          <option value="<%= w %>"><%= w%></option>
+      <% end %>
+    </select>
+    <% end %>
+    <%= text_field_tag 'start_date', Date.current.strftime("%Y-%m-%d"),
+                       {:id => 'startDate',
+                        :field_type => 'date',
+                        :helpText => 'Report start date',
+                        :maxDate =>  Date.today.strftime("%Y-%m-%d"),
+                        :minDate => (Date.today - 20.year).strftime("%Y-%m-%d"),
+                        :tt_pageStyleClass => "Date DatesOnly"} %>
+
+    <%= text_field_tag 'end_date', Date.today.strftime("%Y-%m-%d"),
+                       {:id => 'endDate',
+                        :field_type => 'date',
+                        :helpText => t('forms.labels.end_date'),
+                        :maxDate =>  Date.today.strftime("%Y-%m-%d"),
+                        :minDate => (Date.today - 20.year).strftime("%Y-%m-%d"),
+                        :condition => "$('reportDuration') && $('reportDuration').value == 'Range'",
+                        :tt_pageStyleClass => "Date DatesOnly"} %>
+
+    <% if params[:report_type] == 'daily_cash_summary' %>
+        <select id="shift" name="report_shift" helpText="Select work shift for report">
+          <option></option>
+          <% (work_shifts.keys).each do |w| %>
+              <option value="<%= w %>"><%= w%></option>
+          <% end %>
+        </select>
+    <% end %>
+<% end %>

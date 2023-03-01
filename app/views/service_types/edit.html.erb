@@ -1,0 +1,13 @@
+<script type="text/javascript">
+    tt_cancel_destination = "/service_types %>"
+</script>
+
+<%= form_for :service_types, :method => "PATCH" ,:url => service_type_path  do |f| %>
+
+    <%= text_field_tag "service_type[name]", @service_type.name,
+                       {
+                           :helptext => "Enter new name of category"}  %>
+
+    <%= hidden_field_tag "service_type[creator]", current_user.id %>
+
+<% end %>

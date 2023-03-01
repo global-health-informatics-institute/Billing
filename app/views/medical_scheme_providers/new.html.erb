@@ -1,0 +1,37 @@
+<script type="text/javascript">
+    tt_cancel_destination = "/medical_scheme_providers"
+</script>
+
+<%= form_for :medical_scheme_provider, :method => "POST" ,:url => medical_scheme_providers_path  do |f| %>
+
+    <%= text_field_tag "medical_scheme_provider[company_name]", nil,
+                       {:helptext => "Enter name of new health insurer"}  %>
+
+    <%= text_field_tag "medical_scheme_provider[company_address]", nil,
+                       {:helptext => "Enter address of new health insurer"}  %>
+
+    <%= text_field_tag "medical_scheme_provider[phone_number_1]", nil,
+                       {
+                        :validationRule => "^0\\d{7}$|Unknown|Not Available|^0\\d{9}$|^N\\/A$",
+                        :validationMessage => "Not a valid phone number",
+                        :tt_pageStyleClass => "NumbersWithUnknown nota",
+                        :field_type => 'number',
+                        :helptext => "Enter phone number of new health insurer"} %>
+
+    <%= text_field_tag "medical_scheme_provider[phone_number_2]", nil,
+                       {
+                           :validationRule => "^0\\d{7}$|Unknown|Not Available|^0\\d{9}$|^N\\/A$",
+                           :validationMessage => "Not a valid phone number",
+                           :tt_pageStyleClass => "NumbersWithUnknown nota",
+                           :optional => true,
+                           :field_type => 'number',
+                           :helptext => "Enter alternate phone number of new health insurer"} %>
+
+    <%= text_field_tag "medical_scheme_provider[email_address]", nil,
+                       {
+                        :field_type => "password",
+                        :helpText => 'Enter email address of new insurer'} %>
+
+    <%= hidden_field_tag "medical_scheme_provider[creator]", current_user.id %>
+
+<% end %>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Billing 4.0</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track' => true %>
+    <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
+    <%#= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>
+    <%#= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload' %>
+    <script type="text/javascript" language="javascript" src="/assets/jquery-1.12.0.min.js" ></script>
+
+  </head>
+
+  <body>
+    <% if !flash[:errors].blank? || !flash[:success].blank? %>
+      <div id="shadowLayer" class="opaqueLayer"> </div>
+      <div id="messageLayer" class="questionLayer" style="font-size: 0.9em;">
+        <div class="dialogBox">
+          <div style="display: table-row">
+            <div style="display: table-cell; text-align: center;">
+              &nbsp;
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell; text-align: center;">
+              <h2 id="message"><%= flash[:success].blank? ? flash[:errors] : flash[:success] %></h2>
+            </div>
+          </div>
+          <div style="display: table-row">
+            <div style="display: table-cell; text-align: center;">
+              <button onMouseDown="hideLayer('shadowLayer', 'messageLayer')"><span>Okay</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    <%= yield %>
+    <% if !flash[:errors].blank? || !flash[:success].blank? %>
+      <script type="text/javascript">
+          showLayer("shadowLayer", "messageLayer");
+      </script>
+    <% end %>
+  </body>
+</html>

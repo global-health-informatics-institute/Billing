@@ -1,0 +1,40 @@
+<script type="text/javascript" defer>
+
+    tt_cancel_destination = '/';
+    tt_cancel_show = '/';
+
+</script>
+
+<%= form_for :user, method: 'PATCH', url: user_path do |f|%>
+  <table width='100%' cellpadding=10 cellspacing=0>
+    <% if @field == 'NAME' %>
+        <tr>
+          <td>
+            First Name
+          </td>
+          <td>
+            <input type="text" id="given_name" name="given_name" value="" helpText="First Name"
+                   ajaxURL='/patients/given_names?search_string=' allowFreeText=true />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Family Name
+          </td>
+          <td>
+            <input type="text" id="family_name" name="family_name" value="" helpText="Family Name"
+                   ajaxURL='/patients/family_names?search_string=' allowFreeText=true />
+          </td>
+        </tr>
+    <% else %>
+        <%= password_field_tag(:password, nil, :helpText => 'Enter password',
+                               :textCase => "lower", :field_type => "password",
+                               :tt_onLoad => "inform(); barcodeId = 'touchscreenInput1';") %><br>
+        <%= password_field_tag(:confirm_password, nil, :helpText => 'Confirm password',
+                               :textCase => "lower", :field_type => "password") %><br>
+
+    <% end %>
+    <%= hidden_field_tag 'user_id', params[:id] %>
+    <%= hidden_field_tag 'fields', @field %>
+  </table>
+<% end %>

@@ -1,0 +1,41 @@
+<%= javascript_include_tag "barcode" %>
+<script type="text/javascript">
+
+
+    var tt_cancel_destination = "/logout"
+
+    barcodeId = 'touchscreenInput0';
+    barcodeFocusOnce = true;
+    // barcodeScanAction = gotoNextPage;
+
+    setTimeout("setupBarcode()", 300);
+
+    function setupBarcode(){
+        barcodeScanAction = gotoNextPage;
+        loadBarcodePage();
+    }
+
+    function inform() {
+        $('infoBar'+tstCurrentPage).innerHTML = "<%= welcome_message %>";
+    }
+</script>
+
+<style>
+
+  .tt_controls_workstation_location .keyboard {
+    display: none;
+  }
+
+  #tt_page_workstation_location .options {
+    display: none;
+  }
+</style>
+
+<%= form_for :sessions, :method => "POST", :url => "/location" do |f|%>
+  <label for="location">Location</label>
+  <%= text_field_tag(:location, nil, :helpText => "Workstation location",
+                     :field_type => "number",:tt_pageStyleClass => "NumbersOnly", :tt_onLoad => "inform();") %><br>
+  <%= submit_tag :value => "Submit" %>
+
+<% end %>
+

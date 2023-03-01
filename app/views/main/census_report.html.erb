@@ -1,0 +1,84 @@
+<div class="section-header" >
+  <%= @title %>
+</div>
+<div style="height: 75vh; width: 100%;overflow-y: auto;">
+  <table style="width: 100%;">
+    <tr style="background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
+      <th style="padding-left: 1vw;text-align: left;">New Registration</th>
+      <th style="text-align: center;">Male</th>
+      <th style="text-align: center;">Female</th>
+      <th style="text-align: center;">Total</th>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;">Under 5</td>
+      <td style="text-align: center;"><%= @new_patients[:under_five][:M] %></td>
+      <td style="text-align: center;"><%= @new_patients[:under_five][:F] %></td>
+      <td style="text-align: center;"><%= @new_patients[:under_five][:M] + @new_patients[:under_five][:F] %></td>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;">5 - 13</td>
+      <td style="text-align: center;"><%= @new_patients[:under_twelve][:M] %></td>
+      <td style="text-align: center;"><%= @new_patients[:under_twelve][:F] %></td>
+      <td style="text-align: center;"><%= @new_patients[:under_twelve][:M] + @new_patients[:under_twelve][:F] %></td>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;"> Adults </td>
+      <td style="text-align: center;"><%= @new_patients[:adult][:M] %></td>
+      <td style="text-align: center;"><%= @new_patients[:adult][:F] %></td>
+      <td style="text-align: center;"><%= @new_patients[:adult][:M] + @new_patients[:adult][:F] %></td>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;font-weight:bold;">Total</td>
+      <td style="text-align: center;"><%= @new_patients[:under_five][:M] + @new_patients[:under_twelve][:M] + @new_patients[:adult][:M]%></td>
+      <td style="text-align: center;"><%= @new_patients[:under_five][:F] + @new_patients[:under_twelve][:F] + @new_patients[:adult][:F]%></td>
+      <% total = @new_patients[:under_five][:F] + @new_patients[:under_twelve][:F] + @new_patients[:adult][:F] %>
+      <td style="text-align: center;"><%= total + @new_patients[:under_five][:M] + @new_patients[:under_twelve][:M] + @new_patients[:adult][:M]%></td>
+    </tr>
+    <tr style="background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
+      <th style="padding-left: 1vw;text-align: left;">Returning Patients</th>
+      <th style="text-align: center;">Male</th>
+      <th style="text-align: center;">Female</th>
+      <th style="text-align: center;">Total</th>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;">Under 5</td>
+      <td style="text-align: center;"><%= @old_patients[:under_five][:M] %></td>
+      <td style="text-align: center;"><%= @old_patients[:under_five][:F] %></td>
+      <td style="text-align: center;"><%= @old_patients[:under_five][:M] + @old_patients[:under_five][:F] %></td>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;">5 - 13</td>
+      <td style="text-align: center;"><%= @old_patients[:under_twelve][:M] %></td>
+      <td style="text-align: center;"><%= @old_patients[:under_twelve][:F] %></td>
+      <td style="text-align: center;"><%= @old_patients[:under_twelve][:M] + @old_patients[:under_twelve][:F] %></td>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;">Adults</td>
+      <td style="text-align: center;"><%= @old_patients[:adult][:M] %></td>
+      <td style="text-align: center;"><%= @old_patients[:adult][:F] %></td>
+      <td style="text-align: center;"><%= @old_patients[:adult][:M] + @old_patients[:adult][:F] %></td>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;">
+      <td style="padding-left: 1vw;text-align: left;font-weight:bold;">Total</td>
+      <td style="text-align: center;"><%= @old_patients[:under_five][:M] + @old_patients[:under_twelve][:M] + @old_patients[:adult][:M]%></td>
+      <td style="text-align: center;"><%= @old_patients[:under_five][:F] + @old_patients[:under_twelve][:F] + @old_patients[:adult][:F]%></td>
+      <% total = @old_patients[:under_five][:M] + @old_patients[:under_twelve][:M] + @old_patients[:adult][:M] %>
+      <td style="text-align: center;"><%= total + @old_patients[:under_five][:F] + @old_patients[:under_twelve][:F] + @old_patients[:adult][:F]%></td>
+    </tr>
+    <tr style="background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
+      <th style="padding-left: 1vw;text-align: left;">Summary</th>
+      <th style="text-align: center;">Male</th>
+      <th style="text-align: center;">Female</th>
+      <th style="text-align: center;">Total</th>
+    </tr>
+    <tr style="font-size: 1.5em;line-height: 2em;background-color: #CCCC99;">
+      <td style="padding-left: 1vw;text-align: left;">All Patients</td>
+      <td style="text-align: center;"><%= @summary['M'] %></td>
+      <td style="text-align: center;"><%= @summary['F'] %></td>
+      <td style="text-align: center;"><%= @summary['M'] + @summary['F'] %></td>
+    </tr>
+  </table>
+</div>
+<div class="footer">
+  <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
+</div>

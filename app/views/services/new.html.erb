@@ -1,0 +1,26 @@
+<script type="text/javascript">
+    tt_cancel_destination = "/services"
+</script>
+
+<%= form_for :service, :method => "POST" ,:url => services_path  do |f| %>
+
+    <%= text_field_tag "service[name]", nil,
+                       {:helptext => "Enter name of new service"}  %>
+
+    <%= select_tag "service[category]", category_options,
+                   {:helptext => "Select service category",
+                    :doublepane => 'false'} %>
+
+    <%= text_field_tag "service_price[general][price]", nil,
+                       {:field_type => "number",
+                        :tt_pageStyleClass => "NumbersOnly",
+                        :helptext => "Enter general price for new service"}  %>
+
+    <%= text_field_tag "service_price[private][price]", nil,
+                       {:field_type => "number",
+                        :tt_pageStyleClass => "NumbersOnly",
+                        :helptext => "Enter private price for new service"}  %>
+
+    <%= hidden_field_tag "service[creator]", current_user.id %>
+
+<% end %>

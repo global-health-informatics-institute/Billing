@@ -1,0 +1,32 @@
+<script type="text/javascript" defer>
+
+    tt_cancel_destination = '/users';
+    tt_cancel_show = '/';
+
+</script>
+
+<%= form_for :user, method: 'POST', url: users_path do |f|%>
+    <table width='100%' cellpadding=10 cellspacing=0>
+
+      <p><label for="user_given_name">First name</label><br/>
+        <%= text_field 'user', 'given_name', :ajaxURL=> '/patients/given_names?search_string=', :value => nil ,:allowFreeText => true%></p>
+
+      <p><label for="user_family_name">Last name</label><br/>
+        <%= text_field 'user', 'family_name', :ajaxURL => '/patients/family_names?search_string=', :value => nil, :allowFreeText => true%></p>
+
+      <%= text_field 'user', 'username', :helpText => 'Username',:textCase => "lower",:tt_onload =>"$('touchscreenInput5').value = ($('user_first_name').value.substring(0,3)+$('user_last_name').value.substring(0,3)).toLowerCase()" ,:validationRule =>"\\w{6}\\w*" ,:validationMessage => "Username must have at least SIX letters" ,:textCase => "lower"%></p>
+
+      <p><label for="user_role_role_id">User Role</label></br>
+        <%= text_field 'user_role', 'role_id', :xhelpText => 'User role', :ajaxURL => '/users/roles?field=role&value='%></p>
+
+      <%= password_field_tag(:password, nil, :helpText => 'Enter password',
+                             :textCase => "lower", :field_type => "password",
+                             :validationRule =>"\\w{6}\\w*", :validationMessage =>"Password less than SIX characters.",:minlength => 6 ,
+                             :tt_onLoad => "inform(); barcodeId = 'touchscreenInput1';") %><br>
+      <%= password_field_tag(:confirm_password, nil, :helpText => 'Confirm password',
+                             :validationRule =>"\\w{6}\\w*", :validationMessage =>"Password less than SIX characters.",:minlength => 6 ,
+                             :textCase => "lower", :field_type => "password") %><br>
+
+      <%= hidden_field_tag 'creator', current_user.id %>
+    </table>
+<% end %>

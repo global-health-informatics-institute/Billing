@@ -1,0 +1,16 @@
+<script type="text/javascript">
+    tt_cancel_destination = "/services/<%= params[:service_id] %>"
+</script>
+
+<%= form_for :service_price, :method => "POST" ,:url => service_service_prices_path  do |f| %>
+
+        <%= text_field_tag "service_price[price]", nil,
+                           {:field_type => "number",
+                            :tt_pageStyleClass => "NumbersOnly",
+                            :helptext => "Enter new price for #{@name}"}  %>
+
+    <%= hidden_field_tag "service_price[service_id]", params[:service_id] %>
+    <%= hidden_field_tag "service_price[creator]", current_user.id %>
+    <%= hidden_field_tag "service_price[price_type]", params[:type].titleize %>
+
+<% end %>

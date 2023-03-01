@@ -1,0 +1,10 @@
+
+<%= form_for :patients, :method => "POST" ,:url => "/patients/patient_not_found/#{@id}"  do |f| %>
+
+
+    <select name="create" helpText="Patient with identifier '<span style='color:blue'><%= @id %></span>' not found. Do you want to create one?">
+      <option></option>
+      <option value=true>Yes</option>
+      <option value=false>No</option>
+    </select>
+<% end %>

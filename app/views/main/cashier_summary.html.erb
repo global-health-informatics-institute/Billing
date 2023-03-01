@@ -1,0 +1,34 @@
+<div class="section-header" >
+  <%= @title %>
+</div>
+<div style="height: 75vh; width: 100%;overflow-y: auto;">
+  <div style="display: table; width: 100%;font-size: 1.4em;">
+    <div style="display: table-row; background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
+      <div style="display: table-cell;padding-left: 1vw;">
+        Receipt Number
+      </div>
+      <div style="display: table-cell; text-align: right;">
+        Full Cost
+      </div>
+      <div style="display: table-cell; text-align: right; padding-right: 1vw;">
+        Amount Paid
+      </div>
+    </div>
+    <% (@records || []).each do |e| %>
+        <div style="display: table-row;line-height: 1.8em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
+          <div style="display: table-cell; padding-left: 0.5vw; color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
+            <%= e[:receipt]%>
+          </div>
+          <div style="display: table-cell; text-align: right;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
+            <%= local_currency(e[:bill])%>
+          </div>
+          <div style="display: table-cell; text-align: right;padding-right: 1vw;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
+            <%= local_currency(e[:paid])%>
+          </div>
+        </div>
+    <% end %>
+  </div>
+</div>
+<div class="footer">
+  <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
+</div>

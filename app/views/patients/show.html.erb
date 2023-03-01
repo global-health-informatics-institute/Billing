@@ -1,0 +1,541 @@
+<% title "Patient Dashboard" %>
+<div id="shadow" class="opaqueLayer"> </div>
+<div id="question" class="questionLayer" style="font-size: 0.9em;">
+  <%= form_for :order_entry, :method => 'POST', url: '/order_entries/void',:html => {:id =>'voidingForm', :name =>'confirmingForm'}  do |f| %>
+      <div class="dialogBox">
+        <div style="display: table-row">
+          <div style="display: table-cell; text-align: left;padding-left: 20px;">
+            <h2 id="message">Select the reason for voiding this transaction?</h2>
+          </div>
+        </div>
+        <div style="display: table-row">
+          <div style="display: table-cell; text-align: left;padding-left: 20px;font-size: 1.7em;">
+            <input type="radio" class="custom-radio" name="void_reason" value="Wrongly Entered"
+                   required> Wrongly entered
+          </div>
+        </div>
+        <div style="display: table-row">
+          <div style="display: table-cell; text-align: left;padding-left: 20px;font-size: 1.7em;">
+            <input type="radio" class="custom-radio" name="void_reason" value="Out of stock"
+                   required> Out of stock
+          </div>
+        </div>
+        <div style="display: table-row">
+          <div style="display: table-cell; text-align: left;padding-left: 20px;font-size: 1.7em;">
+            <input type="radio" class="custom-radio" name="void_reason" value="Switched to other clinic"
+                   required > Switched to other clinic
+          </div>
+        </div>
+        <div style="display: table-row">
+          <div style="display: table-cell; text-align: left;padding-left: 20px;font-size: 1.7em;">
+            <input type="radio" class="custom-radio" name="void_reason" value="Rescheduled service"
+                   required > Rescheduled service
+          </div>
+        </div>
+        <div style="display: table-row">
+          <div style="display: table-cell; text-align: center;">
+            <button id="bttnYes"><span>Confirm</span></button>
+            <button onMouseDown="hideLayer('shadow', 'question')"><span>Cancel</span></button>
+          </div>
+        </div>
+      </div>
+      <%= hidden_field_tag "void_ids", nil %>
+      <%= hidden_field_tag "patient_id", params[:id] %>
+  <% end %>
+</div>
+<div id="myModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content" style="width: 70vw !important;">
+    <div style="width: 100%; text-align: center;background-color: #CCCCCC;height: 10vh;padding-top: 3px;">
+      <table width="100%">
+        <tr>
+          <td><h2>Bill Payment</h2></td>
+          <td class="close"><span onmousedown="hideModal();">&times;</span></td>
+        </tr>
+      </table>
+      <%= form_for :order_payments, :method => "POST", :url => order_payments_url,:html => {:id =>'payingForm', :name =>'payingForm'} do |f|%>
+          <%= hidden_field_tag "creator", current_user.id %>
+          <%= hidden_field_tag "order_payment[mode]", "CASH" %>
+          <%= hidden_field_tag "order_payment[amount]", 0 %>
+          <%= hidden_field_tag "order_payment[deposits]", @deposits %>
+          <%= hidden_field_tag "order_entries", nil %>
+          <%= hidden_field_tag "order_payment[patient_id]", @patient.id %>
+          <%= hidden_field_tag "order_payment[location]", current_location.name %>
+      <% end %>
+    </div>
+    <div style="display: table;">
+      <div style="display: table-row;">
+        <div style="display: table-cell;background-color:#eeeeee;width:40vw;padding: 10px;">
+          <table style="width: 100%; font-size: 1.5em; line-height: 2em" >
+            <tr>
+              <td>Entered Amount</td>
+              <th id="paying" style="text-align: left;width: 60% !important;">MWK 0.00</th>
+            </tr>
+            <tr>
+              <td>Amount Due</td>
+              <th  style="text-align: left;color: darkred; " id="due"><%= local_currency(@amount_due -@deposits) %></th>
+            </tr>
+            <tr>
+              <td>Change</td>
+              <th id="change" style="text-align: left;color: darkgreen;"><%= (@amount_due -@deposits) > 0 ? 'MWK 0.00' : local_currency((@amount_due -@deposits).abs) %></th>
+            </tr>
+            <tr>
+              <td>&nbsp;</td>
+              <th>&nbsp;</th>
+            </tr>
+            <% if @patient.health_insurance != 'None'%>
+            <tr>
+              <th style="text-align: left;">
+                <input type="radio" class="custom-radio" name="paymentMode"
+                       onmousedown="setPayMode('CASH')" checked> Cash
+              </th>
+              <th style="text-align: left;">
+                <input type="radio" class="custom-radio" value=<%= @patient.health_insurance %> name="paymentMode"
+                       onmousedown="setPayMode(this.value)"> Medical Scheme
+              </th>
+            </tr>
+            <% end %>
+          </table>
+          <div class = "link-button submit-link" style="width: 12vw !important;margin-left: auto;margin-right: auto;margin-top: 15vh;" onmousedown="submitPayment();">
+            Pay
+          </div>
+        </div>
+        <div style="display: table-cell; border: 1px inset black;width: 30vw;">
+          <div style="margin-top: 5px;">
+            <table width="100" cellspacing="15" >
+              <tr>
+                <td class="customButton" onmousedown="append(1);"><span>1</span></td>
+                <td class="customButton" onmousedown="append(2);"><span>2</span></td>
+                <td class="customButton" onmousedown="append(3);"><span>3</span></td>
+              </tr>
+              <tr>
+                <td class="customButton" onmousedown="append(4);"><span>4</span></td>
+                <td class="customButton" onmousedown="append(5);"><span>5</span></td>
+                <td class="customButton" onmousedown="append(6);"><span>6</span></td>
+              </tr>
+              <tr>
+                <td class="customButton" onmousedown="append(7);"><span>7</span></td>
+                <td class="customButton" onmousedown="append(8);"><span>8</span></td>
+                <td class="customButton" onmousedown="append(9);"><span>9</span></td>
+              </tr>
+              <tr>
+                <td class="customButton" onmousedown="append(0);"><span>0</span></td>
+                <td class="customButton" ><span>&nbsp;</span></td>
+                <td class="customButton" onmousedown="append('del');"><span>del</span></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="header" style="height: 15vh; width:98vw;margin-top:1vh; margin-left: auto;margin-right: auto;">
+  <div style="display: table-row">
+    <div class="header-cell" style="display: table-cell; width:98vw;vertical-align: middle;height: 15vh;">
+      <div style="display: table;width: 98%;margin-left: auto;margin-right: auto;">
+        <div style="display: table-cell; width: 10%;margin-left: auto;margin-right: auto;">
+          <div class="<%=@patient.sex.downcase%>">
+            <img src="/assets/<%=@patient.sex.downcase%>.png">
+          </div>
+        </div>
+        <div style="display: table-cell; width: 90%;margin-left: auto;margin-right: auto;vertical-align: middle;">
+          <div style="display: table;width: 98%;margin-left: auto;margin-right: auto;">
+            <div style="display: table-row; ">
+              <div class="header-content-cell"><b>Name</b></div>
+              <div class="header-content-cell" style="width: 45%;"><%= @patient.full_name %></div>
+              <div class="header-content-cell"><b>Age</b></div>
+              <div class="header-content-cell"><%= @patient.person.display_age %></div>
+            </div>
+            <div style="display: table-row; ">
+              <div class="header-content-cell"><b>National ID</b></div>
+              <div class="header-content-cell"><%= Misc.dash_formatter(@patient.national_id) %></div>
+              <div class="header-content-cell"><b>Health insurance</b></div>
+              <div class="header-content-cell"><%= @patient.health_insurance %></div>
+            </div>
+            <div style="display: table-row; ">
+              <div class="header-content-cell"><b>Residence</b></div>
+              <div class="header-content-cell"><%= @patient.current_address %></div>
+              <div class="header-content-cell"><b>Scheme Number</b></div>
+              <div class="header-content-cell"><%= @patient.scheme_num %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="main" style="height: 70vh;">
+
+  <div style="display: table-row;width: 100%">
+    <div id="summary" class="tab-active" style="display: table-cell" onmousedown="toggleTab(this);active='summary'">Summary</div>
+    <div id="today" class="tab" style="display: table-cell" onmousedown="toggleTab(this);active='today'">Today</div>
+    <div id="pastVisits" class="tab" style="display: table-cell" onmousedown="toggleTab(this)">Past Transactions</div>
+    <div id="others" class="tab" style="display: table-cell" onmousedown="toggleTab(this)">Others</div>
+  </div>
+
+  <div id="summaryTab" class="tab-content" >
+    <table class="dashboard-main" border="2">
+      <thead>
+      <tr>
+        <th style="width: 5vw;">Select</th>
+        <th style="text-align: left;;padding-left: 5px;">Item</th>
+        <th style="text-align:right;">Quantity</th>
+        <th style="text-align: right;padding-right: 20px;">Amount</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% (@unpaid_orders || []).each do |service_id,order| %>
+          <tr>
+            <th style="padding: 0px;">
+              <input type="checkbox" class="custom-checkbox pay" data-id=<%= order[:id].join(',')%> data-qty=<%= order[:amount]%>>
+            </th>
+            <th><%= order[:service_name] %></th>
+            <th style="text-align: right"><%= order[:quantity] %></th>
+            <td style="text-align: right; padding-right: 10px;"><%= local_currency(order[:amount]) %></td>
+          </tr>
+      <% end %>
+      </tbody>
+      <tfoot>
+      <tr>
+        <th colspan="2">&nbsp;</th>
+        <th style="text-align: right;">Total</th>
+        <th style="text-align: right;padding-right: 10px;"><%= local_currency(@total) %></th>
+      </tr>
+      <% if @deposits > 0 %>
+      <tr>
+        <th colspan="2">&nbsp;</th>
+        <th style="color: green;text-align: right;">Amount Deposited</th>
+        <th style="color: green;text-align: right;padding-right: 10px;"><%= local_currency(@deposits) %></th>
+      </tr>
+      <% end %>
+      <tr>
+        <th colspan="2">&nbsp;</th>
+        <th style="color: darkred;text-align: right;">Amount Due</th>
+        <th style="color: darkred; text-align: right;padding-right: 10px;"><%= local_currency(@amount_due -@deposits) %></th>
+      </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div id="todayTab" class="tab-content invisible" >
+    <table class="dashboard-main" border="2">
+      <thead>
+      <tr>
+        <th style="width: 5vw;">&nbsp;</th>
+        <th style="text-align: left;;padding-left: 5px;">Item</th>
+        <th style="text-align:center;">Quantity</th>
+        <th style="text-align: right;padding-right: 10px;">Price</th>
+        <th style="text-align: right;padding-right: 10px;">Paid</th>
+        <th>Action</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% (@today_payments.keys || []).each do |receipt_number| %>
+          <% entries =  @today_payments[receipt_number]["details"].length%>
+          <% (@today_payments[receipt_number]["details"] || []).each do |order| %>
+              <tr>
+                <th style="padding: 0px;">
+                  <input type="checkbox" class="custom-checkbox delete" data-id=<%= order[:id]%> >
+                </th>
+                <th><%= order[:service] %></th>
+                <th style="text-align: center"><%= order[:quantity] %></th>
+                <td style="text-align: right;padding-right: 5px;"><%= local_currency(order[:price]) %></td>
+                <td style="text-align: right;padding-right: 5px;"><%= local_currency(order[:amount_paid]) %></td>
+                <% if order == @today_payments[receipt_number]["details"].first %>
+                    <td rowspan="<%= entries%>" style="border: 1px solid #000000; background-color: #fefefe">
+                      <img src="/assets/print.png" title="Void Item"
+                           onmousedown="window.location='/order_payments/print_receipt?ids=<%= receipt_number%>'">
+                    </td>
+                <% end %>
+              </tr>
+          <% end %>
+      <% end %>
+      </tbody>
+    </table>
+  </div>
+  <div id="pastVisitsTab" class="tab-content invisible">
+    <div style="margin: 3vh auto;width: 98%;">
+      <% (@history.keys || []).each do |day| %>
+          <div style="border: 1px solid #000000; margin-bottom:8px;">
+            <div class="collapsible-summary">
+              <span style="width: 30%;"><b><%= day %></b></span>
+              [ <span style="width: 30%;">Total Bill: <%= local_currency @history[day]["summary"]["bill"]%></span>,
+                <span style="width: 30%;">Amount Paid: <%= local_currency @history[day]["summary"]["paid"]%></span>,
+                <span style="width: 30%;">Balance : <%= local_currency((@history[day]["summary"]["bill"] - @history[day]["summary"]["paid"])) %></span>]
+            </div>
+            <div class="collapsible-content">
+              <% records = @history[day]["details"].each_slice(2).to_a
+                 (records || []).each do |order| %>
+                  <div style="display: table-row;">
+                    <div style="display: table-cell;width:44vw;float: left;">
+                      <div style="border: 1px solid gray; padding: 3px;margin: 3px;">
+                        <div style="display: table;width: 100%;">
+                          <div style="display: table-row;">
+                            <div style="display: table-cell;padding: 5px;">
+                              <b>Item:</b> <%= order[0][:service] %><br/>
+                              <b>QTY:</b> <%= order[0][:quantity] %><br/>
+                              <b>Amount:</b> <%= local_currency(order[0][:price]) %><br/>
+                              <b>Status:</b> <%= order[0][:status] %><br/>
+                            </div>
+                            <div style="display: table-cell;vertical-align: middle;padding: 5px;">
+                              <% if order[0][:status] == "PAID" %>
+                                  &nbsp;
+                              <% else %>
+                                  <img style="float: right;" src="/assets/delete.png" title="Void Item">
+                              <% end %>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <% if order[1].blank? %>
+                        <div style="display: table-cell;width:44vw;float: left;background-color: #CCCCCC;" onmousedown="window.location='/order_payments/print_receipt?ids=<%= @history[day]["receipts"].uniq.join(',')%>'">
+                          <div style="border: 1px solid gray; padding: 3px;margin: 3px;">
+                            <div style="display: table;width: 100%;">
+                              <div style="display: table-row;">
+                                <div style="display: table-cell;padding: 5px;">
+                                  <div style="margin-left: auto;margin-right: auto;text-align: center;font-weight: bold;">Re-print Receipt(s)</div>
+                                  <b>Day Total Bill:</b><%= local_currency @history[day]["summary"]["bill"]%><br/>
+                                  <b>Day Amount Paid:</b><%= local_currency @history[day]["summary"]["paid"]%><br/>
+                                  <b>Day Balance:</b> <%= local_currency((@history[day]["summary"]["bill"] - @history[day]["summary"]["paid"])) %><br/>
+                                </div>
+                                <div style="display: table-cell;vertical-align: middle;padding: 5px;">
+                                  <img style="float: right;" src="/assets/print.png" title="Void Item">
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                    <% else %>
+                        <div style="display: table-cell;width:44vw;float: right;">
+                          <div style="border: 1px solid gray; padding: 3px;margin: 3px;">
+                            <div style="display: table;width: 100%;">
+                              <div style="display: table-row;">
+                                <div style="display: table-cell;padding: 5px;">
+                                  <b>Item:</b> <%= order[1][:service] %><br/>
+                                  <b>QTY:</b> <%= order[1][:quantity] %><br/>
+                                  <b>Amount:</b> <%= local_currency(order[1][:price]) %><br/>
+                                  <b>Status:</b> <%= order[1][:status] %><br/>
+                                </div>
+                                <div style="display: table-cell;vertical-align: middle;padding: 5px;">
+                                  <% if order[1][:status] == "PAID" %>
+                                      &nbsp;
+                                  <% else %>
+                                      <img style="float: right;" src="/assets/delete.png" title="Void Item">
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <% if records.last == order %>
+                            <div style="display: table-row;">
+                              <div style="display: table-cell;width:44vw;float: left;background-color: #CCCCCC;" onmousedown="window.location='/order_payments/print_receipt?ids=<%= @history[day]["receipts"].uniq.join(',')%>'">
+                                <div style="border: 1px solid gray; padding: 3px;margin: 3px;">
+                                  <div style="display: table;width: 100%;">
+                                    <div style="display: table-row;">
+                                      <div style="display: table-cell;padding: 5px;">
+                                        <div style="margin-left: auto;margin-right: auto;text-align: center;font-weight: bold;">Re-print Receipt(s)</div>
+                                        <b>Day Total Bill:</b><%= local_currency @history[day]["summary"]["bill"]%><br/>
+                                        <b>Day Amount Paid:</b><%= local_currency @history[day]["summary"]["paid"]%><br/>
+                                        <b>Day Balance:</b> <%= local_currency((@history[day]["summary"]["bill"] - @history[day]["summary"]["paid"])) %><br/>
+                                      </div>
+                                      <div style="display: table-cell;vertical-align: middle;padding: 5px;">
+                                        <img style="float: right;" src="/assets/print.png" title="Void Item">
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                        <% end %>
+                    <% end %>
+                  </div>
+              <% end %>
+            </div>
+          </div>
+      <%end%>
+
+      <% if @history.blank? %>
+        <h2>No past transactions</h2>
+      <% end %>
+    </div>
+  </div>
+  <div id="othersTab" class="tab-content invisible">
+    <div style="display: table;margin: 3vh auto">
+      <div style="display: table-row;">
+        <div style="display: table-cell">
+          <div class = "link-button" onmousedown="window.location='/patients/<%= @patient.id%>/patient_accounts/new'">
+            Add Medical Scheme
+          </div>
+        </div>
+        <div style="display: table-cell">
+          <div class = "link-button" onmousedown="window.location='/patients/patient_demographics/<%= @patient.id%>'">
+            Edit Demographics
+          </div>
+        </div>
+        <div style="display: table-cell">
+          <div class = "link-button" onmousedown="window.location='/patients/print_national_id?patient_id=<%= @patient.id%>'">
+            Print National ID
+          </div>
+        </div>
+      </div>
+      <div style="display: table-row;">
+        <div style="display: table-cell">
+          <div class = "link-button" onmousedown="window.location='/patients/<%= @patient.id%>/deposits/new'">
+            Add Deposit
+          </div>
+        </div>
+        <div style="display: table-cell">
+          <div class = "link-button" onmousedown="window.location='/patients/<%= @patient.id%>/deposits'">
+            Manage Patient Deposits
+          </div>
+        </div>
+        <div style="display: table-cell">
+          &nbsp;
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <button class="red" style="float: left;" onmousedown="voidSelected();">Void Entry</button>
+  <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
+  <button style="float: right;" onmousedown="window.location='/patients/<%= @patient.id%>/order_entries/new'">Add Transaction</button>
+  <%if  @amount_due > 0 %>
+    <button id="myBtn" style="float: right;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
+  <% end %>
+</div>
+
+<script>
+    var bill = <%= @amount_due %>;
+    var modal = document.getElementById('myModal');
+    var active = "summary"
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    function append(key){
+        var input = document.getElementById("paying");
+        var change = document.getElementById("change");
+        var amount = document.getElementById("order_payment_amount");
+
+        if(delocalize(input.innerHTML) == "0.00")
+        {
+            if (key != "del")
+            {
+                input.innerHTML = localize(key)
+
+            }
+        }
+        else
+        {
+            if (key != "del")
+            {
+                input.innerHTML = localize(parseInt(delocalize(input.innerHTML)).toString().trim() + key)
+
+            }
+            else
+            {
+                var temp = parseInt(delocalize(input.innerHTML)).toString().trim();
+                temp = parseFloat(temp.substring(0,temp.length-1)).toFixed(2)
+                input.innerHTML = localize((temp == "NaN" ? "0.00" : temp))
+            }
+        }
+
+        var actual_change = parseFloat((delocalize(input.innerHTML)) - parseFloat(bill));
+        change.innerHTML = localize((actual_change > 0 ? actual_change : "0.00"))
+        amount.value = delocalize(input.innerHTML);
+    }
+
+
+    function getSelectedTrans(){
+        var choices = [];
+        var transactions = document.getElementsByClassName('custom-checkbox pay');
+        var cost = 0;
+
+        for(var o = 0; o < transactions.length; o++){
+            if(transactions[o].checked == true){
+                choices.push(transactions[o].getAttribute('data-id'));
+                cost += parseFloat(transactions[o].getAttribute('data-qty'))
+
+            }
+        }
+        if(choices.length > 0)
+        {
+            document.getElementById("order_entries").value = choices.join(',');
+            document.getElementById("due").innerHTML = localize(cost);
+        }
+        else
+        {
+
+            document.getElementById("order_entries").value = null;
+            document.getElementById("due").innerHTML = localize(bill);
+        }
+        return choices;
+    }
+
+    function setPayMode(method)
+    {
+        document.getElementById("order_payment_mode").value = method;
+    }
+
+    function submitPayment(){
+        document.payingForm.submit();
+    }
+
+    function voidEntries()
+    {
+        var choices = [];
+        var transactions = document.getElementsByClassName('custom-checkbox pay');
+
+        for(var o = 0; o < transactions.length; o++){
+            if(transactions[o].checked == true){
+                choices.push(transactions[o].getAttribute('data-id'));
+            }
+        }
+        if(choices.length > 0)
+        {
+            document.getElementById("void_ids").value = choices.join(',');
+            confirmAction('/order_entries/void', 'FORM')
+
+        }
+
+        return choices;
+    }
+
+    function voidPayments()
+    {
+        var choices = [];
+        var transactions = document.getElementsByClassName('custom-checkbox delete');
+
+        for(var o = 0; o < transactions.length; o++){
+            if(transactions[o].checked == true){
+                choices.push(transactions[o].getAttribute('data-id'));
+            }
+        }
+        if(choices.length > 0)
+        {
+            confirmAction('/order_payments/void', 'FORM')
+            document.getElementById("void_ids").value = choices.join(',');
+        }
+
+        return choices;
+    }
+
+    function voidSelected()
+    {
+        (active == 'summary' ? voidEntries() : voidPayments())
+
+    }
+    
+    initializeCollapsible();
+</script>

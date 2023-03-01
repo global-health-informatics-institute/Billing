@@ -1,0 +1,18 @@
+<script type="text/javascript">
+    tt_cancel_destination = "/patients/<%= params[:patient_id] %>"
+</script>
+
+<%= form_for :deposit, :method => "POST" ,:url => patient_deposits_path  do |f| %>
+
+    <%= text_field_tag "deposit[amount_received]", nil,
+                       {
+                        :field_type => "number",
+                        :tt_pageStyleClass => "NumbersOnly",
+                        :helptext => "Enter amount deposited"}  %>
+
+
+    <%= hidden_field_tag "deposit[creator]", current_user.id %>
+    <%= hidden_field_tag "deposit[patient_id]", params[:patient_id] %>
+<% end %>
+
+

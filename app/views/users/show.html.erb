@@ -1,0 +1,45 @@
+<style type="text/css">
+    table.local-tbl{
+      width: 80vw;
+      margin-top: 5vh;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 4em;
+    }
+    table.local-tbl th{
+      font-size: 2em;
+      font-weight: 400;
+      text-align: right;
+    }
+    table.local-tbl td{
+      font-size: 1.8em;
+      padding-left: 3vw;
+    }
+</style>
+
+<div class="section-header">
+  User Profile
+</div>
+<div style="height: 70vh; width: 100vw;">
+  <table class="local-tbl">
+    <tr>
+      <th>Username:</th>
+      <td><%= @user.username %></td>
+    </tr>
+    <tr>
+      <th>Person Name:</th>
+      <td><%= @user.name %></td>
+    </tr>
+    <tr>
+      <th>User Role:</th>
+      <td><%= @user.role %></td>
+    </tr>
+    <tr>
+      <th>Active Since:</th>
+      <td><%= @user.date_created.strftime('%d %b, %Y') %></td>
+    </tr>
+  </table>
+</div>
+<div class="footer">
+  <button class="green" style="float: right;" onmousedown="window.location='/users'">Finish</button>
+</div>

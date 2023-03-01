@@ -1,0 +1,5 @@
+Item,unit,price,type,category
+Admission (adult),Day,1300,General,Admission
+Admission (paediatric),Day,500,General,Admission
+Consultation (adult – night),each,700,General,Consultation
+Consultation (paediatric – night),each,500,General,Consultation

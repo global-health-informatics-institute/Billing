@@ -1,0 +1,21 @@
+panel name,item,quantity,Category,Retired
+Amoxicillin 250mg 2 TDS 5/7,Amoxycillin 250mg,30,Pharmacy,FALSE
+Ciprofloxacin 250mg 2 BDS 5/7,Ciprofloxacin 250mg,20,Pharmacy,FALSE
+Cotrimoxazole 480mg 2 BDS 5/7,Cotrimoxazole 480mg,20,Pharmacy,FALSE
+Doxycycline 100mg BDS 5/7,Doxycycline 100mg,10,Pharmacy,FALSE
+Erythromycin 250mg 2 QID 5/7,Erythromycin 250mg,40,Pharmacy,FALSE
+Flucloxacillin 250mg 2 TDS 5/7,Flucloxacillin 250mg,30,Pharmacy,FALSE
+Metronizole 200mg 2 TDS 5/7,Flagyl – Metronidazole 200mg,30,Pharmacy,FALSE
+Coartem (LA) 120mg/20mg 4 BDS 3/7,Lumefantrine and Artemether 24's,24,Pharmacy,TRUE
+Quinine HCL 300mg 2 TDS 5/7,Quinine hydrochloride 300mg,30,Pharmacy,FALSE
+SP (Sulphad/pyrime 525mg) 3 STAT,SP (Sulphadox 500mg/ pyrimetha 25mg),3,Pharmacy,FALSE
+Paracetamol 500mg 2 TDS 3/7,PCM – Paracetamol 500mg,18,Pharmacy,FALSE
+Amoxicillin susp 125mg/5ml TDS 5/7,Amoxycillin 125mg/ml suspension,1,Pharmacy,FALSE
+Paracetamol syrup 120mg/5ml TDS 5/7,PCM – Paracetamol syrup 120mg/5ml,1,Pharmacy,FALSE
+Aspirin 300mg 2 TDS 3/7,Aspirin 300mg,18,Pharmacy,FALSE
+Frusemide 40mg OD 5/7,Frusemide 40mg,5,Pharmacy,FALSE
+Hydrochlorothiazide 25mg OD 15/7,HCT - Hydrochlorothiazide 25mg,15,Pharmacy,FALSE
+Ibuprofen 200mg 2 TDS 5/7,Ibuprofen 200mg,30,Pharmacy,FALSE
+Methyldopa 250mg TDS 5/7,Methyldopa 250mg,15,Pharmacy,FALSE
+Promethazine HCL 25mg TDS 5/7,Promethazine hydrochloride 25mg,15,Pharmacy,FALSE
+Salbutamol 4mg TDS 5/7,Salbutamol 4mg,15,Pharmacy,FALSE

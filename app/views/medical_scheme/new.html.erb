@@ -1,0 +1,13 @@
+<script type="text/javascript">
+    tt_cancel_destination = "/medical_scheme_providers/<%= params[:medical_scheme_provider_id] %>"
+</script>
+
+<%= form_for :medical_scheme, :method => "POST" ,:url => "/medical_scheme_providers/#{params[:medical_scheme_provider_id]}/medical_scheme"  do |f| %>
+
+    <%= text_field_tag "medical_scheme[name]", nil,
+                       {:helptext => "Enter name of new medical scheme"}  %>
+
+    <%= hidden_field_tag "medical_scheme[medical_scheme_provider_id]", params[:medical_scheme_provider_id] %>
+    <%= hidden_field_tag "medical_scheme[creator]", current_user.id %>
+
+<% end %>

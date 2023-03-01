@@ -1,0 +1,27 @@
+<div class="section-header">
+  <%= @insurer.company_name%>
+</div>
+<div style="height: 70vh;">
+  <table class="dashboard-main" id="serviceTypes" >
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Created By</th>
+      <th>Status</th>
+    </tr>
+    </thead>
+    <tbody>
+    <% (@schemes|| []).each do |scheme| %>
+        <tr>
+          <td style="text-align: left;padding-left: 5px;"><%= scheme.name%></td>
+          <td><%= scheme.user_name rescue ''%></td>
+          <td><%= (scheme.retired ?  'Retired' : 'Active') %></td>
+        </tr>
+    <% end %>
+    </tbody>
+  </table>
+</div>
+<div class="footer">
+  <button class="green" style="float: right;" onmousedown="window.location='/medical_scheme_providers'">Finish</button>
+  <button style="float: right;" onmousedown="window.location='/medical_scheme_providers/<%= @insurer.id%>/medical_scheme/new'">Add New Scheme</button>
+</div>

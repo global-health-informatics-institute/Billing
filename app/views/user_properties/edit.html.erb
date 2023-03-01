@@ -1,0 +1,21 @@
+<%= form_for :user_properties, :method => "PATCH", :url => "/user_properties/#{current_user.id}" do |f|%>
+
+  <table>
+    <% if params[:property] == "preferred.keyboard" %>
+    <tr>
+      <td>
+        Keyboard Preference
+      </td>
+      <td>
+        <select name="preferred.keyboard" value="" helpText="Select keyboard preference">
+          <option></option>
+          <option value="abc" >ABC</option>
+          <option value="qwerty">QWERTY</option>
+        </select>
+      </td>
+    </tr>
+    <% end %>
+  </table>
+    <%= hidden_field_tag "property", params[:property] %>
+    <%= hidden_field_tag "user", current_user.id %>
+<% end %>
