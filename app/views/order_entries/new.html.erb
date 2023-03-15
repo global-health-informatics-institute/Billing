@@ -169,7 +169,7 @@
                    :id => "admission",
                    :helpText => "Select admission type" ,
                    :condition => "getSelected('order_categories').match(/Admission/i)",
-                   :multiple =>  true %>
+                   :multiple =>  false %>
 
     <%= text_field_tag "order_entry[admission][stay][quantity]", nil,
                        {:id => "addmission_stay",

@@ -13,6 +13,16 @@ class OrderEntriesController < ApplicationController
 
     patient = Patient.find(params[:order_entry][:patient_id])
     (params[:order_entry][:categories] || []).each do |category|
+
+      
+      if category.downcase == "admission"
+        OrderEntry.create(:patient_id => patient.id,:order_date => DateTime.current,
+                          :quantity => params[:order_entry][:admission][:stay][:quantity],
+                          :service_id => Service.find_by_name(params[:order_entry][:admission][:stay][:service]).id,
+                          :location =>params[:order_entry][:location],
+                          :service_point =>params[:order_entry][:location_name],
+                          :cashier => params[:creator])
+      end
 =begin
 
       if %w[admission consultation].include?(category.downcase)
