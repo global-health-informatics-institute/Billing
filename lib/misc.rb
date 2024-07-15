@@ -12,16 +12,17 @@ module Misc
       address += ", " + patient.current_residence unless patient.current_residence.blank?
     end
 
-    label = ZebraPrinter::Label.new(801,329,'026',false)
+    label = ZebraPrinter::Label.new(609,406,'026',false)
     label.font_size = 2
     label.font_horizontal_multiplier = 2
     label.font_vertical_multiplier = 2
-    label.left_margin = 50
-    label.draw_barcode(50,180,0,1,4,12,120,false,"#{patient.national_id}")
+    label.left_margin = 35
+    label.draw_barcode(35,180,0,1,3,9,80,false,"#{patient.national_id}")
     label.draw_multi_text("#{patient.full_name.titleize}")
-    label.draw_multi_text("#{dash_formatter(patient.national_id)} #{patient.presentable_dob}#{sex}")
+    label.draw_multi_text("#{patient.presentable_dob}#{sex}")
+    label.draw_multi_text("#{dash_formatter(patient.national_id)}")
     label.draw_multi_text("#{address}" ) unless address.blank?
-    label.draw_qr_barcode(600,60,'Q','m2','s5',"#{patient.full_name.titleize}~#{patient.national_id}~#{patient.dob}~#{sex}~#{address}")
+    label.draw_qr_barcode(500,60,'Q','m2','s5',"#{patient.full_name.titleize}~#{patient.national_id}~#{patient.dob}~#{sex}~#{address}")
     label.print(1)
   end
 
