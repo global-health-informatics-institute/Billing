@@ -198,30 +198,58 @@
   <button class="green" style="float: right;" onmousedown="window.location='/patients/search'">Find or Register Patient</button>
 </div>
 
+# <script type="text/javascript">
+#     function checkBarcode()
+#     {
+#         var barcodeTxt = document.getElementById("barcode");
+#         if (barcodeTxt.value.trim().match(/[A-Z0-9]+\$/)) {
+#             barcodeTxt.value = barcodeTxt.value.trim().replace(/\$/, "").replace(/\-/,"")
+#             window.location = "/patients/patient_by_id/"+barcodeTxt.value.trim();
+#         }
+#         else
+#         {
+#             initializeListener();
+#         }
+#     }
+
+#     function initializeListener()
+#     {
+#         document.getElementById("barcode").focus();
+#         timerHand = setTimeout(function () {
+#             checkBarcode();
+#         }, 3000);
+
+#     }
+
+#     setTimeout(initializeListener(), 3000);
+# </script>
+
 <script type="text/javascript">
     var timerHand;
 
-    function checkBarcode()
-    {
+    function checkBarcode() {
         var barcodeTxt = document.getElementById("barcode");
-        if (barcodeTxt.value.trim().match(/[A-Z0-9]+\$/)) {
-            barcodeTxt.value = barcodeTxt.value.trim().replace(/\$/, "").replace(/\-/,"")
-            window.location = "/patients/patient_by_id/"+barcodeTxt.value.trim();
-        }
-        else
-        {
-            initializeListener();
+        var barcodeValue = barcodeTxt.value.trim().replace(/\-/,"");
+
+        // Redirect if the barcode value is valid (e.g., not empty)
+        if (barcodeValue) {
+            window.location = "/patients/patient_by_id/" + barcodeValue;
         }
     }
 
-    function initializeListener()
-    {
-        document.getElementById("barcode").focus();
-        timerHand = setTimeout(function () {
-            checkBarcode();
-        }, 3000);
+    function initializeListener() {
+        var barcodeInput = document.getElementById("barcode");
+        barcodeInput.focus();
 
+        // Listen for user input
+        barcodeInput.addEventListener('keyup', function() {
+            clearTimeout(timerHand); // Clear previous timeout if user is still typing
+            timerHand = setTimeout(function () {
+                checkBarcode();
+            }, 5000); // Redirect after 5 seconds of no typing
+        });
     }
 
-    setTimeout(initializeListener(), 3000);
+    // Initialize the listener after 2 seconds
+    setTimeout(initializeListener, 2000);
 </script>

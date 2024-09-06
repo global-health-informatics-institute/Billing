@@ -116,7 +116,7 @@ div.tab-content.invisible{
 }
 div.header-cell{
     border: 3px outset blue;
-    box-shadow: 4px 4px grey;
+    box-shadow: 4px 4px rgb(250, 249, 249);
     display: table-cell;
     margin-left: 1vw;
     line-height: 2.5em;

@@ -22,7 +22,8 @@ class OrderEntriesController < ApplicationController
                           :location =>params[:order_entry][:location],
                           :service_point =>params[:order_entry][:location_name],
                           :cashier => params[:creator])
-      end
+  end
+
 =begin
 
       if %w[admission consultation].include?(category.downcase)

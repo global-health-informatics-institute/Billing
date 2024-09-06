@@ -407,9 +407,10 @@
   <button class="red" style="float: left;" onmousedown="voidSelected();">Void Entry</button>
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
   <button style="float: right;" onmousedown="window.location='/patients/<%= @patient.id%>/order_entries/new'">Add Transaction</button>
-  <%if  @amount_due > 0 %>
-    <button id="myBtn" style="float: right;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
-  <% end %>
+  <button id="myBtn" style="float: right;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
+  # <%if  @amount_due > 0 %>
+    
+  # <% end %>
 </div>
 
 <script>

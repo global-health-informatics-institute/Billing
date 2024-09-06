@@ -19,6 +19,13 @@ Rails.application.routes.draw do
   post "/main/census_report"
   get 'print_refund' => "deposits#print_refund"
 
+  # Route for handling general options page
+  #get 'order_entries/general_options', to: 'order_entries#general_options'
+
+  # Route for creating an order entry
+  #post 'order_entries', to: 'order_entries#create'
+  
+
   resources :patients do
     collection do
       get 'search'

@@ -123,6 +123,7 @@ module PatientsHelper
       end
       @total += record.full_price
       @amount_due += (record.full_price - record.amount_paid)
+      #@amount_due = @total
     end
 
     return [@unpaid_orders, @total, @amount_due]

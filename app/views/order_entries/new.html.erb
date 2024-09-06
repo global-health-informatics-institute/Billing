@@ -13,6 +13,13 @@
                    :condition => "getSelected('order_categories').match(/Consultation/i)",
                    :multiple =>  true %>
 
+    <%= select_tag 'order_entry[general][]',
+                   options_for_select(@categories['General'], nil),
+                   :id => "consultation",
+                   :helpText => "Select Options" ,
+                   :condition => "getSelected('order_categories').match(/General/i)",
+                   :multiple =>  false %>
+
     <%= select_tag 'order_entry[consultation][]',
                    options_for_select((entry_options('consultation') - @categories['Consultation']), nil),
                    :id => "other_consultations",

@@ -12,17 +12,17 @@ module Misc
       address += ", " + patient.current_residence unless patient.current_residence.blank?
     end
 
-    label = ZebraPrinter::Label.new(609,406,'026',false)
+    label = ZebraPrinter::Label.new(609,450,'026',false)
     label.font_size = 2
     label.font_horizontal_multiplier = 2
     label.font_vertical_multiplier = 2
-    label.left_margin = 35
-    label.draw_barcode(35,180,0,1,3,9,80,false,"#{patient.national_id}")
+    label.left_margin = 40
+    label.draw_barcode(40,180,0,1,3,9,80,false,"#{patient.national_id}")
     label.draw_multi_text("#{patient.full_name.titleize}")
     label.draw_multi_text("#{patient.presentable_dob}#{sex}")
     label.draw_multi_text("#{dash_formatter(patient.national_id)}")
     label.draw_multi_text("#{address}" ) unless address.blank?
-    label.draw_qr_barcode(500,60,'Q','m2','s5',"#{patient.full_name.titleize}~#{patient.national_id}~#{patient.dob}~#{sex}~#{address}")
+    label.draw_qr_barcode(440,60,'Q','m2','s5',"#{patient.full_name.titleize}~#{patient.national_id}~#{patient.dob}~#{sex}~#{address}")
     label.print(1)
   end
 
@@ -40,6 +40,7 @@ module Misc
 
     payments = receipt.order_payments
     patient_name = receipt.patient.full_name
+    patient_id = receipt.patient.national_id
     cashier = receipt.cashier.name
     receipt_number = receipt.receipt_number
     text = []
@@ -48,6 +49,7 @@ module Misc
     heading += "#{get_config('facility_address')}\n"
     heading += "Date: #{Date.current.strftime('%d %b %Y')}\n"
     heading += "Patient: #{patient_name.titleize}\n"
+    heading += "Patient ID: #{patient_id}\n"
     heading += "Issued By: #{cashier.titleize}\n"
     total = 0
     (payments || []).each do |payment|
