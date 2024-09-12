@@ -407,12 +407,11 @@
   <button class="red" style="float: left;" onmousedown="voidSelected();">Void Entry</button>
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
   <button style="float: right;" onmousedown="window.location='/patients/<%= @patient.id%>/order_entries/new'">Add Transaction</button>
-  <button id="myBtn" style="float: right;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
-  # <%if  @amount_due > 0 %>
-    
-  # <% end %>
+  
+  <%if  !@unpaid_orders.blank? %>
+    <button id="myBtn" style="float: right;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
+  <% end %>
 </div>
-
 <script>
     var bill = <%= @amount_due %>;
     var modal = document.getElementById('myModal');
