@@ -224,32 +224,99 @@
 #     setTimeout(initializeListener(), 3000);
 # </script>
 
+
+
+
+# <script type="text/javascript">
+#     var timerHand;
+
+#     function checkBarcode() {
+#         var barcodeTxt = document.getElementById("barcode");
+#         var barcodeValue = barcodeTxt.value.trim().replace(/\-/,"");
+
+#         // Redirect if the barcode value is valid (e.g., not empty)
+#         if (barcodeValue) {
+#             window.location = "/patients/patient_by_id/" + barcodeValue;
+#         }
+#     }
+
+#     function initializeListener() {
+#         var barcodeInput = document.getElementById("barcode");
+#         barcodeInput.focus();
+
+#         // Listen for user input
+#         barcodeInput.addEventListener('keyup', function() {
+#             clearTimeout(timerHand); // Clear previous timeout if user is still typing
+#             timerHand = setTimeout(function () {
+#                 checkBarcode();
+#             }, 5000); // Redirect after 5 seconds of no typing
+#         });
+#     }
+
+#     // Initialize the listener after 2 seconds
+#     setTimeout(initializeListener, 2000);
+# </script>
+
+# <script>
+#   var previousBarcodeLength = 0;  // To track the length of the barcode from the previous check
+
+#   function checkBarcode() {
+#     var barcodeTxt = document.getElementById("barcode");
+
+#     // Get the current trimmed barcode length
+#     var currentBarcodeLength = barcodeTxt.value.trim().length;
+
+#     // Check if the barcode length hasnt changed since the last check
+#     if (currentBarcodeLength > 1 && currentBarcodeLength == previousBarcodeLength) {
+#       // Clean up the barcode text
+#       barcodeTxt.value = barcodeTxt.value.trim().replace(/\$/g, "").replace(/\-/g, "");
+
+#       // Check if barcode has a valid length (in this case, >= 11 characters)
+#       if (barcodeTxt.value.toUpperCase().length >= 5) {
+#         // Redirect if the barcode value is valid
+#         window.location = "/patients/patient_by_id/" + barcodeTxt.value;
+#       } else {
+#         initializeListener();
+#       }
+#     } else {
+#       initializeListener();
+#     }
+
+#     // Update the previous barcode length for the next check
+#     previousBarcodeLength = currentBarcodeLength;
+#   }
+# </script>
+
 <script type="text/javascript">
     var timerHand;
+    var lastLength = 0;  // Track the last length of the barcode input
 
-    function checkBarcode() {
-        var barcodeTxt = document.getElementById("barcode");
-        var barcodeValue = barcodeTxt.value.trim().replace(/\-/,"");
+    function checkBarcode()
+    {
+        var barcode = document.getElementById("barcode").value.trim().replace(/\$/, "").replace(/\-/,"");
+        var currentLength = barcode.length;
 
-        // Redirect if the barcode value is valid (e.g., not empty)
-        if (barcodeValue) {
-            window.location = "/patients/patient_by_id/" + barcodeValue;
+        if (currentLength === lastLength) {
+            if (currentLength >= 12) {
+                window.location = "/patients/patient_by_id/" + barcode;
+            } else {
+                initializeListener();
+            }
+        } else {
+            lastLength = currentLength;  // Update the length to the current one
+            initializeListener();
         }
     }
 
-    function initializeListener() {
-        var barcodeInput = document.getElementById("barcode");
-        barcodeInput.focus();
-
-        // Listen for user input
-        barcodeInput.addEventListener('keyup', function() {
-            clearTimeout(timerHand); // Clear previous timeout if user is still typing
-            timerHand = setTimeout(function () {
-                checkBarcode();
-            }, 5000); // Redirect after 5 seconds of no typing
-        });
+    function initializeListener()
+    {
+        document.getElementById("barcode").focus();
+        clearTimeout(timerHand);  // Clear any existing timeout
+        timerHand = setTimeout(checkBarcode, 1500);  // Set a new timeout to check the barcode
     }
 
-    // Initialize the listener after 2 seconds
-    setTimeout(initializeListener, 2000);
+    // Start the initialization process
+    setTimeout(initializeListener, 3000);
 </script>
+
+
