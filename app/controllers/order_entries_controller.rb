@@ -4,8 +4,8 @@ class OrderEntriesController < ApplicationController
   end
 
   def new
-    @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.top_ten_services + ['Others'])]}.flatten(1)]
-
+    @categories = Hash[*ServiceType.select(:name,:service_type_id).where(service_type_id: 13).collect{|x|[x.name,(x.top_ten_services + ['Others'])]}.flatten(1)]
+    # @categories = ServiceType.find(13)
     render :layout => 'touch'
   end
 

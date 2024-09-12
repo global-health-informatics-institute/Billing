@@ -4,9 +4,9 @@
                    options_for_select(@categories.keys, nil),
                    :id => "order_categories",
                    :helpText => "Select service" ,
-                   :multiple =>  true %>
+                   :multiple =>  false %>
 
-    <%= select_tag 'order_entry[consultation][]',
+    <%#= select_tag 'order_entry[consultation][]',
                    options_for_select(@categories['Consultation'], nil),
                    :id => "consultation",
                    :helpText => "Select consultation type" ,
@@ -20,14 +20,14 @@
                    :condition => "getSelected('order_categories').match(/General/i)",
                    :multiple =>  false %>
 
-    <%= select_tag 'order_entry[consultation][]',
+    <%#= select_tag 'order_entry[consultation][]',
                    options_for_select((entry_options('consultation') - @categories['Consultation']), nil),
                    :id => "other_consultations",
                    :helpText => "Select consultation type" ,
                    :condition => "getSelected('consultation').match(/OTHERS/i)",
                    :multiple =>  true %>
 
-    <%= select_tag 'order_entry[radiology][]',
+    <%#= select_tag 'order_entry[radiology][]',
                    options_for_select(@categories['Radiology'], nil),
                    :id => "radiology",
                    :helpText => "Select radiological test(s) to be performed" ,
@@ -35,7 +35,7 @@
                    :multiple =>  true %>
 
 
-    <%= text_field_tag "order_entry[radiology][]", nil,
+    <%# text_field_tag "order_entry[radiology][]", nil,
                        {:id => "additional_rad_0",
                         :ajaxURL => "",
                         :optional => true,
@@ -44,7 +44,7 @@
                         :tt_onLoad => "set_ajaxURL_for_suggestions('/services/suggestions?category=', 'radiology'); ",
                         :helptext => "Additional radiology test"}  %>
 
-    <%= text_field_tag "order_entry[radiology][]", nil,
+    <%#= text_field_tag "order_entry[radiology][]", nil,
                        {:id => "additional_rad_1",
                         :ajaxURL => "",
                         :optional => true,
@@ -53,14 +53,14 @@
                         :tt_onLoad => "set_ajaxURL_for_suggestions('/services/suggestions?category=', 'radiology'); ",
                         :helptext => "Second additional radiology test"}  %>
 
-    <%= select_tag 'order_entry[panels][pharmacy][]',
+    <%#= select_tag 'order_entry[panels][pharmacy][]',
                    options_for_select(panel_options('pharmacy'), nil),
                    :id => "pharmacy_panels",
                    :helpText => "Select from common regimen" ,
                    :condition => "getSelected('order_categories').match(/PHARMACY/i)",
                    :multiple =>  true %>
 
-    <%= text_field_tag "order_entry[pharmacy][order0][service]", nil,
+    <%#= text_field_tag "order_entry[pharmacy][order0][service]", nil,
                        {:id => "additional_prescription_0",
                         :ajaxURL => "",
                         :allowFreeText => false,
@@ -68,7 +68,7 @@
                         :tt_onLoad => "set_ajaxURL_for_suggestions('/services/suggestions?category=', 'pharmacy'); ",
                         :helptext => "Additional prescription"}  %>
 
-    <%= text_field_tag "order_entry[pharmacy][order0][quantity]", nil,
+    <%#= text_field_tag "order_entry[pharmacy][order0][quantity]", nil,
                        {:id => "additional_prescription_0_quantity",
                         :ajaxURL => "",
                         :field_type => "number",
@@ -145,7 +145,7 @@
 
     <% end %>
 
-    <%= select_tag 'order_entry[laboratory][]',
+    <%#= select_tag 'order_entry[laboratory][]',
                    options_for_select(@categories['Laboratory'], nil),
                    :id => "lab_orders",
                    :helpText => "Select laboratory test to be performed" ,
@@ -193,7 +193,7 @@
                    :condition => "getSelected('order_categories').match(/Documentation/i)",
                    :multiple =>  true %>
 
-    <%= select_tag 'order_entry[dental][]',
+    <%#= select_tag 'order_entry[dental][]',
                    options_for_select(@categories['Dental'], nil),
                    :id => "dental_procedures",
                    :helpText => "Select dental service offered" ,
@@ -218,7 +218,7 @@
                         :tt_onLoad => "set_ajaxURL_for_suggestions('/services/suggestions?category=', 'dental'); ",
                         :helptext => "Second additional dental procedure"}  %>
 
-    <%= select_tag 'order_entry[surgery][]',
+    <%#= select_tag 'order_entry[surgery][]',
                    options_for_select(@categories['Surgery'], nil),
                    :id => "surgery",
                    :helpText => "Select surgical procedures" ,
@@ -250,7 +250,7 @@
                    :condition => "getSelected('order_categories').match(/MORTUARY/i)",
                    :multiple =>  true %>
 
-    <%= select_tag 'order_entry[maternity][]',
+    <%#= select_tag 'order_entry[maternity][]',
                    options_for_select(@categories['Maternity'], nil),
                    :id => "maternity",
                    :helpText => "Select maternity service(s)" ,
@@ -275,7 +275,7 @@
                         :tt_onLoad => "set_ajaxURL_for_suggestions('/services/suggestions?category=', 'maternity'); ",
                         :helptext => "Second additional maternity service"}  %>
 
-    <%= select_tag 'order_entry[ophthalmology][]',
+    <%#= select_tag 'order_entry[ophthalmology][]',
                    options_for_select(@categories['Ophthalmology'], nil),
                    :id => "ophthalmology",
                    :helpText => "Select eye service accessed" ,

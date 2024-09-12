@@ -557,9 +557,8 @@ class PatientsController < ApplicationController
                                        as amount from order_payments group by order_entry_id) as payments on 
                                        order_entries.order_entry_id = payments.order_entry_id where amount != full_price 
                                        or amount is NULL AND patient_id = '#{@patient.id}';")
-    past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,
-                                    :order_date).where("patient_id = ? and order_date < ?",
-                                                       @patient.id, Date.current.beginning_of_day)
+    past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
+                            .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 
     today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND payment_stamp BETWEEN ? AND ?",
                                                            @patient.id,range.first, range.last)
