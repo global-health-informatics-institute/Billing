@@ -556,7 +556,7 @@ class PatientsController < ApplicationController
     unpaid_orders = OrderEntry.find_by_sql("select * from order_entries left join (select order_entry_id, sum(amount)
                                        as amount from order_payments group by order_entry_id) as payments on 
                                        order_entries.order_entry_id = payments.order_entry_id where amount != full_price 
-                                       or amount is NULL AND patient_id = '#{@patient.id}' AND order_entries.created_at >= '#{Date.current.beginning_of_day}';")
+                                       or amount is NULL AND patient_id = '#{@patient.id}';")
     past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
                             .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 

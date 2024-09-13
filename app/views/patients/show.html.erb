@@ -512,24 +512,28 @@
         return choices;
     }
 
-    function voidPayments()
-    {
-        var choices = [];
-        var transactions = document.getElementsByClassName('custom-checkbox delete');
-
-        for(var o = 0; o < transactions.length; o++){
-            if(transactions[o].checked == true){
-                choices.push(transactions[o].getAttribute('data-id'));
-            }
-        }
-        if(choices.length > 0)
-        {
-            confirmAction('/order_payments/void', 'FORM')
-            document.getElementById("void_ids").value = choices.join(',');
-        }
-
-        return choices;
-    }
+    function voidPayments() {
+      var choices = [];
+      var transactions = document.getElementsByClassName('custom-checkbox delete');
+  
+      for(var o = 0; o < transactions.length; o++){
+          if(transactions[o].checked == true){
+              choices.push(transactions[o].getAttribute('data-id'));
+          }
+      }
+      console.log("Selected IDs: ", choices); // Print the choices array to console
+  
+      if(choices.length > 0) {
+          // Log the IDs before sending
+          console.log("Sending void_ids: ", choices.join(','));
+          
+          confirmAction('/order_payments/void', 'FORM');
+          document.getElementById("void_ids").value = choices.join(',');
+      }
+  
+      return choices;
+  }
+  
 
     function voidSelected()
     {

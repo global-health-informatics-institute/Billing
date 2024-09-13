@@ -35,9 +35,9 @@ module Misc
     end
   end
 
-  def self.print_receipt(ids,deposit = 0, change = 0)
+  def self.print_receipt(ids, deposit = 0, change = 0)
     receipt = Receipt.where(receipt_number: ids).first
-
+  
     payments = receipt.order_payments
     patient_name = receipt.patient.full_name
     patient_id = receipt.patient.national_id
@@ -51,12 +51,15 @@ module Misc
     heading += "Patient: #{patient_name.titleize}\n"
     heading += "Patient ID: #{patient_id}\n"
     heading += "Issued By: #{cashier.titleize}\n"
+    
+    # Initialize total and add last payment details
     total = 0
-    (payments || []).each do |payment|
-      text << [payment.service.name, local_currency(payment.amount)]
-      total += payment.amount
+    if payments.any?
+      last_payment = payments.last
+      text << [last_payment.service.name, local_currency(last_payment.amount)]
+      total = last_payment.amount
     end
-
+  
     label = ZebraPrinter::Label.new(616,203,'056',true)
     label.font_size = 3
     label.font_horizontal_multiplier = 1
@@ -67,19 +70,22 @@ module Misc
     label.draw_multi_text(heading)
     label.draw_line(label.x,label.y,566,2)
     label.y+=10
+  
+    # Display only the last payment's details
     label.draw_table(text, [[370, "left"], [200, "right"]])
     label.draw_line(label.x,label.y,566,2)
     label.y+=10
     label.draw_table([['Total: ',local_currency(total)]], [[370, "left"], [200, "right"]])
-    if (deposit > 0 )
+    
+    if deposit > 0
       label.draw_table([['Deposit: ',local_currency((-1 * deposit))]], [[370, "left"], [200, "right"]])
     end
-    label.draw_table([['Cash: ',local_currency((total+change))]], [[370, "left"], [200, "right"]])
+    label.draw_table([['Cash: ',local_currency((total + change))]], [[370, "left"], [200, "right"]])
     label.draw_table([['Change: ',local_currency(change)]], [[370, "left"], [200, "right"]])
     label.draw_line(label.x,label.y,566,7,1)
     label.print(1)
   end
-
+  
   def self.get_config(prop)
     YAML.load_file("#{Rails.root}/config/application.yml")[prop]
   end
