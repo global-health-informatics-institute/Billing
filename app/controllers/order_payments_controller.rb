@@ -66,7 +66,7 @@ class OrderPaymentsController < ApplicationController
 
         #Print receipt of transaction
         print_and_redirect("/order_payments/print_receipt?deposit=#{deposit_used}&change=#{amount}&ids=#{new_receipt.receipt_number}",
-                           "/patients/#{params[:order_payment][:patient_id]}")
+                           "/patients/#{params[:order_payment][:patient_id]}","Printing Receipt ...")
       end
 
     else

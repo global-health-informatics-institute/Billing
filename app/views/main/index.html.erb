@@ -200,16 +200,21 @@
 
 <script type="text/javascript">
     var timerHand;
+    var lastLength = 0;  // Track the last length of the barcode input
 
     function checkBarcode()
     {
-        var barcodeTxt = document.getElementById("barcode");
-        if (barcodeTxt.value.trim().match(/[A-Z0-9]+\$/)) {
-            barcodeTxt.value = barcodeTxt.value.trim().replace(/\$/, "").replace(/\-/,"")
-            window.location = "/patients/patient_by_id/"+barcodeTxt.value.trim();
-        }
-        else
-        {
+        var barcode = document.getElementById("barcode").value.trim().replace(/\$/, "").replace(/\-/,"");
+        var currentLength = barcode.length;
+
+        if (currentLength === lastLength) {
+            if (currentLength >= 12) {
+                window.location = "/patients/patient_by_id/" + barcode;
+            } else {
+                initializeListener();
+            }
+        } else {
+            lastLength = currentLength;  // Update the length to the current one
             initializeListener();
         }
     }
@@ -217,11 +222,10 @@
     function initializeListener()
     {
         document.getElementById("barcode").focus();
-        timerHand = setTimeout(function () {
-            checkBarcode();
-        }, 3000);
-
+        clearTimeout(timerHand);  // Clear any existing timeout
+        timerHand = setTimeout(checkBarcode, 1500);  // Set a new timeout to check the barcode
     }
 
-    setTimeout(initializeListener(), 3000);
+    // Start the initialization process
+    setTimeout(initializeListener, 3000);
 </script>

@@ -3,7 +3,7 @@ class ApplicationController < ActionController::Base
   before_action :authenticate, :except => %w[login create_session]
   helper_method :current_user, :current_location
 
-  def print_and_redirect(print_url, redirect_url, message = "Printing label ...", show_next_button = false, patient_id = nil)
+  def print_and_redirect(print_url, redirect_url, message = "Printing Patient ID...", show_next_button = false, patient_id = nil)
     #Function handles redirects when printing labels
     @print_url = print_url
     @redirect_url = redirect_url

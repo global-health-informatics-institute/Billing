@@ -84,7 +84,7 @@
               <td>&nbsp;</td>
               <th>&nbsp;</th>
             </tr>
-            <% if @patient.health_insurance != 'None'%>
+            <% if @patient.health_insurance == 'None'%>
             <tr>
               <th style="text-align: left;">
                 <input type="radio" class="custom-radio" name="paymentMode"
