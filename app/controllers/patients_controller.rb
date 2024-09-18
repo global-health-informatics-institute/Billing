@@ -548,7 +548,6 @@ class PatientsController < ApplicationController
   def show
 
     @patient = Patient.find(params[:id])
-
     range = Date.current.beginning_of_day..Date.current.end_of_day
 
     # unpaid_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity,:amount_paid,
@@ -717,11 +716,9 @@ class PatientsController < ApplicationController
 
     use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
     json = JSON.parse(params["person"]) rescue {}
-
     if (json["patient"]["identifiers"].class.to_s.downcase == "hash" rescue false)
 
       tmp = json["patient"]["identifiers"]
-
       json["patient"]["identifiers"] = []
 
       (tmp || []).each do |key, value|
@@ -772,7 +769,7 @@ class PatientsController < ApplicationController
         (json["person_attributes"] || []).each do |attribute, value|
 
           next if value.blank?
-
+          # raise attribute.inspect
           new_person.person_attributes.create(:person_attribute_type_id => PersonAttributeType.find_by_name(attribute).person_attribute_type_id,
                                               :value => value)
 
