@@ -4,8 +4,9 @@ class OrderEntriesController < ApplicationController
   end
 
   def new
-    @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.top_ten_services + ['Others'])]}.flatten(1)]
-
+    @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.top_ten_services)]}.flatten(1)]
+    # @categories = Service.select(:name, :service_type_id).collect{|x| [x.name,x.id]}
+    # raise @categories.inspect
     render :layout => 'touch'
   end
 
@@ -97,7 +98,8 @@ class OrderEntriesController < ApplicationController
   end
 
   def void
-    entries = OrderEntry.where(order_entry_id: params[:void_ids].split(','))
+    # entries = TestJoin.where(order_entry_id: params[:void_ids].split(','))
+    entries = OrderEntry.find(params[:void_ids].split(','))
     (entries || []).each do |entry|
       entry.void(params[:void_reason], current_user.id)
     end
