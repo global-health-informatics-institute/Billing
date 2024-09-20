@@ -295,7 +295,7 @@ display: none !important;
                         :tt_onLoad => "$('nextButton').style.display = 'block'; ",
                         :helptext => "Current District"} if !@show_current_district %>
 
-    <%= text_field_tag "CURRENT AREA OR T/A", nil,
+    <%#= text_field_tag "CURRENT AREA OR T/A", nil,
                        {:id => "current_area_of_residence",
                         :tt_requireNextClick => true,
                         :ajaxURL => "",
@@ -303,7 +303,7 @@ display: none !important;
                         :tt_onLoad => "$('nextButton').style.display = 'block'; ",
                         :helptext => "Current Area Of Residence"} if !@show_current_t_a %>
 
-    <%#= text_field_tag "person[addresses][city_village]", nil,
+    <%= text_field_tag "person[addresses][city_village]", nil,
                        {:id => "current_location_or_village",
                         :tt_requireNextClick => true,
                         :ajaxURL => "",

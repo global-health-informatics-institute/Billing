@@ -4,14 +4,26 @@ class OrderEntriesController < ApplicationController
   end
 
   def new
-    @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.top_ten_services)]}.flatten(1)]
+    patient = Patient.find(params[:patient_id])
+    dob = Person.select(:birthdate).where(person_id: patient.id).collect{|x| x.birthdate}.first
+    gender = Person.select(:gender).where(person_id: patient.id).collect{|x| x.gender}.first
+    age = Date.today.year - dob.year
+    # raise age.inspect
+    if age < 5
+      @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.child)]}.flatten(1)]
+    elsif age >= 5 && gender == 'M'
+      @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.male)]}.flatten(1)]
+    else
+      @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.female)]}.flatten(1)]
+    end
+    # @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.top_ten_services)]}.flatten(1)]
     # @categories = Service.select(:name, :service_type_id).collect{|x| [x.name,x.id]}
     # raise @categories.inspect
     render :layout => 'touch'
   end
 
   def create
-
+    # raise params.inspect
     patient = Patient.find(params[:order_entry][:patient_id])
     (params[:order_entry][:categories] || []).each do |category|
 
