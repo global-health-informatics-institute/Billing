@@ -5,24 +5,25 @@ module Misc
     return unless patient.national_id
     sex =  "(#{patient.gender.upcase})"
 
-    address = patient.current_district rescue ""
-    if address.blank?
-      address = patient.current_residence rescue ""
-    else
-      address += ", " + patient.current_residence unless patient.current_residence.blank?
-    end
+    district = patient.current_district rescue ""
+    # if address.blank?
+    residence = patient.current_residence rescue ""
+    # else
+    #   address += ", " + patient.current_residence unless patient.current_residence.blank?
+    # end
 
     label = ZebraPrinter::Label.new(609,450,'026',false)
     label.font_size = 2
     label.font_horizontal_multiplier = 2
     label.font_vertical_multiplier = 2
-    label.left_margin = 40
-    label.draw_barcode(40,180,0,1,3,9,80,false,"#{patient.national_id}")
+    label.left_margin = 50
+    label.draw_barcode(label.left_margin,260,0,1,3,9,80,false,"#{patient.national_id}")
     label.draw_multi_text("#{patient.full_name.titleize}")
     label.draw_multi_text("#{patient.presentable_dob}#{sex}")
     label.draw_multi_text("#{dash_formatter(patient.national_id)}")
-    label.draw_multi_text("#{address}" ) unless address.blank?
-    label.draw_qr_barcode(440,60,'Q','m2','s5',"#{patient.full_name.titleize}~#{patient.national_id}~#{patient.dob}~#{sex}~#{address}")
+    label.draw_multi_text("#{district}" ) unless district.blank?
+    label.draw_multi_text("#{residence}" ) unless residence.blank?
+    label.draw_qr_barcode(440,90,'Q','m2','s5',"#{patient.full_name.titleize}~#{patient.national_id}~#{patient.dob}~#{sex}~#{district}~#{residence}")
     label.print(1)
   end
 

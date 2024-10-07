@@ -27,7 +27,7 @@ module ZebraPrinter #:nodoc:
       @gap = gap || '026'
       @orientation = orientation || 'T'
       @number_of_labels = number_of_labels || nil
-      @left_margin = 30
+      @left_margin = 50
       @right_margin = 25
       @top_margin = 30
       @bottom_margin = 26

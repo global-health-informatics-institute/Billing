@@ -235,6 +235,7 @@
       <tbody>
       <% (@today_payments.keys || []).each do |receipt_number| %>
           <% entries =  @today_payments[receipt_number]["details"].length%>
+          <%# raise @today_payments[receipt_number]["details"].inspect %>
           <% (@today_payments[receipt_number]["details"] || []).each do |order| %>
               <tr>
                 <th style="padding: 0px;">
