@@ -52,7 +52,7 @@ module Misc
     heading += "Patient ID: #{patient_id}\n"
     heading += "Issued By: #{cashier.titleize}\n"
     
-    # Initialize total and add last payment details
+    #add last payment details
     total = 0
     if payments.any?
       last_payment = payments.last
