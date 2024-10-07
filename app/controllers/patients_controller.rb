@@ -48,7 +48,19 @@ class PatientsController < ApplicationController
   end
 
   def new
+    #@districts = Hash[*District.select(:name,:district_id).collect{|x|[x.name,(x.collected_villages)]}.flatten(1)]
+    #@districts = District.all.collect{|x|  x.name}
+    # raise params[:selected_district].inspect
+    selected_district_id = params[:selected_district]
+    @districts = VillageInfo.order(:district_id).collect { |x| x.district_name }.uniq
+    # raise params[:selected_district].inspect
 
+    #raise @districts.inspect
+    @trad_authorities = VillageInfo.all.collect{|x| x.traditional_authority_name}.uniq
+    # raise @trad_authorities.inspect
+    @villages = VillageInfo.all.collect{|x| x.village_name}.uniq
+     #raise @villages.inspect
+    
     settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
 
     @show_middle_name = (settings["show_middle_name"] == true ? true : false) rescue false
@@ -559,8 +571,8 @@ class PatientsController < ApplicationController
     past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
                             .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 
-    today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND payment_stamp BETWEEN ? AND ?",
-                                                           @patient.id,range.first, range.last)
+    today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND DATE(created_at) = CURDATE()",
+                                                           @patient.id)
 
 
     @unpaid_orders, @total, @amount_due = view_context.unpaid_records(unpaid_orders)
@@ -971,6 +983,26 @@ class PatientsController < ApplicationController
     render :text => districts.join('') + "<li value='Other'>Other</li>" and return
   end
 
+
+  # def district
+  #   @districts = District.all.collect{|x| [x.district_id, x.name]}
+  #   raise @districts.inspect
+  #   region = Region.find_by_name(params[:filter_value])
+  
+  #   if region
+  #     # Query for districts based on the search_string and region_id
+  #     districts = District.where("name LIKE ? AND region_id = ?", " #{params[:search_string]}%", region.id).order('name')
+  
+  #     # Return an array of district names
+  #     district_names = districts.pluck(:name)  # Get an array of district names
+  #     district_names << 'Other'  # Add 'Other' as a suggestion
+  #     render json: district_names  # Respond with the array as JSON
+  #   else
+  #     render json: ['Other']  # If no region is found, return only 'Other'
+  #   end
+  # end
+  
+
   # List traditional authority containing the string given in params[:value]
   def traditional_authority
     district_id = District.find_by_name("#{params[:filter_value]}").id
@@ -985,14 +1017,14 @@ class PatientsController < ApplicationController
 
   # Villages containing the string given in params[:value]
   def village
-    traditional_authority_id = TraditionalAuthority.find_by_name("#{params[:filter_value]}").id
-    village_conditions = ["name LIKE (?) AND traditional_authority_id = ?", "%#{params[:search_string]}%", traditional_authority_id]
+  district_id = params[:district_id]
+  villages = Village.joins(:traditional_authority).where(traditional_authorities: { district_id: district_id })
 
     villages = Village.all.where(village_conditions).order('name')
     villages = villages.map do |v|
       "<li value=\"#{v.name}\">#{v.name}</li>"
     end
-    render :text => villages.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => villages.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Landmark containing the string given in params[:value]

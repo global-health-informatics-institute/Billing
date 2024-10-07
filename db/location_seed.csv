@@ -1,0 +1,4 @@
+name,description,address1,address2,city_village,state_province,postal_code,country,latitude,longitude,creator,county_district,neighborhood_cell,region,subregion,township_division,retired,retired_by,date_retired,retire_reason,location_type_id,parent_location,uuid
+Reception,Reception,,,,,,,,,1,,,,,,0,,,,,,
+Labour Ward,Ward,,,,,,,,,1,,,,,,0,,,,,,
+Consultation,Consultation,,,,,,,,,1,,,,,,0,,,,,,
