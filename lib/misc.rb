@@ -20,7 +20,7 @@ module Misc
     label.draw_barcode(label.left_margin,260,0,1,3,9,80,false,"#{patient.national_id}")
     label.draw_multi_text("#{patient.full_name.titleize}")
     label.draw_multi_text("#{patient.presentable_dob}#{sex}")
-    label.draw_multi_text("#{dash_formatter(patient.national_id)}")
+    label.draw_multi_text("#{patient.national_id}")
     label.draw_multi_text("#{district}" ) unless district.blank?
     label.draw_multi_text("#{residence}" ) unless residence.blank?
     label.draw_qr_barcode(440,90,'Q','m2','s5',"#{patient.full_name.titleize}~#{patient.national_id}~#{patient.dob}~#{sex}~#{district}~#{residence}")
@@ -61,29 +61,33 @@ module Misc
       total = last_payment.amount
     end
   
-    label = ZebraPrinter::Label.new(616,203,'056',true)
+    label = ZebraPrinter::Label.new(650,203,'056',true)
     label.font_size = 3
     label.font_horizontal_multiplier = 1
     label.font_vertical_multiplier = 1
-    label.draw_text("Receipt",250,0,0,2,1,2,false)
-    label.draw_text(receipt_number,450,0,0,3,1,1,false)
-    label.y+=10
+
+    y_offset = 100
+    label.draw_text("Receipt",250,y_offset,0,2,1,2,false)
+    label.draw_text(receipt_number,450,y_offset,0,3,1,1,false)
+    label.y+=10 + y_offset 
     label.draw_multi_text(heading)
     label.draw_line(label.x,label.y,566,2)
     label.y+=10
   
     # Display only the last payment's details
-    label.draw_table(text, [[370, "left"], [200, "right"]])
+    label.draw_table(text, [[350, "left"], [200, "right"]])
     label.draw_line(label.x,label.y,566,2)
     label.y+=10
-    label.draw_table([['Total: ',local_currency(total)]], [[370, "left"], [200, "right"]])
+    label.draw_table([['Total: ',local_currency(total)]], [[350, "left"], [200, "right"]])
     
     if deposit > 0
-      label.draw_table([['Deposit: ',local_currency((-1 * deposit))]], [[370, "left"], [200, "right"]])
+      label.draw_table([['Deposit: ',local_currency((-1 * deposit))]], [[350, "left"], [200, "right"]])
     end
-    label.draw_table([['Cash: ',local_currency((total + change))]], [[370, "left"], [200, "right"]])
-    label.draw_table([['Change: ',local_currency(change)]], [[370, "left"], [200, "right"]])
+    label.draw_table([['Cash: ',local_currency((total + change))]], [[350, "left"], [200, "right"]])
+    label.draw_table([['Change: ',local_currency(change)]], [[350, "left"], [200, "right"]])
     label.draw_line(label.x,label.y,566,7,1)
+    
+  
     label.print(1)
   end
   

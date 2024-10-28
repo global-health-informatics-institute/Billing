@@ -48,18 +48,12 @@ class PatientsController < ApplicationController
   end
 
   def new
-    #@districts = Hash[*District.select(:name,:district_id).collect{|x|[x.name,(x.collected_villages)]}.flatten(1)]
-    #@districts = District.all.collect{|x|  x.name}
-    # raise params[:selected_district].inspect
-    selected_district_id = params[:selected_district]
-    @districts = VillageInfo.order(:district_id).collect { |x| x.district_name }.uniq
-    # raise params[:selected_district].inspect
-
-    #raise @districts.inspect
-    @trad_authorities = VillageInfo.all.collect{|x| x.traditional_authority_name}.uniq
-    # raise @trad_authorities.inspect
-    @villages = VillageInfo.all.collect{|x| x.village_name}.uniq
-     #raise @villages.inspect
+    
+    @districts = District.where(region_id: 1).pluck(:name)
+    @trad_authorities = TraditionalAuthority.where(district_id: [2, 8, 12, 16, 18, 28, 25, 20, 23, 6]).pluck(:name).uniq
+    trad = TraditionalAuthority.find_by_sql("select * from traditional_authority where district_id IN (2, 8, 12, 16, 18, 28, 25, 20, 23, 6);")
+                               .collect{|x| x.traditional_authority_id}
+    @villages = Village.where("traditional_authority_id in (?)", trad).collect{|x| x.name}.uniq
     
     settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
 
@@ -799,15 +793,15 @@ class PatientsController < ApplicationController
         if patient.patient_identifiers.blank?
           health_center_id = Location.current_health_center.location_id
           national_id_version = "1"
-          national_id_prefix = "P#{national_id_version}#{health_center_id.to_s.rjust(3,"0")}"
-
+          # national_id_prefix = "PT#{national_id_version}#{health_center_id.to_s.rjust(3,"0")}"
+          national_id_prefix = "PT"
           identifier_type = PatientIdentifierType.find_by_name("National ID")
-          last_national_id = PatientIdentifier.where("identifier_type = ? AND left(identifier,5)= ?", identifier_type.id, national_id_prefix).order("identifier desc").first
+          last_national_id = PatientIdentifier.where("identifier_type = ? AND left(identifier,2)= ?", identifier_type.id, national_id_prefix).order("identifier desc").first
           last_national_id_number = last_national_id.identifier rescue "0"
 
-          next_number = (last_national_id_number[5..-2].to_i+1).to_s.rjust(7,"0")
+          next_number = (last_national_id_number[2..6].to_i+1).to_s.rjust(5,"0")
           new_national_id_no_check_digit = "#{national_id_prefix}#{next_number}"
-          check_digit = PatientIdentifier.calculate_checkdigit(new_national_id_no_check_digit[1..-1])
+          check_digit = PatientIdentifier.calculate_checkdigit(new_national_id_no_check_digit[2..-1])
           new_national_id = "#{new_national_id_no_check_digit}#{check_digit}"
           patient_identifier = PatientIdentifier.new
           patient_identifier.type = identifier_type

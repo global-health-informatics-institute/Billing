@@ -10,13 +10,14 @@ class PatientIdentifierType < ActiveRecord::Base
       when "National id"
         unless use_moh_national_id
           health_center_id = Location.current_health_center.location_id
-          national_id_version = "1"
-          national_id_prefix = "P#{national_id_version}#{health_center_id.rjust(3,"0")}"
+          national_id_version = "T"
+          national_id_prefix = "PT#{national_id_version}#{health_center_id.rjust(2,"0")}"
+          raise national_id_prefix.inspect
 
           last_national_id = PatientIdentifier.first.where("identifier_type = ? AND left(identifier,5)= ?", self.patient_identifier_type_id, national_id_prefix).order("identifier desc")
           last_national_id_number = last_national_id.identifier rescue "0"
 
-          next_number = (last_national_id_number[5..-2].to_i+1).to_s.rjust(7,"0")
+          next_number = (last_national_id_number[5..-2].to_i+1).to_s.rjust(5,"0")
           new_national_id_no_check_digit = "#{national_id_prefix}#{next_number}"
           check_digit = PatientIdentifier.calculate_checkdigit(new_national_id_no_check_digit[1..-1])
           new_national_id = "#{new_national_id_no_check_digit}#{check_digit}"

@@ -351,10 +351,17 @@
         New Person
       </button>
 
+      <button onclick="window.history.back()" class='button_blue' style='float: right;'>
+        Back
+      </button>
+
   <% elsif !params[:person].blank? %>
 
       <button id="btnAdd" class='button_blue' style='float: right; margin-right: 20px;' onclick=" ajaxProcessRequest('create')">
         New Person
+      </button>
+      <button onclick="window.history.back()" class='button_blue' style='float: right;'>
+        Back
       </button>
 
   <% end %>
