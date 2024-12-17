@@ -11,10 +11,10 @@ class ServiceType < ActiveRecord::Base
     self.services.select(:name).where(service_id: 3).collect{|x| x.name}
   end
   def male
-    self.services.select(:name).where(service_id: 1).collect{|x| x.name}
+    self.services.select(:name).where(service_id: [1,6]).collect{|x| x.name}
   end
   def female
-    self.services.select(:name).where(service_id: [2,4]).collect{|x| x.name}
+    self.services.select(:name).where(service_id: [2,4,5,6]).collect{|x| x.name}
   end
   def number_of_services
     self.services.select("count(service_id) as count").first.count

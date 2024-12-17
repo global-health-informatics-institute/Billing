@@ -210,7 +210,7 @@
         var currentLength = barcode.length;
 
         if (currentLength === lastLength) {
-            if (currentLength >= 12) {
+            if (currentLength >= 8) {
                 window.location = "/patients/patient_by_id/" + barcode;
             } else {
                 initializeListener();

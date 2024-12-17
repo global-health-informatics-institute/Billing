@@ -314,13 +314,13 @@
                 "value": "<%= ((@person.gender rescue "&nbsp;").to_s.length > 0 ? ((@person.gender rescue nil).to_s.downcase == "m" ? "Male" : "Female") : "") %>"
             }
 
-            <% if @show_nationality or @show_region_of_origin %>
+            <% if !@show_nationality or @show_region_of_origin %>
             ,
-            {
-                "label": "N<span class='therest'>ATIONALITY</span>",
-                "field": "citizenship",
-                "value": "<%= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Citizenship").id).value rescue "&nbsp;" %>"
-            },
+            // {
+            //     "label": "N<span class='therest'>ATIONALITY</span>",
+            //     "field": "citizenship",
+<!--                "value": "<%#= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Citizenship").id).value rescue "&nbsp;" %>"-->
+            // },
             {
                 "label": "H<span class='therest'>OME DISTRICT</span>",
                 "field": "address2",
@@ -334,7 +334,7 @@
             {
                 "label": "H<span class='therest'>OME VILLAGE</span>",
                 "field": "address2",
-                "value": "<%= @person.addresses.last.neighborhood_cell rescue "&nbsp;" %>"
+                "value": "<%= @person.addresses.last.city_village rescue "&nbsp;" %>"
             }
             <% end %>
 

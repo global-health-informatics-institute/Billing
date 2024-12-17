@@ -155,7 +155,7 @@
         navpanel0.style.verticalAlign = "top";
         navpanel0.style.textAlign = "center";
 
-        cell1.appendChild(navpanel0);
+        // cell1.appendChild(navpanel0);
 
         var navUp = document.createElement("div");
         navUp.id = "navUp";
@@ -170,7 +170,7 @@
             ajaxSearch(page);
         }
 
-        navpanel0.appendChild(navUp);
+        // navpanel0.appendChild(navUp);
 
         var navpanel1 = document.createElement("div");
         navpanel1.style.width = "70px";
@@ -181,7 +181,7 @@
         navpanel1.style.overflow = "hidden";
         navpanel1.style.verticalAlign = "bottom";
 
-        cell1.appendChild(navpanel1);
+        // cell1.appendChild(navpanel1);
 
         var navDown = document.createElement("div");
         navDown.id = "navDown";
@@ -194,7 +194,7 @@
             ajaxSearch(page);
         }
 
-        navpanel1.appendChild(navDown);
+        // navpanel1.appendChild(navDown);
 
         var leftpanel = document.createElement("div");
         leftpanel.style.border = "2px solid #B2C4B4";
@@ -207,7 +207,7 @@
         leftpanel.style.overflowX = "hidden";
         leftpanel.style.overflowY = "auto";
 
-        cell0.appendChild(leftpanel);
+        // cell0.appendChild(leftpanel);
 
         var rightpanel = document.createElement("div");
         rightpanel.style.border = "2px solid #B2C4B4";
@@ -219,7 +219,7 @@
         rightpanel.style.backgroundColor = "#e7efeb";
         rightpanel.style.overflow = "auto";
 
-        cell0.appendChild(rightpanel);
+        // cell0.appendChild(rightpanel);
 
         var footer = document.createElement("div");
         footer.id = "extras";
@@ -568,7 +568,8 @@
         </td>
         <td>
           <input type="text" id="family_name" name="family_name" value="" helpText="Family Name"
-                 ajaxURL='/patients/family_names?search_string=' allowFreeText=true />
+                 ajaxURL='/patients/family_names?search_string=' allowFreeText=true
+                 tt_onLoad="loadNames();__$('nextButton').onmousedown = function(){};" optional="true"/>
         </td>
       </tr>
       <tr>
@@ -583,16 +584,16 @@
           </select>
         </td>
       </tr>
-      <tr>
-        <td>
-          Select Patient or Create New Patient
-        </td>
-        <td>
-          <input type="text" id="selected_patient" name="selected_patient" value=""
-                 helpText="Select Patient or Create New Patient" tt_onLoad="loadNames(); hidekeyboard(); __$('nextButton').onmousedown = function(){};" optional="true"
-                 tt_pageStyleClass="NoControls NoKeyboard hidekeyboard" tt_onUnLoad="__$('nextButton').className = 'green navButton'; __$('nextButton').onmousedown = function(){gotoNextPage()}; if(__$('extras')) __$('buttons').removeChild(__$('extras'));"/>
-        </td>
-      </tr>
+<!--      <tr>-->
+<!--        <td>-->
+<!--          Select Patient or Create New Patient-->
+<!--        </td>-->
+<!--        <td>-->
+<!--          <input type="text" id="selected_patient" name="selected_patient" value=""-->
+<!--                 tt_onLoad="loadNames();__$('nextButton').onmousedown = function(){};" optional="true"-->
+<!--                 tt_pageStyleClass="NoControls NoKeyboard hidekeyboard" tt_onUnLoad="__$('nextButton').className = 'green navButton'; __$('nextButton').onmousedown = function(){gotoNextPage()}; if(__$('extras')) __$('buttons').removeChild(__$('extras'));"/>-->
+<!--        </td>-->
+<!--      </tr>-->
     </table>
 
     <textarea id="json" name="person" condition=false></textarea>

@@ -1,4 +1,6 @@
 class PatientsController < ApplicationController
+  skip_before_action :verify_authenticity_token, only: [:confirm_demographics]
+
   def create
     raise params.inspect
   end
@@ -49,11 +51,6 @@ class PatientsController < ApplicationController
 
   def new
     
-    @districts = District.where(region_id: 1).pluck(:name)
-    @trad_authorities = TraditionalAuthority.where(district_id: [2, 8, 12, 16, 18, 28, 25, 20, 23, 6]).pluck(:name).uniq
-    trad = TraditionalAuthority.find_by_sql("select * from traditional_authority where district_id IN (2, 8, 12, 16, 18, 28, 25, 20, 23, 6);")
-                               .collect{|x| x.traditional_authority_id}
-    @villages = Village.where("traditional_authority_id in (?)", trad).collect{|x| x.name}.uniq
     
     settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
 
@@ -437,16 +434,17 @@ class PatientsController < ApplicationController
 
       case params[:update_field]
       when 'given_name'
-        person.names.first.update_attributes("given_name" => params[:person][:names]["given_name"])
+        # raise params.inspect
+        person.names.first.update("given_name" => params[:person][:names]["given_name"])
         print_barcode = true
       when 'middle_name'
-        person.names.first.update_attributes("middle_name" => params[:person][:names]["middle_name"])
+        person.names.first.update("middle_name" => params[:person][:names]["middle_name"])
         print_barcode = true
       when 'family_name'
-        person.names.first.update_attributes("family_name" => params[:person][:names]["family_name"])
+        person.names.first.update("family_name" => params[:person][:names]["family_name"])
         print_barcode = true
       when 'maiden_name'
-        person.names.first.update_attributes("family_name2" => params[:person][:names]["maiden_name"])
+        person.names.first.update("family_name2" => params[:person][:names]["maiden_name"])
         print_barcode = true
       when 'gender'
         person.gender = params["gender"]
@@ -484,23 +482,23 @@ class PatientsController < ApplicationController
         person.save
         print_barcode = true
 
-      when 'state_province'
-        #current residence
-
-        address = PersonAddress.where(person_id: person.id).first_or_initialize
-        address.state_province = params[:person][:addresses][:state_province]
-        address.township_division = params[:person][:addresses][:township_division]
-        address.city_village = params[:person][:addresses][:city_village]
-        address.address1 = params[:person][:addresses][:address1]
-        address.save
-        print_barcode = true
+      # when 'state_province'
+      #   #current residence
+      #
+      #   address = PersonAddress.where(person_id: person.id).first_or_initialize
+      #   address.state_province = params[:person][:addresses][:state_province]
+      #   address.township_division = params[:person][:addresses][:township_division]
+      #   address.city_village = params[:person][:addresses][:city_village]
+      #   address.address1 = params[:person][:addresses][:address1]
+      #   address.save
+      #   print_barcode = true
 
       when 'address2'
         #home district
         address = PersonAddress.where(person_id: person.id).first_or_initialize
         address.address2 = params[:person][:addresses][:address2]
         address.county_district = params[:person][:addresses][:county_district]
-        address.neighborhood_cell = params[:person][:addresses][:neighborhood_cell]
+        address.city_village = params[:person][:addresses][:city_village]
         address.save
 
       when 'cell_phone_number'
@@ -554,14 +552,17 @@ class PatientsController < ApplicationController
   def show
 
     @patient = Patient.find(params[:id])
-    range = Date.current.beginning_of_day..Date.current.end_of_day
+    # raise @patient.inspect
+    range = Date.current .beginning_of_day..Date.current.end_of_day
 
     # unpaid_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity,:amount_paid,
     #                                   :full_price).where('patient_id = ? AND amount_paid < full_price or full_price = 0', @patient.id)
     unpaid_orders = OrderEntry.find_by_sql("select order_entries.*, payments.amount from order_entries left join (select order_entry_id, sum(amount)
                                        as amount from order_payments group by order_entry_id) as payments on
-                                       order_entries.order_entry_id = payments.order_entry_id where amount != full_price
-                                       or amount is NULL AND patient_id = '#{@patient.id}' AND voided != 1;")
+                                       order_entries.order_entry_id = payments.order_entry_id where patient_id = '#{@patient.id}'
+                                       AND (amount != full_price or amount is NULL) AND voided != 1;")
+    # raise unpaid_orders.inspect
+    # raise @patient.inspect
     past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
                             .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 
@@ -974,7 +975,7 @@ class PatientsController < ApplicationController
     districts = districts.map do |d|
       "<li value=\"#{d.name}\">#{d.name}</li>"
     end
-    render :text => districts.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => districts.join('') + "<li value='Other'>Other</li>" and return
   end
 
 
@@ -1006,13 +1007,13 @@ class PatientsController < ApplicationController
     traditional_authorities = traditional_authorities.map do |t_a|
       "<li value=\"#{t_a.name}\">#{t_a.name}</li>"
     end
-    render :text => traditional_authorities.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => traditional_authorities.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Villages containing the string given in params[:value]
   def village
-  district_id = params[:district_id]
-  villages = Village.joins(:traditional_authority).where(traditional_authorities: { district_id: district_id })
+    traditional_authority_id = TraditionalAuthority.find_by_name("#{params[:filter_value]}").id
+    village_conditions = ["name LIKE (?) AND traditional_authority_id = ?", "%#{params[:search_string]}%", traditional_authority_id]
 
     villages = Village.all.where(village_conditions).order('name')
     villages = villages.map do |v|
@@ -1028,7 +1029,7 @@ class PatientsController < ApplicationController
     landmarks = landmarks.map do |v|
       "<li value='#{v}'>#{v}</li>"
     end
-    render :text => landmarks.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => landmarks.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Countries containing the string given in params[:value]
@@ -1090,5 +1091,9 @@ class PatientsController < ApplicationController
       @id = params[:id]
       render :layout => 'touch'
     end
+  end
+
+  def update_attributes
+    raise params.inspect
   end
 end

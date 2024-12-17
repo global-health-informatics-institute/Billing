@@ -33,7 +33,7 @@ class Patient < ActiveRecord::Base
   end
 
   def current_district
-    self.person.addresses.first.state_province rescue ""
+    self.person.addresses.first.address2 rescue ""
   end
 
   def current_residence
