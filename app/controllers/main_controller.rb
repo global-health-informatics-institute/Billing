@@ -126,9 +126,9 @@ class MainController < ApplicationController
     end
 
     new_registrations = Patient.select(:patient_id).where(date_created: range)
-    new_ids = new_registrations.collect{|x| x.patient_id}
+    # new_ids = new_registrations.collect{|x| x.patient_id}
     returning_patients = Receipt.select(:patient_id)
-                             .where(payment_stamp: range, patient_id: new_ids)
+                             .where(payment_stamp: range)
                              .group(:patient_id)
                              .having('COUNT(*) > 1')
                              .collect{|x| x.patient}
