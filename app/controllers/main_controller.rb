@@ -132,13 +132,6 @@ class MainController < ApplicationController
                              .group(:patient_id)
                              .having('COUNT(*) > 1')
                              .collect{|x| x.patient}
-    new_registrations = Patient.select(:patient_id).where(date_created: range)
-    new_ids = new_registrations.collect{|x| x.patient_id}
-    returning_patients = Receipt.select(:patient_id)
-                             .where(payment_stamp: range, patient_id: new_ids)
-                             .group(:patient_id)
-                             .having('COUNT(*) > 1')
-                             .collect{|x| x.patient}
     @new_patients = view_context.census(new_registrations)
     @old_patients = view_context.census(returning_patients)
     @summary = {}
