@@ -32,7 +32,7 @@ class PersonNameCode < ActiveRecord::Base
        GROUP BY #{field_name} \
        ORDER BY \
         CASE INSTR(#{field_name},?) WHEN 0 THEN 9999 ELSE INSTR(#{field_name},?) END ASC \
-       LIMIT 10",
+       LIMIT 0",
                          "#{soundex}%", search_string, search_string])
   end
 
