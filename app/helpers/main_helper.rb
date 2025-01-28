@@ -9,10 +9,13 @@ module MainHelper
 
     (data || []).each do |y|
 
-      records << {receipt: y.receipt_number, received_by: y.cashier.name, paid: y.total(true),
-                  bill: y.total_bill(true), voided: y.voided}
-    end
+      records << {
+        receipt: y.receipt_number, received_by: y.cashier.name, paid: y.total(true),
+        bill: y.total_bill(true), voided: y.voided
+      }
 
+              
+    end
     return records
   end
 
@@ -53,4 +56,50 @@ module MainHelper
   def work_shifts
     return {"Day" => ['08:00:00', '16:29:59'], "Night" => ['16:30:00','07:59:59']}
   end
+
+
+
+
+  def total_summary(cashier_id:, start_date:, end_date:)
+    total_full_price = OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date).sum(:full_price)  
+    total_amount_paid = OrderPayment.where(cashier: cashier_id, created_at: start_date..end_date, voided: 0).sum(:amount)
+    total_voided = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:full_price)
+    return {
+      total_full_price: total_full_price,
+      total_amount_paid: total_amount_paid,
+      total_voided: total_voided
+    }
+  end
+
+
+  def voided_summary(cashier_id:, start_date:, end_date:)
+    voided_records = []
+    
+    voided_payments = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1)
+    
+    voided_payments.each do |payment|
+      receipt_number = OrderPayment.where(order_payment_id: payment.order_entry_id).pluck(:receipt_number).first || "No receipt"
+      
+      voided_records << {
+        receipt: receipt_number,
+        voided_at: payment.created_at,
+        voided_reason: payment.voided_reason,
+        voided_full_price: payment.full_price
+      }
+    end
+  
+    if voided_records.blank?
+      return [{
+        receipt: "No receipt",
+        voided_at: '',
+        voided_reason: "",
+        voided_full_price: "00"
+      }]
+    end
+  
+    voided_records
+  end
+  
+
+
 end

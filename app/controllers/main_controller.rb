@@ -53,23 +53,44 @@ class MainController < ApplicationController
     when 'Daily'
       @title = "Daily income summary for #{params[:start_date].to_date.strftime('%d %B, %Y')} transactions  by #{@user.name}"
       range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
+      start_date = params[:start_date].to_date.to_time.beginning_of_day
+      end_date = params[:start_date].to_date.to_time.end_of_day 
     when 'Weekly'
       @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to
                   #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}  transactions  by #{@user.name}"
       range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
+      start_date = params[:start_date].to_date.to_time.beginning_of_week
+      end_date = params[:start_date].to_date.to_time.end_of_week
     when 'Monthly'
       @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}  transactions  by #{@user.name}"
       range = params[:start_date].to_date.beginning_of_month.beginning_of_day..params[:start_date].to_date.end_of_month.end_of_day
+      start_date = params[:start_date].to_date.to_time.beginning_of_month
+      end_date = params[:start_date].to_date.to_time.end_of_month
     when 'Range'
       @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to
                  #{params[:end_date].to_date.strftime('%d %B, %Y')}  transactions  by #{@user.name}"
       range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
+      start_date = params[:start_date].to_date.to_time.beginning_of_day
+      end_date = params[:end_date].to_date.to_time.end_of_day 
     end
 
-    data = Receipt.find_by_sql("Select * from receipts where payment_stamp between '#{range.first.strftime('%Y-%m-%d 00:00:00')}'
-                                         and '#{range.last.strftime('%Y-%m-%d 23:59:59')}' and cashier = #{params[:cashier]}")
+    # data = Receipt.find_by_sql("Select * from receipts where payment_stamp between '#{range.first.strftime('%Y-%m-%d 00:00:00')}'
+    #                                      and '#{range.last.strftime('%Y-%m-%d 23:59:59')}' and cashier = #{params[:cashier]}")
 
-    @records = view_context.income_summary(data)
+    # @records = view_context.income_summary(data)
+
+    @totals = view_context.total_summary(
+      cashier_id: @user.user_id,
+      start_date: start_date,
+      end_date: end_date
+    )
+    @voided_entries = view_context.voided_summary(
+      cashier_id: @user.user_id,
+      start_date: start_date,
+      end_date: end_date
+    )
+    
+    
   end
 
   def daily_cash_summary

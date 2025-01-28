@@ -3,30 +3,72 @@
 </div>
 <div style="height: 75vh; width: 100%;overflow-y: auto;">
   <div style="display: table; width: 100%;font-size: 1.4em;">
+
+
+
+    <%# Total summary %>
     <div style="display: table-row; background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
       <div style="display: table-cell;padding-left: 1vw;">
-        Receipt Number
+        Voided
       </div>
       <div style="display: table-cell; text-align: right;">
-        Full Cost
+        Refunded
+      </div>
+      <div style="display: table-cell; text-align: right;">
+        Total Full Cost
       </div>
       <div style="display: table-cell; text-align: right; padding-right: 1vw;">
-        Amount Paid
+        Total Amount Paid
       </div>
     </div>
-    <% (@records || []).each do |e| %>
-        <div style="display: table-row;line-height: 1.8em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
-          <div style="display: table-cell; padding-left: 0.5vw; color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= e[:receipt]%>
+
+    <div style="display: table-row;line-height: 2.5em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
+      <div style="display: table-cell; padding-left: 1vw; color: #000000;">
+        <%= local_currency(@totals[:total_voided]) %>
+      </div>
+      <div style="display: table-cell; text-align: right;color: #000000;">
+        <%= local_currency(@totals[:total_refunds]) %> 
+      </div>
+      <div style="display: table-cell; text-align: right;color: #000000;">
+        <%= local_currency(@totals[:total_full_price]) %> 
+      </div>
+      <div style="display: table-cell; text-align: right;padding-right: 1vw;color: #000000;">
+        <%= local_currency(@totals[:total_amount_paid]) %> 
+      </div>
+    </div>
+
+
+    <%# Voids and returns %>
+    <div style="display: table-row; background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
+      <div style="display: table-cell;padding-left: 1vw;">
+        Voided Receipt
+      </div>
+      <div style="display: table-cell; text-align: right;">
+        Voided at
+      </div>
+      <div style="display: table-cell; text-align: right;">
+        Reason
+      </div>
+      <div style="display: table-cell; text-align: right; padding-right: 1vw;">
+        Amount
+      </div>
+    </div>
+        <% (@voided_entries || []).each do |e| %>
+          <div style="display: table-row;line-height: 3em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
+            <div style="display: table-cell; padding-left: 1vw; color: #000000%>;">
+              <%= e[:receipt]%>
+            </div>
+            <div style="display: table-cell; text-align: right;color: #000000%>;">
+              <%= e[:voided_at] %>
+            </div>
+            <div style="display: table-cell; text-align: right;color: #000000%>;">
+              <%= e[:voided_reason] %>
+            </div>
+            <div style="display: table-cell; text-align: right;padding-right: 1vw;color: '#000000;">
+              <%= local_currency(e[:voided_full_price])%>
+            </div>
           </div>
-          <div style="display: table-cell; text-align: right;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= local_currency(e[:bill])%>
-          </div>
-          <div style="display: table-cell; text-align: right;padding-right: 1vw;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= local_currency(e[:paid])%>
-          </div>
-        </div>
-    <% end %>
+        <% end %>
   </div>
 </div>
 <div class="footer">
