@@ -59,7 +59,7 @@ module MainHelper
 
 
 
-
+  # cash summary
   def total_summary(cashier_id:, start_date:, end_date:)
     total_full_price = OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date).sum(:full_price)  
     total_amount_paid = OrderPayment.where(cashier: cashier_id, created_at: start_date..end_date, voided: 0).sum(:amount)
@@ -101,5 +101,62 @@ module MainHelper
   end
   
 
+  # income summary
+  def income_summary_aggregate(range:)
 
+
+    user_ids = User.joins(:user_roles)
+                   .where(retired: false)
+                   .where(user_roles: { role: ['General Registration Clerk', 'Registration Clerk'] })
+                   .pluck(:user_id)
+  
+    user_records = []
+  
+    user_ids.each do |uid|
+
+      receipt_count = Receipt.where(cashier: uid, payment_stamp: range).count
+
+      full_name = find_user(uid)
+
+      total_full_price = OrderEntry.where(cashier: uid, created_at: range).sum(:full_price)
+  
+      total_amount_paid = OrderPayment.where(cashier: uid, created_at: range, voided: 0).sum(:amount)
+  
+      total_voided = OrderEntry.unscoped.where(cashier: uid, created_at: range, voided: 1).sum(:full_price)
+  
+      user_records << { 
+        user_id: uid,
+        user_name: full_name,
+        receipt_count: receipt_count,
+        total_full_price: total_full_price,
+        total_amount_paid: total_amount_paid,
+        total_voided: total_voided
+      }
+    end
+    puts user_records
+    return user_records
+
+  end
+
+end
+
+
+def find_user(uid)
+  user = User.find_by(user_id: uid)
+  if user
+    person = user.person
+    if person
+      names = person.names
+      if names.any?
+        name = names.first
+        return "#{name.given_name} #{name.family_name}"
+      else
+        return "un assigned"
+      end
+    else
+      return "unassigned"
+    end
+  else
+    return "unassigned"
+  end
 end

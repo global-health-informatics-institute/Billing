@@ -5,7 +5,7 @@
   <div style="display: table; width: 100%;font-size: 1.4em;">
     <div style="display: table-row; background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
       <div style="display: table-cell;padding-left: 1vw;">
-          Receipt Number
+        Receipt Count
       </div>
       <div style="display: table-cell; text-align: center;">
         Received by
@@ -17,19 +17,19 @@
         Amount Paid
       </div>
     </div>
-    <% (@records || []).each do |e| %>
+    <% (@icome_aggregates || []).each do |e| %>
         <div style="display: table-row;line-height: 1.8em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
           <div style="display: table-cell; padding-left: 0.5vw; color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= e[:receipt]%>
+            <%= e[:receipt_count]%>
           </div>
           <div style="display: table-cell; text-align: center;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= e[:received_by]%>
+            <%= e[:user_name]%>
           </div>
           <div style="display: table-cell; text-align: right;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= local_currency(e[:bill])%>
+            <%= local_currency(e[:total_full_price])%>
           </div>
           <div style="display: table-cell; text-align: right;padding-right: 1vw;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= local_currency(e[:paid])%>
+            <%= local_currency(e[:total_amount_paid])%>
           </div>
         </div>
     <% end %>
