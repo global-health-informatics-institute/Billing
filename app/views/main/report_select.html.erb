@@ -14,6 +14,15 @@
         </select>
     <% end %>
 
+    <% if params[:report_type] == 'cashier_listing' %>
+        <select id="cashier" name="cashier" helpText="Select cashier" >
+          <option></option>
+          <% (@cashier_listing_options).each do |w| %>
+              <option value="<%= w[0] %>"><%= w[1]%></option>
+          <% end %>
+        </select>
+    <% end %>
+
     <% if params[:report_type] != 'daily_cash_summary' %>
     <select id="reportDuration" name="report_duration" helpText="Select report duration">
       <option></option>

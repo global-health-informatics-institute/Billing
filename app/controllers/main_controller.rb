@@ -19,6 +19,11 @@ class MainController < ApplicationController
       @report_path = "/main/daily_cash_summary"
     when 'census'
       @report_path = "/main/census_report"
+    when 'cashier_listing'
+      @report_path = "/main/cashier_listing"
+      @cashier_listing_options = User.all.collect{ |x| [x.id, x.name]}
+    when 'income_listing'
+      @report_path = "/main/income_listing"
     end
     render :layout => 'touch'
   end
@@ -155,5 +160,55 @@ class MainController < ApplicationController
     @summary['M'] += (@old_patients[:under_five][:M] + @old_patients[:under_twelve][:M] + @old_patients[:adult][:M])
     @summary['F'] = @new_patients[:under_five][:F] + @new_patients[:under_twelve][:F] + @new_patients[:adult][:F]
     @summary['F'] += (@old_patients[:under_five][:F] + @old_patients[:under_twelve][:F] + @old_patients[:adult][:F])
+  end
+
+
+  def income_listing
+    case params[:report_duration]
+    when 'Daily'
+      @title = "Daily Income Summary for #{params[:start_date].to_date.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
+    when 'Weekly'
+      @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
+    when 'Monthly'
+      @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}"
+      range = params[:start_date].to_date.beginning_of_month.beginning_of_day..params[:start_date].to_date.end_of_month.end_of_day
+    when 'Range'
+      @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
+    end
+
+    data = Receipt.find_by_sql("Select * from receipts where payment_stamp between '#{range.first.strftime('%Y-%m-%d 00:00:00')}'
+                                         and '#{range.last.strftime('%Y-%m-%d 23:59:59')}'")
+
+    @records = view_context.income_listing(data)
+  end
+
+
+
+  def cashier_listing
+    @user = User.find(params[:cashier]) rescue nil
+    case params[:report_duration]
+    when 'Daily'
+      @title = "Daily income summary for #{params[:start_date].to_date.strftime('%d %B, %Y')} transactions  by #{@user.name}"
+      range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
+    when 'Weekly'
+      @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to
+                  #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}  transactions  by #{@user.name}"
+      range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
+    when 'Monthly'
+      @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}  transactions  by #{@user.name}"
+      range = params[:start_date].to_date.beginning_of_month.beginning_of_day..params[:start_date].to_date.end_of_month.end_of_day
+    when 'Range'
+      @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to
+                 #{params[:end_date].to_date.strftime('%d %B, %Y')}  transactions  by #{@user.name}"
+      range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
+    end
+
+    data = Receipt.find_by_sql("Select * from receipts where payment_stamp between '#{range.first.strftime('%Y-%m-%d 00:00:00')}'
+                                         and '#{range.last.strftime('%Y-%m-%d 23:59:59')}' and cashier = #{params[:cashier]}")
+
+    @records = view_context.income_listing(data)
   end
 end
