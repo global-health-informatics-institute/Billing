@@ -59,18 +59,57 @@ module MainHelper
 
 
 
-  # cash summary
+  # cashier summary
   def total_summary(cashier_id:, start_date:, end_date:)
-    total_full_price = OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date).sum(:full_price)  
-    total_amount_paid = OrderPayment.where(cashier: cashier_id, created_at: start_date..end_date, voided: 0).sum(:amount)
-    total_voided = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:full_price)
+    total_full_price = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date,).sum(:full_price)  
+    total_amount_paid = OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date,).sum(:amount)
+    total_voided_price = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:full_price)
+    total_voided_paid = OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:amount)
+    total_refund= OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1, voided_reason: 'Refund').sum(:amount)
     return {
       total_full_price: total_full_price,
       total_amount_paid: total_amount_paid,
-      total_voided: total_voided
+      total_voided_price: total_voided_price,
+      total_voided_paid: total_voided_paid,
+      total_refund: total_refund
     }
   end
 
+  def service_totals(cashier_id:, start_date:, end_date:)
+    # Define the service names and their corresponding keys
+    service_keys = {
+      'male adult' => :male_adult,
+      'Female (non) antenatal' => :female_non_antenatal,
+      'Child under 5' => :under_five,
+      'Female antenatal' => :female_antenatal,
+      'Kulera' => :kulera,
+      'Scanning' => :scanning,
+      'Ambulance' => :ambulance,
+      'Ambulance (non-paying)' => :ambulance_non_paying
+    }
+  
+    # Initialize result hash
+    totals = {
+      male_adult_price: 0, male_adult_paid: 0,
+      female_non_antenatal_price: 0, female_non_antenatal_paid: 0,
+      under_five_price: 0, under_five_paid: 0,
+      female_antenatal_price: 0, female_antenatal_paid: 0,
+      kulera_price: 0, kulera_paid: 0,
+      scanning_price: 0, scanning_paid: 0,
+      ambulance_price: 0, ambulance_paid: 0,
+      ambulance_non_paying_price: 0, ambulance_non_paying_paid: 0
+    }
+  
+    service_keys.each do |service_name, key|
+      service_ids = Service.where(name: service_name).pluck(:service_id)
+      order_entries = OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: service_ids)
+      totals["#{key}_price".to_sym] = order_entries.sum(:full_price)
+      totals["#{key}_paid".to_sym] = OrderPayment.where(order_entry_id: order_entries.pluck(:order_entry_id)).sum(:amount)
+    end
+
+    totals
+  end
+  
 
   def voided_summary(cashier_id:, start_date:, end_date:)
     voided_records = []

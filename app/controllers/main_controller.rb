@@ -28,29 +28,6 @@ class MainController < ApplicationController
     render :layout => 'touch'
   end
 
-  def income_summary
-    case params[:report_duration]
-    when 'Daily'
-      @title = "Daily Income Summary for #{params[:start_date].to_date.strftime('%d %B, %Y')}"
-      range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
-    when 'Weekly'
-      @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to 
-      #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
-      range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
-    when 'Monthly'
-      @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}"
-      range = params[:start_date].to_date.beginning_of_month.beginning_of_day..params[:start_date].to_date.end_of_month.end_of_day
-    when 'Range'
-      @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
-      range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
-    end
-
-    @icome_aggregates = view_context.income_summary_aggregate(
-      range: range
-    )
-
-  end
-
   def cashier_summary
     @user = User.find(params[:cashier]) rescue nil
     case params[:report_duration]
@@ -74,24 +51,48 @@ class MainController < ApplicationController
       end_date = params[:end_date].to_date.to_time.end_of_day 
     end
 
-    # data = Receipt.find_by_sql("Select * from receipts where payment_stamp between '#{range.first.strftime('%Y-%m-%d 00:00:00')}'
-    #                                      and '#{range.last.strftime('%Y-%m-%d 23:59:59')}' and cashier = #{params[:cashier]}")
-
-    # @records = view_context.income_summary(data)
-
     @totals = view_context.total_summary(
       cashier_id: @user.user_id,
       start_date: start_date,
       end_date: end_date
     )
+
+    @service_totals = view_context.service_totals(
+      cashier_id: @user.user_id,
+      start_date: start_date,
+      end_date: end_date
+    ) 
     @voided_entries = view_context.voided_summary(
       cashier_id: @user.user_id,
       start_date: start_date,
       end_date: end_date
     )
-    
-    
   end
+
+
+  def income_summary
+    case params[:report_duration]
+    when 'Daily'
+      @title = "Daily Income Summary for #{params[:start_date].to_date.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
+    when 'Weekly'
+      @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to 
+      #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
+    when 'Monthly'
+      @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}"
+      range = params[:start_date].to_date.beginning_of_month.beginning_of_day..params[:start_date].to_date.end_of_month.end_of_day
+    when 'Range'
+      @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
+    end
+
+    @icome_aggregates = view_context.income_summary_aggregate(
+      range: range
+    )
+
+  end
+
 
   def daily_cash_summary
     @headers = [%w[Consultation 0011 0071], %w[Book 0012 0072],%w[Drugs 0011 0071], %w[Laboratory 0012 0072],
