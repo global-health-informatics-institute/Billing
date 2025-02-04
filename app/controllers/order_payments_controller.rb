@@ -1,5 +1,6 @@
 
   class OrderPaymentsController < ApplicationController
+    skip_before_action :verify_authenticity_token, only: [:void]
     def show
       # Implement the show action if needed
     end
