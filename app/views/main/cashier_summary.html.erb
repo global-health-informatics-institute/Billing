@@ -1,82 +1,76 @@
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 80vh;
-            background: #f0f0f0;
-            margin: 0;
-            overflow-y: auto;
-        }
-        .receipt {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            width: 80vw;
-            text-align: center;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
-            border-top: 5px solid #000;
-        }
-        h2 {
-            margin: 5px 0;
-            color: #555555;
-        }
-        .info {
-            text-align: left;
-            font-size: 14px;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        th, td {
-            border-bottom: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background: #f1f1f1;
-            color: #000;
-            text-transform: uppercase;
-        }
-        .total {
-            font-weight: bold;
-            background: #f1f1f1;
-        }
-        .print-btn {
-            background: #28a745;
-            color: white;
-            padding: 10px 20px;
-            margin-top: 15px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 5px;
-        }
-        .thank-you {
-            margin-top: 10px;
-            font-size: 12px;
-            font-style: bold
-;
-            color: #555;
-        }
-    </style>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: start;
+        background: #ffffff;
+        margin: 0;
+        overflow-y: auto;
+        font-size: 22px;
+    }
+    .receipt {
+        background: #ffffff;
+        padding: 20px;
+        width: 100vw;
+        height: 100%;
+        text-align: center;
+    }
+    h2 {
+        margin: 5px 0;
+        color: #555555;
+    }
+    .info {
+        text-align: left;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #cccccc;
+        border-radius: 5px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    th, td {
+        border-bottom: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background: #f1f1f1;
+        color: #000;
+        text-transform: uppercase;
+    }
+    .total {
+        font-weight: bold;
+        background: #cccccc;
+    }
+    .print-btn {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        margin-top: 15px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .thank-you {
+        margin-top: 10px;
+        font-size: 20px;
+        font-style: bold;
+        color: #555;
+}
+</style>
 </head>
     <div class="receipt">
         <h2> <%= facility_name.titleize %></h2>
-        <p>Cashier Summary Receipt</p>
+        <p>Cashier Summary Receipt - <%= Time.now.strftime("%A, %B %d, %Y, %I:%M %p") %> </p>
         <div class="info">
-            <p><strong>Date:</strong> <%= Time.now.strftime("%A, %B %d, %Y, %I:%M %p") %> </p>
+            <p><strong>Date:</strong> <%= @duration %> </p>
             <p>
-              <strong>Description:</strong> 
-              <%= @title %>
+              <strong>Name:</strong> 
+              <%= @user.name %>
             </p>
         </div>
         <table>
@@ -117,6 +111,6 @@
     </div>
 <div class="footer">
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
-  <button style="float: right;" onmousedown="window.location='/main/print_daily_cash_summary?start_date=<%= @start_date %>&end_date=<%= @end_date %>&shift=<%= @shift%>'">Print</button>
-
+  <button style="float: right;" onclick="printReceipt()">Print Receipt</button>
 </div>
+

@@ -32,19 +32,23 @@ class MainController < ApplicationController
     @user = User.find(params[:cashier]) rescue nil
     case params[:report_duration]
     when 'Daily'
+      @duration = "#{params[:start_date].to_date.strftime('%d %B, %Y')}"
       @title = "Daily income summary for #{params[:start_date].to_date.strftime('%d %B, %Y')} transactions  by #{@user.name}"
       start_date = params[:start_date].to_date.to_time.beginning_of_day
       end_date = params[:start_date].to_date.to_time.end_of_day 
     when 'Weekly'
+      @duration = "params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
       @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to
                   #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}  transactions  by #{@user.name}"
       start_date = params[:start_date].to_date.to_time.beginning_of_week
       end_date = params[:start_date].to_date.to_time.end_of_week
     when 'Monthly'
+      @duration = "#{params[:start_date].to_date.strftime('%B %Y')}"
       @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}  transactions  by #{@user.name}"
       start_date = params[:start_date].to_date.to_time.beginning_of_month
       end_date = params[:start_date].to_date.to_time.end_of_month
     when 'Range'
+      @duration = "#{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
       @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to
                  #{params[:end_date].to_date.strftime('%d %B, %Y')}  transactions  by #{@user.name}"
       start_date = params[:start_date].to_date.to_time.beginning_of_day
@@ -73,21 +77,25 @@ class MainController < ApplicationController
   def income_summary
     case params[:report_duration]
     when 'Daily'
+      @duration = "#{params[:start_date].to_date.strftime('%d %B, %Y')}"
       @title = "Daily Income Summary for #{params[:start_date].to_date.strftime('%d %B, %Y')}"
       range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
     when 'Weekly'
+      @duration = "params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
       @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to 
       #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
       range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
     when 'Monthly'
+      @duration = "#{params[:start_date].to_date.strftime('%B %Y')}"
       @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}"
       range = params[:start_date].to_date.beginning_of_month.beginning_of_day..params[:start_date].to_date.end_of_month.end_of_day
     when 'Range'
+      @duration = "#{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
       @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
       range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
     end
 
-    @icome_aggregates = view_context.income_summary_aggregate(
+    @income_aggregates = view_context.income_summary_aggregate(
       range: range
     )
 
