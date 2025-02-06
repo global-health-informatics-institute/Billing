@@ -559,7 +559,7 @@
         </td>
         <td>
           <input type="text" id="given_name" name="given_name" value="" helpText="First Name"
-                 ajaxURL='/patients/given_names?search_string=' allowFreeText=true />
+                 allowFreeText=true />
         </td>
       </tr>
       <tr>
@@ -568,7 +568,7 @@
         </td>
         <td>
           <input type="text" id="family_name" name="family_name" value="" helpText="Family Name"
-                 ajaxURL='/patients/family_names?search_string=' allowFreeText=true
+                  allowFreeText=true
                  tt_onLoad="loadNames();__$('nextButton').onmousedown = function(){};" optional="true"/>
         </td>
       </tr>
@@ -584,16 +584,6 @@
           </select>
         </td>
       </tr>
-<!--      <tr>-->
-<!--        <td>-->
-<!--          Select Patient or Create New Patient-->
-<!--        </td>-->
-<!--        <td>-->
-<!--          <input type="text" id="selected_patient" name="selected_patient" value=""-->
-<!--                 tt_onLoad="loadNames();__$('nextButton').onmousedown = function(){};" optional="true"-->
-<!--                 tt_pageStyleClass="NoControls NoKeyboard hidekeyboard" tt_onUnLoad="__$('nextButton').className = 'green navButton'; __$('nextButton').onmousedown = function(){gotoNextPage()}; if(__$('extras')) __$('buttons').removeChild(__$('extras'));"/>-->
-<!--        </td>-->
-<!--      </tr>-->
     </table>
 
     <textarea id="json" name="person" condition=false></textarea>
