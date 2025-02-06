@@ -1,4 +1,3 @@
-
   class OrderPaymentsController < ApplicationController
     skip_before_action :verify_authenticity_token, only: [:void]
     def show
@@ -7,7 +6,6 @@
   
     def create
       if params[:order_entries].blank?
-        range = Date.current.beginning_of_day..Date.current.end_of_day
         orders = OrderEntry.where("patient_id = ? and amount_paid < full_price or full_price = 0", params[:order_payment][:patient_id])
       else
         orders = OrderEntry.where(patient_id: params[:order_payment][:patient_id], order_entry_id: params[:order_entries].split(','))
