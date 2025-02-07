@@ -21,7 +21,7 @@ Rails.application.routes.draw do
   post "/main/cashier_listing"
   get "/main/cashier_listing"
   get "/main/income_listing"
-  
+  post "/order_payments/void_entry"
   get 'print_refund' => "deposits#print_refund"
 
   # Route for handling general options page

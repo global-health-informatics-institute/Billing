@@ -128,5 +128,47 @@
         end
       end
     end
+
+    def void_entry
+      entries = OrderEntry.where(order_entry_id: Array(params[:void_ids]))
+    
+      if entries.blank?
+        render json: { error: "No entries found" }, status: 404 and return
+      end
+    
+      receipts = []
+      entries.each do |entry|
+        entry.order_payments.each do |payment|
+          payment.void(params[:void_reason], current_user)
+          receipts << payment.receipt_number
+        end
+        entry.void(params[:void_reason], current_user.id)
+      end
+    
+      if receipts.blank?
+        redirect_to "/patients/#{params[:patient_id]}" and return
+      else
+        other_payments = OrderPayment.where(receipt_number: receipts)
+        old_receipt = Receipt.where(receipt_number: receipts).first
+        Receipt.where(receipt_number: receipts).update_all(voided: true, voided_by: current_user)
+    
+        if other_payments.blank?
+          redirect_to entries.first.patient and return
+        else
+          Receipt.transaction do
+            new_receipt = Receipt.create(
+              payment_mode: old_receipt.payment_mode,
+              patient_id: other_payments.first.order_entry.patient_id,
+              cashier: current_user
+            )
+            OrderPayment.where(receipt_number: receipts).update_all(receipt_number: new_receipt.receipt_number)
+    
+            print_and_redirect("/order_payments/print_receipt?ids=#{new_receipt.receipt_number}",
+                               "/patients/#{params[:patient_id]}") and return
+          end
+        end
+      end
+    end
+    
   end
   

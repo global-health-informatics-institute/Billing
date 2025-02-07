@@ -243,18 +243,72 @@
       <tbody>
       <% (@today_payments.keys || []).each do |receipt_number| %>
           <% entries =  @today_payments[receipt_number]["details"].length%>
-          <%puts ("This is today #{(@today_payments[receipt_number]["details"].inspect)}")%>
           <% (@today_payments[receipt_number]["details"] || []).each do |order| %>
               <tr>
                 <th style="padding: 0px;">
                   <input type="checkbox" class="custom-checkbox delete" data-id=<%= order[:id]%> >
                 </th>
-                <th><%= order[:service] %></th>
+                <th>
+                  <%= order[:service] %>
+                  <% if order[:service] == 'Female (non) antenatal' %>
+                    <% embed_button = "
+                      <span
+                        style='
+                          cursor: pointer;
+                          color: white;
+                          background-color: green;
+                          padding: 10px;
+                          margin-left: 20px;
+                          border-radius: 5px;
+                          border: none;
+                          width: fit-content;
+                          display: inline-block;
+                        '
+                        onclick='voidOrder(#{order[:id]}, #{@patient.id})'
+                      >
+                        Refund
+                      </span>
+
+                      <script>
+                        function voidOrder(orderId, patientId) {
+                          fetch('/order_payments/void_entry', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'X-CSRF-Token': document.querySelector(\"meta[name='csrf-token']\").content
+                            },
+                            body: JSON.stringify({
+                              void_ids: orderId,
+                              void_reason: \"Refund\",
+                              patient_id: patientId
+                            })
+                          })
+                          .then(response => {
+                            if (response.redirected) {
+                              window.location.href = response.url;
+                            } else {
+                              return response.json();
+                            }
+                          })
+                          .then(data => {
+                            if (data && data.error) {
+                              alert(\"Error: \" + data.error);
+                            }
+                          })
+                          .catch(error => console.error('Error:', error));
+                        }
+                      </script>
+                    " %>
+
+                    <%= embed_button.html_safe %>
+
+                  <% end %>
+                </th>
                 <th style="text-align: center"><%= order[:quantity] %></th>
                 <td style="text-align: right;padding-right: 5px;"><%= local_currency(order[:price]) %></td>
                 <td style="text-align: right;padding-right: 5px;"><%= local_currency(order[:amount_paid]) %></td>
                 <% if order == @today_payments[receipt_number]["details"].first %>
-                    <td rowspan="<%= entries%>" style="border: 1px solid #000000; background-color: #fefefe">
+                    <td rowspan="<%=entries%>" style="border: 1px solid #000000; background-color: #fefefe">
                       <img src="/assets/print.png" title="Void Item"
                            onmousedown="window.location='/order_payments/print_receipt?ids=<%= receipt_number%>'">
                     </td>
