@@ -8,14 +8,6 @@
             <h2 id="message">Select the reason for voiding this transaction?</h2>
           </div>
         </div>
-        <% embed = '<div style="display: table-row">
-              <div style="display: table-cell; text-align: left; padding-left: 20px; font-size: 1.7em;">
-                <input type="radio" class="custom-radio" name="void_reason" value="Refund" required> Refund
-              </div>
-            </div>' %>
-        <% if Person.unscoped.where(person_id: @patient.patient_id).pluck(:gender).first != 'M' %>
-          <%= embed.html_safe %>
-        <% end %>
         <div style="display: table-row">
           <div style="display: table-cell; text-align: left;padding-left: 20px;font-size: 1.7em;">
             <input type="radio" class="custom-radio" name="void_reason" value="Wrongly Entered"
