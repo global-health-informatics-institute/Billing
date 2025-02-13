@@ -1,3 +1,25 @@
+<style>
+.snackbar {
+  visibility: hidden;
+  min-width: 250px;
+  background-color: green;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 5px;
+  padding: 22px;
+  position: fixed;
+  z-index: 1000;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 26px;
+}
+
+.snackbar.show {
+  visibility: visible;
+  animation: fadein 0.5s, fadeout 1.5s 5s;
+}
+</style>
 <% title "Patient Dashboard" %>
 <div id="shadow" class="opaqueLayer"> </div>
 <div id="question" class="questionLayer" style="font-size: 0.9em;">
@@ -217,8 +239,18 @@
         <th style="color: darkred;text-align: right;">Amount Due</th>
         <th style="color: darkred; text-align: right;padding-right: 10px;"><%= local_currency(@amount_due -@deposits) %></th>
       </tr>
+      <tr>
+        <div id="snackbar" class="snackbar">
+          <%= flash[:notice] || flash[:alert] %>
+        </div>
+      </tr>
       </tfoot>
+        <div id="snackbar" class="snackbar">
+          <%= flash[:notice] || flash[:alert] %>
+        </div>
     </table>
+
+
   </div>
   <div id="todayTab" class="tab-content invisible" >
     <table class="dashboard-main" border="2">
@@ -595,6 +627,16 @@
         (active == 'summary' ? voidEntries() : voidPayments())
 
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var snackbar = document.getElementById("snackbar");
+      if (snackbar.textContent.trim() !== "") {
+        snackbar.classList.add("show");
+        setTimeout(function () {
+          snackbar.classList.remove("show");
+        }, 3000);
+      }
+    });
     
     initializeCollapsible();
 </script>

@@ -11,6 +11,12 @@ class ApplicationController < ActionController::Base
     @show_next_button = show_next_button
     render :layout => false
   end
+
+  def just_redirect(redirect_url)
+    flash[:notice] = "Transaction added but not printing labels"
+    redirect_to redirect_url
+  end
+  
   
   def current_user
     @current_user ||= User.find(session[:user_id]) if session[:user_id]

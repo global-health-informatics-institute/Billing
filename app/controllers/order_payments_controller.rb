@@ -65,14 +65,29 @@
           end
   
           # Print receipt of transaction including for zero-price services
-          print_and_redirect("/order_payments/print_receipt?deposit=#{deposit_used}&change=#{amount}&ids=#{new_receipt.receipt_number}",
-                             "/patients/#{params[:order_payment][:patient_id]}")
+          patient = Patient.find(params[:order_payment][:patient_id])
+          dob = Person.select(:birthdate).where(person_id: patient.id).collect{|x| x.birthdate}.first
+          age = calculate_age(dob)
+          if age > 1825
+            print_and_redirect("/order_payments/print_receipt?deposit=#{deposit_used}&change=#{amount}&ids=#{new_receipt.receipt_number}",
+                              "/patients/#{params[:order_payment][:patient_id]}")
+          else
+            just_redirect("/patients/#{params[:order_payment][:patient_id]}")
+          end
         end
       else
         redirect_to "/patients/#{params[:order_payment][:patient_id]}" and return
       end
     end
   
+    def calculate_age(dob)
+      require 'date'
+      today = Date.today
+      dob = dob.is_a?(Date) ? dob : Date.parse(dob.to_s)
+  
+      return (today - dob).to_i
+    end
+
     def print_receipt
       ids = params[:ids].split(',') rescue params[:id]
       change = (params[:change].to_f || 0)
