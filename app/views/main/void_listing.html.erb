@@ -6,15 +6,16 @@
         align-items: start;
         background: #ffffff;
         margin: 0;
+        overflow-y: visible;
         font-size: 22px;
     }
     .receipt {
         background: #ffffff;
         padding: 20px;
         width: 100vw;
+        height: 100vh;
         height: 100%;
         text-align: center;
-        overflow-y: auto;
     }
     h2 {
         margin: 5px 0;
@@ -33,7 +34,7 @@
         margin-top: 10px;
     }
     th, td {
-        border-bottom: 1px solid #ddd;
+        border-bottom: 2px solid #ddd;
         padding: 8px;
         text-align: left;
     }
@@ -67,6 +68,17 @@
 
     table tbody tr:nth-child(odd) {
         background-color: #fff;
+    }
+    .footerX {
+      position: fixed;
+      bottom: 0;
+      left: 0;    
+      width: 100%;        
+      background: #0c0c0c;
+      border-top: 1px solid #ddd;
+      text-align: right;
+      padding: 10px;
+      box-sizing: border-box;
     }
 
 </style>
@@ -129,7 +141,7 @@
 
         <p class="thank-you">Billing v2.0. - Wandimweza Hospital</p>
     </div>
-<div class="footer">
+<div class="footerX">
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
 </div>
 <% puts"THE VOID LISYING #{@void_list}"%>

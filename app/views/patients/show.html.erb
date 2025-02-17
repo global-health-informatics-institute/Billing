@@ -258,6 +258,7 @@
       <tr>
         <th style="width: 5vw;">&nbsp;</th>
         <th style="text-align: left;;padding-left: 5px;">Item</th>
+        <th style="text-align: left;">Available Option</th>
         <th style="text-align:center;">Quantity</th>
         <th style="text-align: right;padding-right: 10px;">Price</th>
         <th style="text-align: right;padding-right: 10px;">Paid</th>
@@ -274,7 +275,9 @@
                 </th>
                 <th>
                   <%= order[:service] %>
-                  <% if order[:service] == 'Female (non) antenatal' %>
+                </th>
+                  <th>
+                  <% if ['female (non) antenatal', 'male adult', 'scanning', 'ambulance'].include?(order[:service].downcase) %>
                     <% embed_button = "
                       <span
                         style='
@@ -329,6 +332,7 @@
                     <%= embed_button.html_safe %>
 
                   <% end %>
+                  </th>
                 </th>
                 <th style="text-align: center"><%= order[:quantity] %></th>
                 <td style="text-align: right;padding-right: 5px;"><%= local_currency(order[:price]) %></td>
