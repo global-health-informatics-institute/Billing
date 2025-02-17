@@ -301,9 +301,59 @@ module MainHelper
   end
 
   # void listing
-  def void_listing_helper(data)
+  def void_listing_helper(range:)
+    records = []
     
+    receipts = Receipt.unscoped.where(voided: 1, created_at: range)
+    receipt_count = receipts.count
+  
+    receipts.find_each do |receipt|
+      receipt_number = receipt.receipt_number
+  
+      # Calculate amount_billed by summing full_price from order_entries
+      # that are related to order_payments for this receipt.
+      sql_billed = <<-SQL
+        SELECT SUM(full_price) AS full_price
+        FROM order_entries
+        WHERE order_entry_id IN (
+          SELECT order_entry_id FROM order_payments WHERE receipt_number = '#{receipt_number}'
+        )
+      SQL
+  
+      result = OrderEntry.find_by_sql(sql_billed.strip).first
+      amount_billed = result&.full_price || 0
+  
+      # Calculate amount_paid by summing the amount from matching OrderPayments.
+      amount_paid = OrderPayment.unscoped.where(receipt_number: receipt_number).sum(:amount)
+  
+      # Retrieve voided_reason from order_entries associated with this receipt via order_payments.
+      sql_voided_reason = <<-SQL
+        SELECT voided_reason
+        FROM order_entries
+        WHERE order_entry_id IN (
+          SELECT order_entry_id FROM order_payments WHERE receipt_number = '#{receipt_number}'
+        )
+      SQL
+  
+      voided_reason_record = OrderEntry.find_by_sql(sql_voided_reason.strip).last
+      voided_reason = voided_reason_record&.voided_reason || 'Other'
+  
+      records << {
+        receipt_number: receipt_number,
+        amount_billed: amount_billed,
+        amount_paid: amount_paid,
+        issued_time: receipt.created_at,
+        voided_time: receipt.updated_at,
+        voided_reason: voided_reason
+      }
+    end
+  
+    {
+      receipt_count: receipt_count,
+      records: records
+    }
   end
+   
 end
 
 def find_user(uid)

@@ -228,7 +228,7 @@ class MainController < ApplicationController
       @title = "Daily Income Summary for #{params[:start_date].to_date.strftime('%d %B, %Y')}"
       range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
     when 'Weekly'
-      @duration = "params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
+      @duration = "#{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
       @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to 
       #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
       range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
@@ -242,7 +242,8 @@ class MainController < ApplicationController
       range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
     end
 
-    @void_lists = view_context.void_listing_helper(
+
+    @void_list = view_context.void_listing_helper(
       range: range
     )
   end

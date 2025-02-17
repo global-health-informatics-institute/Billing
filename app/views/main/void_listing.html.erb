@@ -6,7 +6,6 @@
         align-items: start;
         background: #ffffff;
         margin: 0;
-        overflow-y: auto;
         font-size: 22px;
     }
     .receipt {
@@ -15,6 +14,7 @@
         width: 100vw;
         height: 100%;
         text-align: center;
+        overflow-y: auto;
     }
     h2 {
         margin: 5px 0;
@@ -38,8 +38,8 @@
         text-align: left;
     }
     th {
-        background: #f1f1f1;
-        color: #000;
+        background: #555555;
+        color: #fff;
         text-transform: uppercase;
     }
     .total {
@@ -60,7 +60,15 @@
         font-size: 20px;
         font-style: bold;
         color: #555;
-}
+    }
+    table tbody tr:nth-child(even) {
+        background-color: #f1f1f1;
+    }
+
+    table tbody tr:nth-child(odd) {
+        background-color: #fff;
+    }
+
 </style>
 </head>
     <div class="receipt">
@@ -76,31 +84,52 @@
                 <strong>
                     Voided Receipts:
                 </strong>
-                <%# void_count %>
+                <%= @void_list[:receipt_count] %>
             </p>
         </div>
         <table>
-          <tr>
-              <th>Receipt Number</th>
-              <% if (@type == 'Daily') %>
-              <th>Issue Time</th>
-              <% else %>
-              <th>Issue Date</th>
-              <% end %>
-              <th>Amount Attached</th>
-              <th>Voided On</th> <%# either Billed or Paid or both %>
-              <th>Void Reason</th>
-              <% if (@type == 'Daily') %>
-                <th>Voided Time</th>
-              <% else %>
-                <th>Voided Date</th>
-              <%end%>
-          </tr>
-          <hr>
-      </table>
+            <thead>
+                <tr>
+                <th>Receipt Number</th>
+                <th>Amount Billed</th>
+                <th>Amount Paid</th>
+                <% if @type == 'Daily' %>
+                    <th>Issue Time</th>
+                <% else %>
+                    <th>Issue Date</th>
+                <% end %>
+                <% if @type == 'Daily' %>
+                    <th>Voided Time</th>
+                <% else %>
+                    <th>Voided Date</th>
+                <% end %>
+                <th>Void Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% @void_list[:records].each do |record| %>
+                <tr>
+                    <td><%= record[:receipt_number] %></td>
+                    <td><%= local_currency(record[:amount_billed]) %></td>
+                    <td><%= local_currency(record[:amount_paid]) %></td>
+                    <% if @type == 'Daily' %>
+                    <!-- Extract time only -->
+                    <td><%= record[:issued_time].strftime("%I:%M %p") %></td>
+                    <td><%= record[:voided_time].strftime("%I:%M %p") %></td>
+                    <% else %>
+                    <!-- More detailed date & time -->
+                    <td><%= record[:issued_time].strftime("%B %d, %Y %I:%M %p") %></td>
+                    <td><%= record[:voided_time].strftime("%B %d, %Y %I:%M %p") %></td>
+                    <% end %>
+                    <td><%= record[:voided_reason].present? ? record[:voided_reason] : "N/A" %></td>
+                </tr>
+                <% end %>
+            </tbody>
+            </table>
+
         <p class="thank-you">Billing v2.0. - Wandimweza Hospital</p>
     </div>
 <div class="footer">
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
 </div>
-
+<% puts"THE VOID LISYING #{@void_list}"%>
