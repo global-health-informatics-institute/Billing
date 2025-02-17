@@ -30,6 +30,15 @@
           <option value="<%= w %>"><%= w%></option>
       <% end %>
     </select>
+
+    <% end %>
+        <% if params[:report_type] == 'void_listing' %>
+        <select id="cashier" name="cashier" helpText="Select cashier" >
+          <option></option>
+          <% (@cashier_void_listing_options).each do |w| %>
+              <option value="<%= w[0] %>"><%= w[1]%></option>
+          <% end %>
+        </select>
     <% end %>
     <%= text_field_tag 'start_date', Date.current.strftime("%Y-%m-%d"),
                        {:id => 'startDate',

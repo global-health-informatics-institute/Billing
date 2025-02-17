@@ -1,0 +1,106 @@
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: start;
+        background: #ffffff;
+        margin: 0;
+        overflow-y: auto;
+        font-size: 22px;
+    }
+    .receipt {
+        background: #ffffff;
+        padding: 20px;
+        width: 100vw;
+        height: 100%;
+        text-align: center;
+    }
+    h2 {
+        margin: 5px 0;
+        color: #555555;
+    }
+    .info {
+        text-align: left;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #cccccc;
+        border-radius: 5px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    th, td {
+        border-bottom: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background: #f1f1f1;
+        color: #000;
+        text-transform: uppercase;
+    }
+    .total {
+        font-weight: bold;
+        background: #f1f1f1;
+    }
+    .print-btn {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        margin-top: 15px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .thank-you {
+        margin-top: 10px;
+        font-size: 20px;
+        font-style: bold;
+        color: #555;
+}
+</style>
+</head>
+    <div class="receipt">
+        <h2> <%= facility_name.titleize %></h2>
+        <p>Cashier Void Listing - <%= Time.now.strftime("%A, %B %d, %Y, %I:%M %p") %> </p>
+        <div class="info">
+            <p><strong>Date:</strong> <%= @duration %> </p>
+            <p>
+              <strong>Name:</strong> 
+              <%= @user.name %>
+            </p>
+            <p>
+                <strong>
+                    Voided Receipts:
+                </strong>
+                <%# void_count %>
+            </p>
+        </div>
+        <table>
+          <tr>
+              <th>Receipt Number</th>
+              <% if (@type == 'Daily') %>
+              <th>Issue Time</th>
+              <% else %>
+              <th>Issue Date</th>
+              <% end %>
+              <th>Amount Attached</th>
+              <th>Voided On</th> <%# either Billed or Paid or both %>
+              <th>Void Reason</th>
+              <% if (@type == 'Daily') %>
+                <th>Voided Time</th>
+              <% else %>
+                <th>Voided Date</th>
+              <%end%>
+          </tr>
+          <hr>
+      </table>
+        <p class="thank-you">Billing v2.0. - Wandimweza Hospital</p>
+    </div>
+<div class="footer">
+  <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
+</div>
+

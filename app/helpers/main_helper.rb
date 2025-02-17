@@ -137,7 +137,6 @@ module MainHelper
   
     voided_records
   end
-  
 
   # income summary
   def income_summary_aggregate(range:)
@@ -260,7 +259,6 @@ module MainHelper
         .pluck(:order_entry_id)).sum(:amount),
     }
   end
-
   
   def income_helper(cashier_id:, start_date:, end_date:)
     total_full_price = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date,).sum(:full_price)  
@@ -276,7 +274,6 @@ module MainHelper
       total_refund: total_refund
     }
   end
-  
 
   # income listing
   def income_listing(data)
@@ -290,7 +287,6 @@ module MainHelper
     return records
   end
 
-
   # cash listing
   def cashier_listing(data)
     totals = {private: 0, general: 0}
@@ -303,8 +299,12 @@ module MainHelper
     end
     return records,totals
   end
-end
 
+  # void listing
+  def void_listing_helper(data)
+    
+  end
+end
 
 def find_user(uid)
   user = User.find_by(user_id: uid)
@@ -325,3 +325,4 @@ def find_user(uid)
     return "unassigned"
   end
 end
+

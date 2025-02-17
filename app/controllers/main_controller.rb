@@ -24,6 +24,9 @@ class MainController < ApplicationController
       @cashier_listing_options = User.all.collect{ |x| [x.id, x.name]}
     when 'income_listing'
       @report_path = "/main/income_listing"
+    when 'void_listing'
+      @report_path = "/main/void_listing"
+      @cashier_void_listing_options = User.all.collect{ |x| [x.id, x.name]}
     end
     render :layout => 'touch'
   end
@@ -73,7 +76,6 @@ class MainController < ApplicationController
     )
   end
 
-
   def income_summary
     case params[:report_duration]
     when 'Daily'
@@ -100,7 +102,6 @@ class MainController < ApplicationController
     )
 
   end
-
 
   def daily_cash_summary
     @headers = [%w[Consultation 0011 0071], %w[Book 0012 0072],%w[Drugs 0011 0071], %w[Laboratory 0012 0072],
@@ -171,7 +172,6 @@ class MainController < ApplicationController
     @summary['F'] += (@old_patients[:under_five][:F] + @old_patients[:under_twelve][:F] + @old_patients[:adult][:F])
   end
 
-
   def income_listing
     case params[:report_duration]
     when 'Daily'
@@ -193,8 +193,6 @@ class MainController < ApplicationController
 
     @records = view_context.income_listing(data)
   end
-
-
 
   def cashier_listing
     @user = User.find(params[:cashier]) rescue nil
@@ -219,5 +217,33 @@ class MainController < ApplicationController
                                          and '#{range.last.strftime('%Y-%m-%d 23:59:59')}' and cashier = #{params[:cashier]}")
 
     @records = view_context.income_listing(data)
+  end
+
+  def void_listing
+    @user = User.find(params[:cashier]) rescue nil
+    @type = params[:report_duration]
+    case params[:report_duration]
+    when 'Daily'
+      @duration = "#{params[:start_date].to_date.strftime('%d %B, %Y')}"
+      @title = "Daily Income Summary for #{params[:start_date].to_date.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_day..params[:start_date].to_date.end_of_day
+    when 'Weekly'
+      @duration = "params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
+      @title = "Weekly Income Summary from #{params[:start_date].to_date.beginning_of_week.strftime('%d %B, %Y')} to 
+      #{params[:start_date].to_date.end_of_week.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_week.beginning_of_day..params[:start_date].to_date.end_of_week.end_of_day
+    when 'Monthly'
+      @duration = "#{params[:start_date].to_date.strftime('%B %Y')}"
+      @title = "Monthly Income Summary for #{params[:start_date].to_date.strftime('%B %Y')}"
+      range = params[:start_date].to_date.beginning_of_month.beginning_of_day..params[:start_date].to_date.end_of_month.end_of_day
+    when 'Range'
+      @duration = "#{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
+      @title = "Income Summary from #{params[:start_date].to_date.strftime('%d %B, %Y')} to #{params[:end_date].to_date.strftime('%d %B, %Y')}"
+      range = params[:start_date].to_date.beginning_of_day..params[:end_date].to_date.end_of_day
+    end
+
+    @void_lists = view_context.void_listing_helper(
+      range: range
+    )
   end
 end
