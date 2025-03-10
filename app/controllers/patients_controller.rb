@@ -566,9 +566,9 @@ class PatientsController < ApplicationController
     past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
                             .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 
-    today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND DATE(created_at) = CURDATE()",
-                                                           @patient.id)
-
+    # today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND DATE(created_at) = CURDATE()",
+    #                                                        @patient.id)
+    today_payments = Receipt.select(:receipt_number).where(patient_id: @patient.id, created_at: Date.today.beginning_of_day..Date.today.end_of_day)
 
     @unpaid_orders, @total, @amount_due = view_context.unpaid_records(unpaid_orders)
     @history = view_context.past_records(past_orders)

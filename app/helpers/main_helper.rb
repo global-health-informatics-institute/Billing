@@ -59,19 +59,57 @@ module MainHelper
 
 
 
-  # cash summary
+  # cashier summary
   def total_summary(cashier_id:, start_date:, end_date:)
-    total_full_price = OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date).sum(:full_price)  
-    total_amount_paid = OrderPayment.where(cashier: cashier_id, created_at: start_date..end_date, voided: 0).sum(:amount)
-    total_voided = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:full_price)
+    total_full_price = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date,).sum(:full_price)  
+    total_amount_paid = OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date,).sum(:amount)
+    total_voided_price = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:full_price)
+    total_voided_paid = OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:amount)
+    total_refund= OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1, voided_reason: 'Refund').sum(:amount)
     return {
       total_full_price: total_full_price,
       total_amount_paid: total_amount_paid,
-      total_voided: total_voided
+      total_voided_price: total_voided_price,
+      total_voided_paid: total_voided_paid,
+      total_refund: total_refund
     }
   end
 
+  def service_totals(cashier_id:, start_date:, end_date:)
+    # Define the service names and their corresponding keys
+    service_keys = {
+      'male adult' => :male_adult,
+      'Female (non) antenatal' => :female_non_antenatal,
+      'Child under 5' => :under_five,
+      'Female antenatal' => :female_antenatal,
+      'Kulera' => :kulera,
+      'Scanning' => :scanning,
+      'Ambulance' => :ambulance,
+      'Ambulance (non-paying)' => :ambulance_non_paying
+    }
+  
+    # Initialize result hash
+    totals = {
+      male_adult_price: 0, male_adult_paid: 0,
+      female_non_antenatal_price: 0, female_non_antenatal_paid: 0,
+      under_five_price: 0, under_five_paid: 0,
+      female_antenatal_price: 0, female_antenatal_paid: 0,
+      kulera_price: 0, kulera_paid: 0,
+      scanning_price: 0, scanning_paid: 0,
+      ambulance_price: 0, ambulance_paid: 0,
+      ambulance_non_paying_price: 0, ambulance_non_paying_paid: 0
+    }
+  
+    service_keys.each do |service_name, key|
+      service_ids = Service.where(name: service_name).pluck(:service_id)
+      order_entries = OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: service_ids)
+      totals["#{key}_price".to_sym] = order_entries.sum(:full_price)
+      totals["#{key}_paid".to_sym] = OrderPayment.where(order_entry_id: order_entries.pluck(:order_entry_id)).sum(:amount)
+    end
 
+    totals
+  end
+  
   def voided_summary(cashier_id:, start_date:, end_date:)
     voided_records = []
     
@@ -99,47 +137,224 @@ module MainHelper
   
     voided_records
   end
-  
 
   # income summary
   def income_summary_aggregate(range:)
-
-
     user_ids = User.joins(:user_roles)
                    .where(retired: false)
                    .where(user_roles: { role: ['General Registration Clerk', 'Registration Clerk'] })
                    .pluck(:user_id)
   
-    user_records = []
-  
-    user_ids.each do |uid|
+      user_ids.map do |uid|
+        user = User.find(uid)
+        income_totals = income_helper(cashier_id: uid, start_date: range.begin, end_date: range.end)
+        income_service_total = income_service_totals(cashier_id: uid, start_date: range.begin, end_date: range.end)
 
-      receipt_count = Receipt.where(cashier: uid, payment_stamp: range).count
-
-      full_name = find_user(uid)
-
-      total_full_price = OrderEntry.where(cashier: uid, created_at: range).sum(:full_price)
+          { 
+            cashier_name: user.name,
+            service_totals: income_service_total,
+            totals: income_totals
+          }
+      end
   
-      total_amount_paid = OrderPayment.where(cashier: uid, created_at: range, voided: 0).sum(:amount)
-  
-      total_voided = OrderEntry.unscoped.where(cashier: uid, created_at: range, voided: 1).sum(:full_price)
-  
-      user_records << { 
-        user_id: uid,
-        user_name: full_name,
-        receipt_count: receipt_count,
-        total_full_price: total_full_price,
-        total_amount_paid: total_amount_paid,
-        total_voided: total_voided
-      }
-    end
-    puts user_records
-    return user_records
-
   end
 
-end
+  def income_service_totals(cashier_id: , start_date: , end_date:)
+    {
+      service_name_1: 'Male adult',
+      male_adult_price:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Male aldult').pluck(:service_id)
+        ).sum(:full_price),
+      male_adult_paid:
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Male aldult').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
 
+
+      service_name_2: 'Female non antenatal',
+      female_non_antenatal_price: 
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Female (non) antenatal').pluck(:service_id)
+        ).sum(:full_price),
+      female_non_antenatal_paid: 
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Female (non) antenatal').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
+      
+      service_name_3: 'Under 5',
+      under_five_price: 
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Child under 5').pluck(:service_id)
+        ).sum(:full_price),
+      under_five_paid: 
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Child under 5').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
+
+      service_name_4: 'Female antenatal',
+      female_antenatal_price:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Female antenatal').pluck(:service_id)
+        ).sum(:full_price),
+      female_antenatal_paid:  
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Female antenatal').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
+
+      service_name_5: 'Kulera',
+      kulera_price: 
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Kulera').pluck(:service_id)
+        ).sum(:full_price),
+      kulera_paid:  
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Kulera').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
+
+      service_name_6: 'Scanning',
+      scanning_price: 
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Scanning').pluck(:service_id)
+        ).sum(:full_price),
+      scanning_paid: 
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Scanning').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
+
+      service_name_7: 'Ambulance',
+      ambulance_price: 
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Ambulance').pluck(:service_id)
+        ).sum(:full_price),
+      mbulance_paid: 
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Ambulance').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
+
+      service_name_8: 'Ambulance (non-paying)',
+      ambulance_non_paying_price: 
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Ambulance (non-paying)').pluck(:service_id)
+        ).sum(:full_price),
+      ambulance_non_paying_paid:  
+        OrderPayment.where(order_entry_id:
+        OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
+        Service.where(name: 'Ambulance (non-paying)').pluck(:service_id)
+        )
+        .pluck(:order_entry_id)).sum(:amount),
+    }
+  end
+  
+  def income_helper(cashier_id:, start_date:, end_date:)
+    total_full_price = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date,).sum(:full_price)  
+    total_amount_paid = OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date,).sum(:amount)
+    total_voided_price = OrderEntry.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:full_price)
+    total_voided_paid = OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1).sum(:amount)
+    total_refund= OrderPayment.unscoped.where(cashier: cashier_id, created_at: start_date..end_date, voided: 1, voided_reason: 'Refund').sum(:amount)
+    return {
+      total_full_price: total_full_price,
+      total_amount_paid: total_amount_paid,
+      total_voided_price: total_voided_price,
+      total_voided_paid: total_voided_paid,
+      total_refund: total_refund
+    }
+  end
+
+  # income listing
+  def income_listing(data)
+    records = []
+
+    (data || []).each do |y|
+
+      records << {receipt: y.receipt_number, received_by: y.cashier.name, paid: y.total(true),
+                  bill: y.total_bill(true), voided: y.voided}
+    end
+    return records
+  end
+
+  # cash listing
+  def cashier_listing(data)
+    totals = {private: 0, general: 0}
+    records = Hash[*ServiceType.all.collect{|x| [x.id,{name: x.name, private: 0, general: 0}]}.flatten(1)]
+    (data || []).each do |payment|
+      entry = payment.order_entry
+      next if entry.blank?
+      records[entry.service.service_type_id][entry.clinic_type.to_sym] +=payment.amount
+      totals[entry.clinic_type.to_sym] += payment.amount
+    end
+    return records,totals
+  end
+
+  # void listing
+  def void_listing_helper(range:)
+    records = []
+    
+    receipts = Receipt.unscoped.where(voided: 1, created_at: range)
+    receipt_count = receipts.count
+  
+    receipts.find_each do |receipt|
+      receipt_number = receipt.receipt_number
+  
+      # Calculate amount_billed by summing full_price from order_entries
+      # that are related to order_payments for this receipt.
+      sql_billed = <<-SQL
+        SELECT SUM(full_price) AS full_price
+        FROM order_entries
+        WHERE order_entry_id IN (
+          SELECT order_entry_id FROM order_payments WHERE receipt_number = '#{receipt_number}'
+        )
+      SQL
+  
+      result = OrderEntry.find_by_sql(sql_billed.strip).first
+      amount_billed = result&.full_price || 0
+  
+      # Calculate amount_paid by summing the amount from matching OrderPayments.
+      amount_paid = OrderPayment.unscoped.where(receipt_number: receipt_number).sum(:amount)
+  
+      # Retrieve voided_reason from order_entries associated with this receipt via order_payments.
+      sql_voided_reason = <<-SQL
+        SELECT voided_reason
+        FROM order_entries
+        WHERE order_entry_id IN (
+          SELECT order_entry_id FROM order_payments WHERE receipt_number = '#{receipt_number}'
+        )
+      SQL
+  
+      voided_reason_record = OrderEntry.find_by_sql(sql_voided_reason.strip).last
+      voided_reason = voided_reason_record&.voided_reason || 'Other'
+  
+      records << {
+        receipt_number: receipt_number,
+        amount_billed: amount_billed,
+        amount_paid: amount_paid,
+        issued_time: receipt.created_at,
+        voided_time: receipt.updated_at,
+        voided_reason: voided_reason
+      }
+    end
+  
+    {
+      receipt_count: receipt_count,
+      records: records
+    }
+  end
+   
+end
 
 def find_user(uid)
   user = User.find_by(user_id: uid)
@@ -160,3 +375,4 @@ def find_user(uid)
     return "unassigned"
   end
 end
+

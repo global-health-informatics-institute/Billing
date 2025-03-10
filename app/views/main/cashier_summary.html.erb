@@ -1,77 +1,115 @@
-<div class="section-header" >
-  <%= @title %>
-</div>
-<div style="height: 75vh; width: 100%;overflow-y: auto;">
-  <div style="display: table; width: 100%;font-size: 1.4em;">
-
-
-
-    <%# Total summary %>
-    <div style="display: table-row; background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
-      <div style="display: table-cell;padding-left: 1vw;">
-        Voided
-      </div>
-      <div style="display: table-cell; text-align: right;">
-        Refunded
-      </div>
-      <div style="display: table-cell; text-align: right;">
-        Total Full Cost
-      </div>
-      <div style="display: table-cell; text-align: right; padding-right: 1vw;">
-        Total Amount Paid
-      </div>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: start;
+        background: #ffffff;
+        margin: 0;
+        overflow-y: auto;
+        font-size: 22px;
+    }
+    .receipt {
+        background: #ffffff;
+        padding: 20px;
+        width: 100vw;
+        height: 100%;
+        text-align: center;
+    }
+    h2 {
+        margin: 5px 0;
+        color: #555555;
+    }
+    .info {
+        text-align: left;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #cccccc;
+        border-radius: 5px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    th, td {
+        border-bottom: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background: #f1f1f1;
+        color: #000;
+        text-transform: uppercase;
+    }
+    .total {
+        font-weight: bold;
+        background: #f1f1f1;
+    }
+    .print-btn {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        margin-top: 15px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .thank-you {
+        margin-top: 10px;
+        font-size: 20px;
+        font-style: bold;
+        color: #555;
+}
+</style>
+</head>
+    <div class="receipt">
+        <h2> <%= facility_name.titleize %></h2>
+        <p>Cashier Summary Receipt - <%= Time.now.strftime("%A, %B %d, %Y, %I:%M %p") %> </p>
+        <div class="info">
+            <p><strong>Date:</strong> <%= @duration %> </p>
+            <p>
+              <strong>Name:</strong> 
+              <%= @user.name %>
+            </p>
+        </div>
+        <table>
+          <tr>
+              <th>Service Name</th>
+              <th>Amount (MWK)</th>
+              <th>Received (MWK)</th>
+          </tr>
+          <% @service_totals.each do |key, value| %>
+              <% if key.to_s.end_with?('_price') %>
+                  <% service_name = key.to_s.gsub('_price', '').gsub('_', ' ').titleize %>
+                  <% paid_key = "#{key.to_s.gsub('_price', '_paid')}".to_sym %>
+                  <tr>
+                    <td><%= service_name %></td>
+                    <td><%= number_with_precision(value, precision: 2) %></td>
+                    <td><%= number_with_precision(@service_totals[paid_key], precision: 2) %></td>
+                  </tr>
+              <% end %>
+            <% end %>
+            <tr class="total">
+                <td>Voided</td>
+                <td><%= number_with_precision(@totals[:total_voided_price], precision: 2) %></td>
+                <td><%= number_with_precision(@totals[:total_voided_paid], precision: 2) %></td>
+            </tr>
+          <tr class="total">
+              <td>Total</td>
+              <td><%= number_with_precision(@totals[:total_full_price], precision: 2) %></td>
+              <td><%= number_with_precision(@totals[:total_amount_paid], precision: 2) %></td>
+          </tr>
+          <hr>
+          <tr class="total">
+              <td><b>Total refunds:</b> <%=local_currency(@totals[:total_refund])%></td>
+              <td></td>
+              <td></td>
+          </tr>
+      </table>
+        <p class="thank-you">Billing v2.0. - Wandimweza Hospital</p>
     </div>
-
-    <div style="display: table-row;line-height: 2.5em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
-      <div style="display: table-cell; padding-left: 1vw; color: #000000;">
-        <%= local_currency(@totals[:total_voided]) %>
-      </div>
-      <div style="display: table-cell; text-align: right;color: #000000;">
-        <%= local_currency(@totals[:total_refunds]) %> 
-      </div>
-      <div style="display: table-cell; text-align: right;color: #000000;">
-        <%= local_currency(@totals[:total_full_price]) %> 
-      </div>
-      <div style="display: table-cell; text-align: right;padding-right: 1vw;color: #000000;">
-        <%= local_currency(@totals[:total_amount_paid]) %> 
-      </div>
-    </div>
-
-
-    <%# Voids and returns %>
-    <div style="display: table-row; background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
-      <div style="display: table-cell;padding-left: 1vw;">
-        Voided Receipt
-      </div>
-      <div style="display: table-cell; text-align: right;">
-        Voided at
-      </div>
-      <div style="display: table-cell; text-align: right;">
-        Reason
-      </div>
-      <div style="display: table-cell; text-align: right; padding-right: 1vw;">
-        Amount
-      </div>
-    </div>
-        <% (@voided_entries || []).each do |e| %>
-          <div style="display: table-row;line-height: 3em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
-            <div style="display: table-cell; padding-left: 1vw; color: #000000%>;">
-              <%= e[:receipt]%>
-            </div>
-            <div style="display: table-cell; text-align: right;color: #000000%>;">
-              <%= e[:voided_at] %>
-            </div>
-            <div style="display: table-cell; text-align: right;color: #000000%>;">
-              <%= e[:voided_reason] %>
-            </div>
-            <div style="display: table-cell; text-align: right;padding-right: 1vw;color: '#000000;">
-              <%= local_currency(e[:voided_full_price])%>
-            </div>
-          </div>
-        <% end %>
-  </div>
-</div>
 <div class="footer">
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
-  <button class="blue" style="float: right;" onmousedown="window.location='/'">Print</button>
 </div>
+

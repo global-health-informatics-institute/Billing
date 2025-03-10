@@ -1,12 +1,11 @@
-
   class OrderPaymentsController < ApplicationController
+    skip_before_action :verify_authenticity_token, only: [:void]
     def show
       # Implement the show action if needed
     end
   
     def create
       if params[:order_entries].blank?
-        range = Date.current.beginning_of_day..Date.current.end_of_day
         orders = OrderEntry.where("patient_id = ? and amount_paid < full_price or full_price = 0", params[:order_payment][:patient_id])
       else
         orders = OrderEntry.where(patient_id: params[:order_payment][:patient_id], order_entry_id: params[:order_entries].split(','))
@@ -66,14 +65,29 @@
           end
   
           # Print receipt of transaction including for zero-price services
-          print_and_redirect("/order_payments/print_receipt?deposit=#{deposit_used}&change=#{amount}&ids=#{new_receipt.receipt_number}",
-                             "/patients/#{params[:order_payment][:patient_id]}")
+          patient = Patient.find(params[:order_payment][:patient_id])
+          dob = Person.select(:birthdate).where(person_id: patient.id).collect{|x| x.birthdate}.first
+          age = calculate_age(dob)
+          if age > 1825
+            print_and_redirect("/order_payments/print_receipt?deposit=#{deposit_used}&change=#{amount}&ids=#{new_receipt.receipt_number}",
+                              "/patients/#{params[:order_payment][:patient_id]}")
+          else
+            just_redirect("/patients/#{params[:order_payment][:patient_id]}")
+          end
         end
       else
         redirect_to "/patients/#{params[:order_payment][:patient_id]}" and return
       end
     end
   
+    def calculate_age(dob)
+      require 'date'
+      today = Date.today
+      dob = dob.is_a?(Date) ? dob : Date.parse(dob.to_s)
+  
+      return (today - dob).to_i
+    end
+
     def print_receipt
       ids = params[:ids].split(',') rescue params[:id]
       change = (params[:change].to_f || 0)
@@ -129,5 +143,47 @@
         end
       end
     end
+
+    def void_entry
+      entries = OrderEntry.where(order_entry_id: Array(params[:void_ids]))
+    
+      if entries.blank?
+        render json: { error: "No entries found" }, status: 404 and return
+      end
+    
+      receipts = []
+      entries.each do |entry|
+        entry.order_payments.each do |payment|
+          payment.void(params[:void_reason], current_user)
+          receipts << payment.receipt_number
+        end
+        entry.void(params[:void_reason], current_user.id)
+      end
+    
+      if receipts.blank?
+        redirect_to "/patients/#{params[:patient_id]}" and return
+      else
+        other_payments = OrderPayment.where(receipt_number: receipts)
+        old_receipt = Receipt.where(receipt_number: receipts).first
+        Receipt.where(receipt_number: receipts).update_all(voided: true, voided_by: current_user)
+    
+        if other_payments.blank?
+          redirect_to entries.first.patient and return
+        else
+          Receipt.transaction do
+            new_receipt = Receipt.create(
+              payment_mode: old_receipt.payment_mode,
+              patient_id: other_payments.first.order_entry.patient_id,
+              cashier: current_user
+            )
+            OrderPayment.where(receipt_number: receipts).update_all(receipt_number: new_receipt.receipt_number)
+    
+            print_and_redirect("/order_payments/print_receipt?ids=#{new_receipt.receipt_number}",
+                               "/patients/#{params[:patient_id]}") and return
+          end
+        end
+      end
+    end
+    
   end
   
