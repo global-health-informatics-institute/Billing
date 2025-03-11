@@ -173,9 +173,13 @@
     <div style="display: table;margin: 3vh auto">
       <div style="display: table-row;">
         <div style="display: table-cell">
-          <div class = "link-button" onmousedown="window.location='/users/<%#= current_user.id%>/edit?attribute=name'">
-            Edit User Name
+
+          <div class="link-button" onmousedown="window.location='/users/<%= current_user.user_id %>/edit?attribute=name'">
+                Edit User Name  
           </div>
+
+
+          
         </div>
         <div style="display: table-cell">
           <div class = "link-button" onmousedown="window.location='/users/<%#= current_user.id%>/edit?attribute=password'">

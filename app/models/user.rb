@@ -4,6 +4,8 @@ require 'digest/sha2'
 class User < ActiveRecord::Base
   #establish_connection Registration
 
+    validates :username, presence: true, uniqueness: true
+
     self.table_name = "users"
     self.primary_key = "user_id"
     include Openmrs
@@ -52,8 +54,8 @@ class User < ActiveRecord::Base
     end
 
     def name
-      name = self.person.names.first
-      "#{name.given_name} #{name.family_name}"
+      name = self.person.names.order("date_created DESC").first
+      "#{name.given_name} #{name.family_name}" if name
     end
 
     def try_to_login
@@ -133,6 +135,8 @@ class User < ActiveRecord::Base
     def self.current=(user)
       Thread.current[:user] = user
     end
+end
+
 =begin
     def activities
       a = activities_property
@@ -150,5 +154,3 @@ class User < ActiveRecord::Base
       prop.save
     end
 =end
-
-end
