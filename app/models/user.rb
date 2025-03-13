@@ -19,19 +19,14 @@ class User < ActiveRecord::Base
     attr_accessor :encrypted_password
     attr_accessor :login
 
-
     belongs_to :person, -> {where voided: false}, :foreign_key => :person_id
     has_many :user_properties, :foreign_key => :user_id
     has_many :user_roles, :foreign_key => :user_id
     has_many :names,-> { where "voided =  false"}, :class_name => 'PersonName', :foreign_key => :person_id
 
     def set_password
-      # We expect that the default OpenMRS interface is used to create users
-      #self.password = self.encrypted_password
       self.password = encrypt(self.plain_password, self.salt) if self.plain_password
     end
-
-    #has_one :activities_property, :class_name => 'UserProperty', :foreign_key => :user_id, :conditions => ['property = ?', 'Activities']
 
     def self.authenticate(username, password)
       user = User.where(username: username).first
@@ -42,7 +37,10 @@ class User < ActiveRecord::Base
 
     def valid_password?(password)
       return false if encrypted_password.blank?
-      is_valid = Digest::SHA1.hexdigest("#{password}#{salt}") == encrypted_password	|| encrypt(password, salt) == encrypted_password || Digest::SHA512.hexdigest("#{password}#{salt}") == encrypted_password
+
+      hashed_password = Digest::SHA1.hexdigest("#{password}#{salt}")
+
+      hashed_password == encrypted_password
     end
 
     def first_name
@@ -75,9 +73,6 @@ class User < ActiveRecord::Base
     end
 
     def password
-      # We expect that the default OpenMRS interface is used to create users
-      #self.password = encrypt(self.plain_password, self.salt) if self.plain_password
-
       self[:password]
     end
 
@@ -88,7 +83,6 @@ class User < ActiveRecord::Base
     def encrypted_password
       self.password
     end
-
 
     # Encrypts plain data with the salt.
     # Digest::SHA1.hexdigest("#{plain}#{salt}") would be equivalent to
@@ -108,7 +102,6 @@ class User < ActiveRecord::Base
     end
 
     def self.random_string(len)
-      #generat a random password consisting of strings and digits
       chars = ("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a
       newpass = ""
       1.upto(len) { |i| newpass << chars[rand(chars.size-1)] }

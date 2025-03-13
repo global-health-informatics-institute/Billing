@@ -68,43 +68,56 @@ module PatientsHelper
       }
     }.to_json
   end
-
+  
+  
   def past_records(entries)
     records = {}
-    (entries || []).each do |entry|
+    entries = entries.includes(:status, :receipts) # Eager load status and receipts
+  
+    entries.each do |entry|
       status = entry.status
       date = entry.order_date.strftime("%d %b %Y")
-
-      records[date] = {"summary" => {},"details" => [], "receipts" => []} if records[date].blank?
+  
+      records[date] ||= {"summary" => {}, "details" => [], "receipts" => []}
       records[date]["details"] << {service: entry.description, quantity: entry.quantity,
                                    price: entry.full_price, id: entry.id,
                                    status: status[:bill_status]}
       records[date]["receipts"] += entry.receipts
-      (records[date]["summary"]["bill"].blank? ? records[date]["summary"]["bill"] = entry.full_price : records[date]["summary"]["bill"]+= entry.full_price)
-      (records[date]["summary"]["paid"].blank? ? records[date]["summary"]["paid"] = status[:amount] : records[date]["summary"]["paid"]+= status[:amount])
-
+      records[date]["summary"]["bill"] ||= 0
+      records[date]["summary"]["paid"] ||= 0
+  
+      records[date]["summary"]["bill"] += entry.full_price
+      records[date]["summary"]["paid"] += status[:amount]
     end
-
+  
     return records
-  end
+  end  
 
   def today_records(receipts)
     records = {}
-    (receipts || []).each do |receipt|
-
-      records[receipt.receipt_number] = {"details" => []} if records[receipt.receipt_number].blank?
-      (receipt.order_payments || []).each do |payment|
+    # Preload order_payments and their associated order_entries
+    receipts = receipts.includes(order_payments: :order_entry) 
+  
+    receipts.each do |receipt|
+      records[receipt.receipt_number] ||= {"details" => []}
+      
+      receipt.order_payments.each do |payment|
         entry = payment.order_entry
         next if entry.blank?
-        records[receipt.receipt_number]["details"] << {service: entry.description, quantity: entry.quantity,
-                                                       price: entry.full_price, id: entry.id,
-                                                       amount_paid: payment.amount}
+        
+        records[receipt.receipt_number]["details"] << {
+          service: entry.description,
+          quantity: entry.quantity,
+          price: entry.full_price,
+          id: entry.id,
+          amount_paid: payment.amount
+        }
       end
-
     end
-
+  
     return records
   end
+  
 
   def unpaid_records(orders)
 

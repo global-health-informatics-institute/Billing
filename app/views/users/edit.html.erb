@@ -30,6 +30,17 @@
         </td>
       </tr>
     <% end %>
+
+    <!-- Add password field for validation -->
+    <tr>
+      <td>
+        Enter Password
+      </td>
+      <td>
+        <%= password_field_tag :password, nil, helpText: 'Enter your current password to proceed' %>
+      </td>
+    </tr>
+
     <%= hidden_field_tag 'user_id', @user.id %>
     <%= hidden_field_tag 'fields', @field %>
     <%= submit_tag 'Update', class: 'btn' %>

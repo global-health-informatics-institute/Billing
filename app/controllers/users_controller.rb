@@ -42,7 +42,7 @@ class UsersController < ApplicationController
   
   
   def edit
-    @user = User.find(params[:id]) # Ensure it loads the correct user instead of always current_user
+    @user = User.find(params[:id])
     @field = (params[:attribute] == 'name' ? 'NAME' : 'PASSWORD')
     render layout: 'touch'
   end
@@ -51,26 +51,25 @@ class UsersController < ApplicationController
     @user = User.find_by(user_id: params[:user_id])
     redirect_to "/" and return if @user.blank?
   
-    puts "Updating user #{@user.id}" # Log the user we're updating
-    puts "Params: #{params.inspect}" # Log the form parameters
+    puts "Updating user #{@user.id}" 
+    puts "Params: #{params.inspect}" 
   
+    # Check if password entered is correct
+    if params[:password].present? && !@user.valid_password?(params[:password])
+      flash[:error] = 'Incorrect password entered. Please try again.'
+      redirect_to request.referer and return
+    end
+    
     case params[:fields]
     when 'NAME'
-      person_name = @user.person.names.order("date_created DESC").first
-      
-      if person_name.present?
-        person_name.update(given_name: params[:given_name], family_name: params[:family_name])
-      else
-        person_name = PersonName.create(given_name: params[:given_name], family_name: params[:family_name], person_id: @user.person_id)
-      end
-
+      person_name = PersonName.create(given_name: params[:given_name], family_name: params[:family_name], person_id: @user.person_id)
       if person_name.persisted?
         flash[:notice] = 'User details successfully updated'
       else
         flash[:error] = 'User details could not be updated'
         puts "Errors: #{person_name.errors.full_messages}" # Log errors if name update fails
       end
-
+  
       # Update username if provided along with NAME update
       if params[:username].present?
         if User.exists?(username: params[:username])
@@ -82,7 +81,7 @@ class UsersController < ApplicationController
           puts "Errors: #{@user.errors.full_messages}" # Log errors if username update fails
         end
       end
-  
+    
     when 'PASSWORD'
       if params[:password] == params[:confirm_password]
         @user.plain_password = params[:password]
@@ -95,7 +94,7 @@ class UsersController < ApplicationController
       else
         flash[:error] = 'User passwords did not match'
       end
-  
+    
     when 'USERNAME'
       if params[:username].present?
         if User.exists?(username: params[:username])
@@ -110,15 +109,11 @@ class UsersController < ApplicationController
         flash[:error] = 'Username cannot be blank'
       end
     end
-    
+  
     redirect_to user_path(@user.reload) # Ensure updated details are loaded
-end
+  end  
+    
  
-
-
-
-
-
 
   def destroy
     result = User.where(user_id: params[:id]).update_all(retired: true, retire_reason: params[:user][:void_reason],

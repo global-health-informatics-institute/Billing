@@ -3,7 +3,8 @@ Rails.application.routes.draw do
   root 'main#index'
 
   get "/main/index"
-
+  
+  patch '/users/:user_id/change_password', to: 'users#update', as: 'change_password'
   get "login" => "sessions#login"
   get "location" => "sessions#location"
   post "location" => "sessions#add_location"
