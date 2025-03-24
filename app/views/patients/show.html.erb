@@ -643,6 +643,28 @@
         }, 3000);
       }
     });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      document.addEventListener("change", function (event) {
+        if (event.target.classList.contains("custom-checkbox")) {
+          toggleButtonVisibility();
+        }
+      });
+
+      function toggleButtonVisibility() {
+        const anyChecked = document.querySelectorAll(".custom-checkbox:checked").length > 0;
+        const button = document.getElementById("myBtn");
+        
+        if (button) {
+          button.style.display = anyChecked ? "block" : "none";
+        }
+      }
+
+      // Run on page load to set initial state
+      toggleButtonVisibility();
+    });
+
+
     
     initializeCollapsible();
 </script>

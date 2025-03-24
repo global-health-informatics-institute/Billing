@@ -6,7 +6,9 @@
   
     def create
       if params[:order_entries].blank?
-        orders = OrderEntry.where("patient_id = ? and amount_paid < full_price or full_price = 0", params[:order_payment][:patient_id])
+        orders = OrderEntry
+          .where("patient_id = ? AND (amount_paid < full_price OR full_price = 0)", params[:order_payment][:patient_id])
+          .select(:id, :full_price, :amount_paid)        
       else
         orders = OrderEntry.where(patient_id: params[:order_payment][:patient_id], order_entry_id: params[:order_entries].split(','))
       end

@@ -552,22 +552,10 @@ class PatientsController < ApplicationController
   def show
 
     @patient = Patient.find(params[:id])
-    # raise @patient.inspect
-    range = Date.current .beginning_of_day..Date.current.end_of_day
-
-    # unpaid_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity,:amount_paid,
-    #                                   :full_price).where('patient_id = ? AND amount_paid < full_price or full_price = 0', @patient.id)
-    unpaid_orders = OrderEntry.find_by_sql("select order_entries.*, payments.amount from order_entries left join (select order_entry_id, sum(amount)
-                                       as amount from order_payments group by order_entry_id) as payments on
-                                       order_entries.order_entry_id = payments.order_entry_id where patient_id = '#{@patient.id}'
-                                       AND (amount != full_price or amount is NULL) AND voided != 1;")
-    # raise unpaid_orders.inspect
-    # raise @patient.inspect
+    unpaid_orders = OrderEntry.where(patient_id: @patient.id).where("amount_paid < full_price")
     past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
                             .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 
-    # today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND DATE(created_at) = CURDATE()",
-    #                                                        @patient.id)
     today_payments = Receipt.select(:receipt_number).where(patient_id: @patient.id, created_at: Date.today.beginning_of_day..Date.today.end_of_day)
 
     @unpaid_orders, @total, @amount_due = view_context.unpaid_records(unpaid_orders)
