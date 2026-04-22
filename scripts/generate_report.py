@@ -6,7 +6,7 @@ Generates reports from live database
 
 import configparser
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, date
 import os
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -66,6 +66,27 @@ class ReportGenerator:
         """
         result = self.execute_query(query, (self.start_date, self.end_date))
         return result[0]['total_patients'] if result else 0
+
+    def get_registered_patients_details(self):
+        """Query 1b: Registered patients within the report period."""
+        query = """
+        SELECT DISTINCT
+            p.patient_id,
+            pn.given_name,
+            pn.family_name,
+            per.gender,
+            per.birthdate,
+            p.date_created AS registration_date
+        FROM patient p
+        JOIN person per ON p.patient_id = per.person_id
+        JOIN person_name pn ON per.person_id = pn.person_id
+        WHERE p.date_created BETWEEN %s AND %s
+          AND pn.voided = 0
+          AND per.voided = 0
+          AND pn.preferred = 1
+        ORDER BY p.date_created, pn.family_name, pn.given_name, p.patient_id
+        """
+        return self.execute_query(query, (self.start_date, self.end_date))
     
     def get_returning_patients_count(self):
         """Query 2: Count of returning patients"""
@@ -388,14 +409,16 @@ class ReportGenerator:
             return ''
         if isinstance(value, bool):
             return 'Yes' if value else 'No'
+        if isinstance(value, datetime):
+            return value.strftime('%Y-%m-%d %H:%M:%S')
+        if isinstance(value, date):
+            return value.strftime('%Y-%m-%d')
         if isinstance(value, int):
             return f'{value:,}'
         if isinstance(value, float):
             if value.is_integer():
                 return f'{int(value):,}'
             return f'{value:,.2f}'
-        if isinstance(value, datetime):
-            return value.strftime('%Y-%m-%d %H:%M:%S')
         return str(value)
 
     def _align_table_column(self, header_name, value):
@@ -479,6 +502,10 @@ class ReportGenerator:
         total_registered = self.get_total_registered_patients()
         self.add_metric(doc, 'Total Patients Registered', total_registered)
         print(f"Total registered patients: {total_registered}")
+
+        registered_patients = self.get_registered_patients_details()
+        self.add_table_from_data(doc, registered_patients, 'Registered Patients in Report Period')
+        print(f"Registered patients table")
         
         # Section 2: Returning Patients
         self.add_section_header(doc, '2. Returning Patients Analysis')
