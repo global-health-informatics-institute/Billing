@@ -12,8 +12,6 @@ from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
 import sys
 
 
@@ -383,13 +381,6 @@ class ReportGenerator:
             heading.runs[0].font.color.rgb = RGBColor(31, 78, 121)
         return heading
 
-    def _set_cell_shading(self, cell, fill):
-        """Apply background shading to a table cell."""
-        tc_pr = cell._tc.get_or_add_tcPr()
-        shd = OxmlElement('w:shd')
-        shd.set(qn('w:fill'), fill)
-        tc_pr.append(shd)
-
     def _set_cell_text(self, cell, text, bold=False, color=None, size=10, align=WD_ALIGN_PARAGRAPH.LEFT):
         """Write formatted text into a table cell."""
         cell.text = ''
@@ -442,7 +433,7 @@ class ReportGenerator:
         # Create table with headers
         headers = list(data[0].keys())
         table = doc.add_table(rows=1, cols=len(headers))
-        table.style = 'Table Grid'
+        table.style = 'Light Grid Accent 1'
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
         table.autofit = True
         
@@ -458,18 +449,15 @@ class ReportGenerator:
                 size=10,
                 align=WD_ALIGN_PARAGRAPH.CENTER
             )
-            self._set_cell_shading(header_cells[i], '1F4E79')
         
         # Add data rows
-        for row_index, row_data in enumerate(data):
+        for row_data in data:
             row_cells = table.add_row().cells
             for i, header in enumerate(headers):
                 value = row_data[header]
                 formatted_value = self._format_table_value(value)
                 alignment = self._align_table_column(header, value)
                 self._set_cell_text(row_cells[i], formatted_value, size=10, align=alignment)
-                if row_index % 2 == 1:
-                    self._set_cell_shading(row_cells[i], 'F4F8FB')
         
         doc.add_paragraph()  # Add spacing
     
