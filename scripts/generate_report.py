@@ -328,7 +328,7 @@ class ReportGenerator:
         normal_style.font.size = Pt(10)
         
         # Add title
-        title = doc.add_heading('Hospital Data Analysis Report', 0)
+        title = doc.add_heading('Wandikweza Billing and Registration Report', 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title.runs[0].font.name = 'Arial'
         title.runs[0].font.bold = True
