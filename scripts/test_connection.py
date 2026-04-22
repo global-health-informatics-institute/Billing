@@ -18,7 +18,7 @@ def test_connection():
     config.read('config.ini')
     
     try:
-        # Display connection info (without password)
+        # Display connection info
         print(f"Host: {config.get('database', 'host')}")
         print(f"Port: {config.get('database', 'port')}")
         print(f"Database: {config.get('database', 'database')}")

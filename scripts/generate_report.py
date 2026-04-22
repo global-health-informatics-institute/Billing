@@ -551,9 +551,7 @@ class ReportGenerator:
         print(f"Daily patient visits")
         
         # Section 9: Key Findings
-        self.add_section_header(doc, '9. Key Findings')
-        doc.add_paragraph('Users were not transacting non-paying patients (maternal and under five patients)')
-        doc.add_paragraph('Users requested a refund feature')
+        #self.add_section_header(doc, '9. Key Findings')
         
         # Save document
         output_dir = self.config.get('output', 'output_directory')
