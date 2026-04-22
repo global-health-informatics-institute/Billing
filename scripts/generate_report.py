@@ -5,7 +5,6 @@ Generates reports from live database
 """
 
 import configparser
-import csv
 import mysql.connector
 from datetime import datetime, date
 import os
@@ -66,42 +65,14 @@ class ReportGenerator:
         result = self.execute_query(query, (self.start_date, self.end_date))
         return result[0]['total_patients'] if result else 0
 
-    def get_registered_patients_details(self):
-        """Query 1b: Registered patients within the report period."""
+    def get_total_registered_patients_system(self):
+        """Query 1b: Total registered patients in the system, regardless of report period."""
         query = """
-        SELECT DISTINCT
-            p.patient_id,
-            pn.given_name,
-            pn.family_name,
-            per.gender,
-            per.birthdate,
-            p.date_created AS registration_date
-        FROM patient p
-        JOIN person per ON p.patient_id = per.person_id
-        JOIN person_name pn ON per.person_id = pn.person_id
-        WHERE p.date_created BETWEEN %s AND %s
-          AND pn.voided = 0
-          AND per.voided = 0
-          AND pn.preferred = 1
-        ORDER BY p.date_created, pn.family_name, pn.given_name, p.patient_id
+        SELECT COUNT(patient_id) AS total_patients
+        FROM patient
         """
-        return self.execute_query(query, (self.start_date, self.end_date))
-
-    def export_registered_patients_csv(self, data, output_dir):
-        """Export a large registered-patient list to CSV so the DOCX stays openable."""
-        if not data:
-            return None
-
-        csv_filename = f"registered_patients_{self.start_date}_to_{self.end_date}.csv"
-        csv_path = os.path.join(output_dir, csv_filename)
-
-        with open(csv_path, 'w', newline='', encoding='utf-8') as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=list(data[0].keys()))
-            writer.writeheader()
-            for row in data:
-                writer.writerow(row)
-
-        return csv_path
+        result = self.execute_query(query)
+        return result[0]['total_patients'] if result else 0
     
     def get_returning_patients_count(self):
         """Query 2: Count of returning patients"""
@@ -505,23 +476,12 @@ class ReportGenerator:
         # Section 1: Patient Registration Statistics
         self.add_section_header(doc, '1. Patient Registration Statistics')
         total_registered = self.get_total_registered_patients()
-        self.add_metric(doc, 'Total Patients Registered', total_registered)
-        print(f"Total registered patients: {total_registered}")
+        self.add_metric(doc, 'Total Patients Registered in Report Period', total_registered)
+        print(f"Total registered patients in report period: {total_registered}")
 
-        registered_patients = self.get_registered_patients_details()
-        if registered_patients and len(registered_patients) <= 200:
-            self.add_table_from_data(doc, registered_patients, 'Registered Patients in Report Period')
-            print(f"Registered patients table")
-        elif registered_patients:
-            output_dir = self.config.get('output', 'output_directory')
-            os.makedirs(output_dir, exist_ok=True)
-            csv_path = self.export_registered_patients_csv(registered_patients, output_dir)
-            doc.add_paragraph(
-                f'Full registered-patient details were exported to CSV to keep this report compact and openable: {csv_path}'
-            )
-            print(f"Registered patients exported to CSV: {csv_path}")
-        else:
-            doc.add_paragraph('No registered patients found in the report period.')
+        total_registered_system = self.get_total_registered_patients_system()
+        self.add_metric(doc, 'Total Patients Registered in System', total_registered_system)
+        print(f"Total registered patients in system: {total_registered_system}")
         
         # Section 2: Returning Patients
         self.add_section_header(doc, '2. Returning Patients Analysis')
