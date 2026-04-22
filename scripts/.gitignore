@@ -1,5 +1,6 @@
 # Configuration files with sensitive data
 config.ini
+sync_reports.sh
 
 # Generated reports
 reports/

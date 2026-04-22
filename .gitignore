@@ -12,6 +12,7 @@
 /db/*.sqlite3-*
 *.lock
 *.yml
+scripts/sync_reports.sh
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
