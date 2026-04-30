@@ -15,7 +15,7 @@
   }
 
   .search-top {
-    border-bottom: 1px solid #3d4ab2;
+    border-bottom: 1px solid #2378f8;
     padding: 6px;
   }
 
@@ -26,7 +26,7 @@
   }
 
   .search-top-main {
-    border: 1px solid #4b49b6;
+    border: 3px solid #2378f8;
     background: #fff;
     padding: 5px 8px 6px;
     font-size: 12px;
@@ -71,7 +71,7 @@
   }
 
   .search-top-title {
-    color: #2b2ca8;
+    color: #000;
     font-weight: 700;
     font-size: 31px;
     line-height: 1.1;
@@ -96,14 +96,15 @@
   .search-top-main td:first-child {
     color: #2e3a67;
     width: 76px;
-    font-size: 14px;
+    font-size: 20px;
   }
 
   .search-top-main .search-left-value {
     color: #070b15;
-    font-size: 27px;
+    font-size: 18px;
     font-weight: 700;
     width: 40%;
+    padding-left: 14px !important;
   }
 
   .search-top-main td strong {
@@ -114,14 +115,14 @@
 
   .search-top-main .search-meta-key {
     color: #55608a;
-    font-size: 14px;
+    font-size: 20px;
     padding-right: 8px;
     width: 52px;
   }
 
   .search-top-main .search-meta-value {
     color: #070b15;
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 700;
   }
 
@@ -131,7 +132,7 @@
   }
 
   .search-brand {
-    border: 1px solid #3d4ab2;
+    border: 3px solid #2378f8;
     background: #ececed;
     display: flex;
     flex-direction: column;
@@ -151,6 +152,7 @@
 
   .search-body {
     padding: 10px 12px 96px;
+    margin-top: 20px;
   }
 
   .search-tabs {
@@ -198,6 +200,17 @@
     font-size: 35px;
     padding: 60px 20px 20px;
     box-sizing: border-box;
+  }
+
+  .scan-status {
+    display: inline-block;
+    animation: scanPulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes scanPulse {
+    0% { opacity: 0.45; }
+    50% { opacity: 1; }
+    100% { opacity: 0.45; }
   }
 
   .scan-note {
@@ -848,7 +861,6 @@
     <% display_user = (current_user&.name.presence || "Admin User") %>
     <% display_role = (current_user&.user_roles&.first&.role.presence || "Superuser") %>
     <% display_location = (current_location&.name.presence || "Reception") %>
-    <% display_facility = (Location.current_health_center&.name rescue "") %>
     <%= hidden_field_tag "patient", nil %>
     <div class="search-shell">
       <div class="search-top">
@@ -861,14 +873,14 @@
             </div>
             <table cellpadding="0" cellspacing="0">
               <tr>
-                <td>Facility</td>
-                <td class="search-left-value"><%= display_facility %></td>
+                <td>Location</td>
+                <td class="search-left-value"><%= display_location %></td>
                 <td class="search-meta-key">User</td>
                 <td class="search-meta-value"><%= display_user %></td>
               </tr>
               <tr>
-                <td>Location</td>
-                <td class="search-left-value"><%= display_location %></td>
+                <td></td>
+                <td class="search-left-value"></td>
                 <td class="search-meta-key">Role</td>
                 <td class="search-meta-value"><%= display_role %></td>
               </tr>
@@ -893,7 +905,7 @@
             Scan the patient barcode to auto-find records. Use Manual Entry if the card is unavailable.
           </div>
           <h2>Patient Barcode</h2>
-          <div class="scan-zone">Awaiting scan...</div>
+          <div class="scan-zone"><span class="scan-status" id="scanStatusText">Awaiting scan...</span></div>
           <div class="scan-note">
             Aim the scanner at the barcode on the patient's health passport. The system will look up the record automatically.
           </div>
@@ -968,7 +980,36 @@
       }
     }
 
+    function setScanStatus(text) {
+      var status = byId("scanStatusText");
+      if (status) status.textContent = text;
+    }
+
     setTimeout(focusHeaderBarcodeInput, 0);
+    setTimeout(function () { setScanStatus("Ready to scan..."); }, 0);
+
+    var headerBarcodeInput = byId("headerBarcodeInput");
+    if (headerBarcodeInput) {
+      headerBarcodeInput.addEventListener("input", function () {
+        if (headerBarcodeInput.value.trim().length > 0) {
+          setScanStatus("Scanning...");
+        } else {
+          setScanStatus("Ready to scan...");
+        }
+      });
+
+      headerBarcodeInput.addEventListener("keydown", function (event) {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        var code = headerBarcodeInput.value.trim().replace(/\s+/g, "");
+        if (!code) {
+          setScanStatus("Ready to scan...");
+          return;
+        }
+        setScanStatus("Processing scan...");
+        window.location = "/patients/patient_by_id/" + encodeURIComponent(code);
+      });
+    }
 
     function setNextEnabled(enabled) {
       var nextBtn = byId("searchNextBtn");
