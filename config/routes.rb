@@ -36,6 +36,7 @@ Rails.application.routes.draw do
   resources :patients do
     collection do
       get 'search'
+      get 'scan'
       get 'ajax_search'
       get 'given_names'
       get 'family_names'
