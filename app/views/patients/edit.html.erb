@@ -56,6 +56,22 @@
     display: none;
   }
 
+  .tt_controls_region_of_origin #keyboard,
+  .tt_controls_current_region #keyboard {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .tt_controls_region_of_origin .inputFrameClass,
+  .tt_controls_current_region .inputFrameClass {
+    height: calc(100% - 10px) !important;
+  }
+
   .tt_controls_current_region .keyboard {
     display: none;
   }
