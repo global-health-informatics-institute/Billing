@@ -34,6 +34,9 @@ Rails.application.routes.draw do
   
 
   resources :patients do
+    member do
+      get 'confirm_and_proceed'
+    end
     collection do
       get 'search'
       get 'ajax_search'
