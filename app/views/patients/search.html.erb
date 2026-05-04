@@ -153,6 +153,9 @@
   .search-body {
     padding: 10px 12px 96px;
     margin-top: 20px;
+    width: min(100%, 1700px);
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .search-tabs {
@@ -299,8 +302,152 @@
     display: block;
   }
 
+  .manual-entry-ui {
+    border: 1px solid #9aa0ad;
+    background: #ececed;
+    padding: 18px;
+    min-height: 390px;
+    position: relative;
+    display: none;
+  }
+
+  .manual-entry-ui .manual-subtabs,
+  .manual-entry-ui .manual-label,
+  .manual-entry-ui .manual-display,
+  .manual-entry-ui .manual-error,
+  .manual-entry-ui .manual-hint,
+  .manual-entry-ui .manual-keyboard-shell {
+    width: min(100%, 1180px);
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  .manual-subtabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #9aa4be;
+    padding-bottom: 10px;
+  }
+
+  .manual-subtab {
+    border: 1px solid #c0c5cf;
+    background: #d7d9de;
+    color: #324865;
+    padding: 10px 18px;
+    font-size: 32px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .manual-subtab.active {
+    background: #fff;
+    border: 2px solid #333;
+    color: #000;
+    padding: 9px 17px;
+  }
+
+  .manual-label {
+    display: none;
+    margin: 12px 0 8px;
+    font-size: 44px;
+    color: #111;
+  }
+
+  .manual-display {
+    border: 1px solid #c4c8d0;
+    background: #f4f4f4;
+    min-height: 118px;
+    padding: 20px 16px;
+    font-size: 42px;
+    color: #8a97ad;
+    margin-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  .manual-error {
+    min-height: 24px;
+    margin: -6px 0 8px;
+    color: #b00020;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .manual-hint {
+    display: none;
+    min-height: 24px;
+    margin: 0 0 10px;
+    color: #2f3f58;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .manual-cursor {
+    color: #222;
+    animation: scanPulse 1.2s ease-in-out infinite;
+  }
+
+  .manual-keyboard-shell {
+    border: 1px solid #9aa4be;
+    border-radius: 20px;
+    background: #efeff0;
+    padding: 20px 18px 14px;
+    margin-bottom: 56px;
+  }
+
+  .manual-keyboard-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .manual-key {
+    border: 1px solid #253689;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 35px;
+    min-width: 56px;
+    height: 56px;
+    padding: 0 14px;
+    background: linear-gradient(#5d7ed1, #2b4298);
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .manual-key.wide {
+    min-width: 84px;
+  }
+
+  .manual-key.extra-wide {
+    min-width: 130px;
+  }
+
   .hidden-manual-search {
     display: none;
+    width: 100%;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  @media (min-width: 1700px) {
+    .search-panel,
+    .manual-entry-ui {
+      min-height: 520px;
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .manual-entry-ui .manual-subtabs,
+    .manual-entry-ui .manual-label,
+    .manual-entry-ui .manual-display,
+    .manual-entry-ui .manual-error,
+    .manual-entry-ui .manual-hint,
+    .manual-entry-ui .manual-keyboard-shell {
+      width: 100%;
+      margin-left: 0;
+    }
   }
 
   #btnHelp {
@@ -910,20 +1057,26 @@
             Aim the scanner at the barcode on the patient's health passport. The system will look up the record automatically.
           </div>
         </div>
-      </div>
 
-      <div class="search-actions">
-        <button type="button" class="action-btn cancel" id="searchCancelBtn">Cancel</button>
-        <div class="search-actions-right">
-          <button type="button" class="action-btn" id="searchNewPatientBtn">New Patient</button>
-          <button type="button" class="action-btn" id="searchClearBtn">Clear</button>
-          <button type="button" class="action-btn" id="searchBackBtn">Back</button>
-          <button type="button" class="action-btn disabled" id="searchNextBtn">Next</button>
+        <div class="manual-entry-ui" id="manualEntryUi">
+          <div class="search-info-dot" title="Help">i</div>
+          <div class="manual-subtabs">
+            <div class="manual-subtab active" id="subtabGiven">Firstname</div>
+            <div class="manual-subtab" id="subtabFamily">Surname</div>
+            <div class="manual-subtab" id="subtabDob">DD/MM/YYYY</div>
+          </div>
+          <div class="manual-label" id="manualFieldLabel">First Name</div>
+          <div class="manual-display" id="manualDisplayValue"></div>
+          <div class="manual-error" id="manualDobError"></div>
+          <div class="manual-hint" id="manualSearchHint"></div>
+
+          <div class="manual-keyboard-shell">
+            <div id="manualKeyboardRows"></div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <table width='100%' cellpadding=10 cellspacing=0 class="hidden-manual-search" id="manualSearchPanel">
+      <table width='100%' cellpadding=10 cellspacing=0 class="hidden-manual-search" id="manualSearchPanel">
       <tr>
         <td colspan="2" style="padding-bottom: 10px; border-bottom: 1px dotted #999;">
           <div style="font-size: 14px; color: #555;">
@@ -934,9 +1087,7 @@
         </td>
       </tr>
       <tr>
-        <td>
-          First Name
-        </td>
+        
         <td>
           <input type="text" id="given_name" name="given_name" value="" helpText="First Name"
                  allowFreeText=true />
@@ -964,7 +1115,19 @@
           </select>
         </td>
       </tr>
-    </table>
+      </table>
+      </div>
+
+      <div class="search-actions">
+        <button type="button" class="action-btn cancel" id="searchCancelBtn">Cancel</button>
+        <div class="search-actions-right">
+          <button type="button" class="action-btn" id="searchNewPatientBtn">New Patient</button>
+          <button type="button" class="action-btn" id="searchClearBtn">Clear</button>
+          <button type="button" class="action-btn" id="searchBackBtn">Back</button>
+          <button type="button" class="action-btn disabled" id="searchNextBtn">Next</button>
+        </div>
+      </div>
+    </div>
 
     <textarea id="json" name="person" condition=false></textarea>
 
@@ -1021,6 +1184,13 @@
       }
     }
 
+    function setManualHint(text, isError) {
+      var hint = byId("manualSearchHint");
+      if (!hint) return;
+      hint.textContent = text || "";
+      hint.style.color = isError ? "#b00020" : "#2f3f58";
+    }
+
     function getSelectedPatientId() {
       var selected = document.querySelector("#rightpanel .element.highlighted");
       return selected ? selected.id : null;
@@ -1065,11 +1235,13 @@
       clearBtn.onclick = function () {
         if (byId("given_name")) byId("given_name").value = "";
         if (byId("family_name")) byId("family_name").value = "";
+        if (byId("birthdate")) byId("birthdate").value = "";
         if (byId("gender")) byId("gender").selectedIndex = 0;
         if (byId("patient")) byId("patient").value = "";
         if (byId("leftpanel")) byId("leftpanel").innerHTML = "";
         if (byId("rightpanel")) byId("rightpanel").innerHTML = "";
         setNextEnabled(false);
+        refreshManualDisplay();
       };
     }
 
@@ -1088,11 +1260,76 @@
     if (nextBtn) {
       nextBtn.onclick = function () {
         if (nextBtn.classList.contains("disabled")) return;
+
+        var manualTab = byId("manualTabBtn");
+        if (manualTab && manualTab.classList.contains("active")) {
+          if (!validateDob(true)) return;
+
+          var given = (byId("given_name") ? byId("given_name").value.trim() : "");
+          var family = (byId("family_name") ? byId("family_name").value.trim() : "");
+          var gender = (byId("gender") ? byId("gender").value.trim() : "");
+
+          if (!given || !family || !gender) {
+            setManualHint("Enter First Name, Surname, and Gender, then tap Next.", true);
+            return;
+          }
+
+          setManualHint("Searching patient records...", false);
+          var url = "/patients/ajax_search?given_name=" + encodeURIComponent(given) +
+            "&family_name=" + encodeURIComponent(family) +
+            "&gender=" + encodeURIComponent(gender) + "&page=1";
+
+          var req = new XMLHttpRequest();
+          req.onreadystatechange = function () {
+            if (req.readyState !== 4) return;
+            if (req.status !== 200) {
+              setManualHint("Search failed. Please try again.", true);
+              return;
+            }
+            var results = [];
+            try { results = JSON.parse(req.responseText || "[]"); } catch (e) { results = []; }
+            if (!results || results.length === 0) {
+              setManualHint("No matching patient found.", true);
+              return;
+            }
+            var candidate = results[0];
+            if (candidate.patient_id) {
+              window.location = "/patients/patient_demographics/" + encodeURIComponent(candidate.patient_id);
+              return;
+            }
+            if (candidate.national_id) {
+              window.location = "/patients/patient_by_id/" + encodeURIComponent(candidate.national_id);
+              return;
+            }
+            setManualHint("Patient match is missing identifiers.", true);
+          };
+          req.open("GET", url, true);
+          req.send(null);
+          return;
+        }
+
+        var barcodeInput = byId("headerBarcodeInput");
+        var barcode = barcodeInput ? barcodeInput.value.trim().replace(/\s+/g, "") : "";
+        if (barcode.length > 0) {
+          window.location = "/patients/patient_by_id/" + encodeURIComponent(barcode);
+          return;
+        }
+        setScanStatus("Enter/scan a barcode, then tap Next.");
+
         var selectedId = getSelectedPatientId();
         if (!selectedId) return;
-        if (byId("patient")) byId("patient").value = selectedId;
-        var form = document.forms[0];
-        if (form) form.submit();
+        var selectedPatient = (patients && typeof patients[selectedId] !== "undefined") ? patients[selectedId] : null;
+        if (!selectedPatient) return;
+
+        if (selectedPatient.patient_id) {
+          window.location = "/patients/patient_demographics/" + encodeURIComponent(selectedPatient.patient_id);
+          return;
+        }
+
+        if (selectedPatient.national_id) {
+          window.location = "/patients/patient_by_id/" + encodeURIComponent(selectedPatient.national_id);
+          return;
+        }
       };
     }
 
@@ -1101,11 +1338,183 @@
       var manualTab = byId("manualTabBtn");
       var scanPanel = byId("scanPanel");
       var manualPanel = byId("manualSearchPanel");
+      var manualEntryUi = byId("manualEntryUi");
       if (scanTab) scanTab.classList.add("active");
       if (manualTab) manualTab.classList.remove("active");
       if (scanPanel) scanPanel.style.display = "block";
       if (manualPanel) manualPanel.style.display = "none";
+      if (manualEntryUi) manualEntryUi.style.display = "none";
+      setNextEnabled(true);
       focusHeaderBarcodeInput();
+    }
+
+    var activeManualField = "given_name";
+    var manualKeyboardMode = "alpha";
+
+    function getManualPlaceholder() {
+      if (activeManualField === "given_name") return "Enter first name...";
+      if (activeManualField === "family_name") return "Enter surname...";
+      return "DD/MM/YYYY";
+    }
+
+    function getActiveManualInput() {
+      return byId(activeManualField);
+    }
+
+    function refreshManualDisplay() {
+      var label = byId("manualFieldLabel");
+      if (label) {
+        label.textContent = activeManualField === "given_name" ? "First Name" :
+          (activeManualField === "family_name" ? "Surname" : "Date of Birth");
+      }
+
+      var display = byId("manualDisplayValue");
+      if (!display) return;
+      var input = getActiveManualInput();
+      var value = input ? input.value : "";
+      var shown = value && value.length > 0 ? value : getManualPlaceholder();
+      display.innerHTML = "";
+      display.appendChild(document.createTextNode(shown));
+      var cursor = document.createElement("span");
+      cursor.className = "manual-cursor";
+      cursor.textContent = "|";
+      display.appendChild(cursor);
+      validateDob(false);
+    }
+
+    function validateDob(showError) {
+      var errorEl = byId("manualDobError");
+      var dobInput = byId("birthdate");
+      if (!errorEl || !dobInput) return true;
+      errorEl.textContent = "";
+
+      var value = (dobInput.value || "").trim();
+      if (!value) return true;
+
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        if (showError) errorEl.textContent = "Use DD/MM/YYYY format";
+        return false;
+      }
+
+      var parts = value.split("/");
+      var day = parseInt(parts[0], 10);
+      var month = parseInt(parts[1], 10);
+      var year = parseInt(parts[2], 10);
+      if (month < 1 || month > 12) {
+        if (showError) errorEl.textContent = "Month must be 01-12";
+        return false;
+      }
+
+      var maxDay = new Date(year, month, 0).getDate();
+      if (day < 1 || day > maxDay) {
+        if (showError) errorEl.textContent = "Day is not valid for that month";
+        return false;
+      }
+
+      var dateObj = new Date(year, month - 1, day);
+      if (dateObj.getFullYear() !== year || dateObj.getMonth() !== (month - 1) || dateObj.getDate() !== day) {
+        if (showError) errorEl.textContent = "Invalid date";
+        return false;
+      }
+
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (dateObj > today) {
+        if (showError) errorEl.textContent = "Date of birth cannot be in the future";
+        return false;
+      }
+
+      return true;
+    }
+
+    function formatDobDigits(rawValue) {
+      var digits = (rawValue || "").replace(/\D/g, "").slice(0, 8);
+      if (digits.length <= 2) return digits;
+      if (digits.length <= 4) return digits.slice(0, 2) + "/" + digits.slice(2);
+      return digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4);
+    }
+
+    function setManualField(fieldName) {
+      activeManualField = fieldName;
+      var isDob = fieldName === "birthdate";
+      manualKeyboardMode = isDob ? "numeric" : "alpha";
+      var given = byId("subtabGiven");
+      var family = byId("subtabFamily");
+      var dob = byId("subtabDob");
+      if (given) given.classList.toggle("active", fieldName === "given_name");
+      if (family) family.classList.toggle("active", fieldName === "family_name");
+      if (dob) dob.classList.toggle("active", fieldName === "birthdate");
+
+      renderManualKeyboard();
+      refreshManualDisplay();
+    }
+
+    function keyButton(label, cssClass, action) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "manual-key" + (cssClass ? " " + cssClass : "");
+      btn.textContent = label;
+      btn.onclick = action;
+      return btn;
+    }
+
+    function appendManualValue(text) {
+      var input = getActiveManualInput();
+      if (!input) return;
+      if (activeManualField === "birthdate") {
+        input.value = formatDobDigits(input.value + text);
+      } else {
+        input.value = input.value + text;
+      }
+      refreshManualDisplay();
+    }
+
+    function deleteManualValue() {
+      var input = getActiveManualInput();
+      if (!input) return;
+      if (activeManualField === "birthdate") {
+        input.value = formatDobDigits(input.value.slice(0, -1));
+      } else {
+        input.value = input.value.slice(0, -1);
+      }
+      refreshManualDisplay();
+    }
+
+    function renderManualKeyboard() {
+      var rowsWrap = byId("manualKeyboardRows");
+      if (!rowsWrap) return;
+      rowsWrap.innerHTML = "";
+
+      if (manualKeyboardMode === "alpha") {
+        var row1 = document.createElement("div");
+        row1.className = "manual-keyboard-row";
+        "QWERTYUIOP".split("").forEach(function (ch) { row1.appendChild(keyButton(ch, "", function () { appendManualValue(ch); })); });
+        row1.appendChild(keyButton("Delete", "wide", deleteManualValue));
+        rowsWrap.appendChild(row1);
+
+        var row2 = document.createElement("div");
+        row2.className = "manual-keyboard-row";
+        "ASDFGHJKL'".split("").forEach(function (ch) { row2.appendChild(keyButton(ch, "", function () { appendManualValue(ch); })); });
+        row2.appendChild(keyButton("O-9", "wide", function () { manualKeyboardMode = "numeric"; renderManualKeyboard(); }));
+        rowsWrap.appendChild(row2);
+
+        var row3 = document.createElement("div");
+        row3.className = "manual-keyboard-row";
+        "ZXCVBNM,.".split("").forEach(function (ch) { row3.appendChild(keyButton(ch, "", function () { appendManualValue(ch); })); });
+        row3.appendChild(keyButton("Space", "wide", function () { appendManualValue(" "); }));
+        rowsWrap.appendChild(row3);
+      } else {
+        var rowNum = document.createElement("div");
+        rowNum.className = "manual-keyboard-row";
+        "1234567890".split("").forEach(function (ch) { rowNum.appendChild(keyButton(ch, "", function () { appendManualValue(ch); })); });
+        rowNum.appendChild(keyButton("Delete", "wide", deleteManualValue));
+        rowsWrap.appendChild(rowNum);
+
+        var rowToggle = document.createElement("div");
+        rowToggle.className = "manual-keyboard-row";
+        rowToggle.appendChild(keyButton("A-Z", "wide", function () { manualKeyboardMode = "alpha"; renderManualKeyboard(); }));
+        rowsWrap.appendChild(rowToggle);
+      }
     }
 
     function activateManualTab() {
@@ -1113,13 +1522,15 @@
       var manualTab = byId("manualTabBtn");
       var scanPanel = byId("scanPanel");
       var manualPanel = byId("manualSearchPanel");
+      var manualEntryUi = byId("manualEntryUi");
       if (scanTab) scanTab.classList.remove("active");
       if (manualTab) manualTab.classList.add("active");
       if (scanPanel) scanPanel.style.display = "none";
-      if (manualPanel) manualPanel.style.display = "table";
-      if (typeof loadNames === "function") {
-        loadNames();
-      }
+      if (manualPanel) manualPanel.style.display = "none";
+      if (manualEntryUi) manualEntryUi.style.display = "block";
+      setManualField("given_name");
+      setManualHint("Enter First Name, Surname, and Gender, then tap Next.", false);
+      setNextEnabled(true);
     }
 
     var scanTabBtn = byId("scanTabBtn");
@@ -1128,7 +1539,34 @@
     var manualTabBtn = byId("manualTabBtn");
     if (manualTabBtn) manualTabBtn.onclick = activateManualTab;
 
+    var subtabGiven = byId("subtabGiven");
+    if (subtabGiven) subtabGiven.onclick = function () {
+      if (activeManualField === "birthdate" && !validateDob(true)) return;
+      setManualField("given_name");
+    };
+    var subtabFamily = byId("subtabFamily");
+    if (subtabFamily) subtabFamily.onclick = function () {
+      if (activeManualField === "birthdate" && !validateDob(true)) return;
+      setManualField("family_name");
+    };
+    var subtabDob = byId("subtabDob");
+    if (subtabDob) subtabDob.onclick = function () { setManualField("birthdate"); };
+
+    var birthInput = document.createElement("input");
+    birthInput.type = "hidden";
+    birthInput.id = "birthdate";
+    birthInput.name = "birthdate";
+    var formEl = document.forms[0];
+    if (formEl) formEl.appendChild(birthInput);
+    birthInput.addEventListener("blur", function () { validateDob(true); });
+
     var resultsObserver = new MutationObserver(function () {
+      var manualActive = byId("manualTabBtn") && byId("manualTabBtn").classList.contains("active");
+      var scanActive = byId("scanTabBtn") && byId("scanTabBtn").classList.contains("active");
+      if (manualActive || scanActive) {
+        setNextEnabled(true);
+        return;
+      }
       setNextEnabled(!!getSelectedPatientId());
     });
 
@@ -1143,6 +1581,6 @@
 
     startObserverWhenPanelReady();
     activateScanTab();
-    setNextEnabled(false);
+    setNextEnabled(true);
   })();
 </script>
