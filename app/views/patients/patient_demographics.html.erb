@@ -14,8 +14,8 @@ end %>
 <style type="text/css">
   :root {
     --font-base: "Century Gothic", "Trebuchet MS", Arial, sans-serif;
-    --fs-title: 22px;
-    --fs-meta: 14px;
+    --fs-title: 24px;
+    --fs-meta: 16px;
     --fs-banner-name: 38px;
     --fs-banner-sub: 20px;
     --fs-section: 22px;
@@ -60,14 +60,28 @@ end %>
     color: #1c2869;
     font-weight: 700;
     margin-bottom: 8px;
+    line-height: 1.25;
+    letter-spacing: 0.2px;
   }
 
   .confirm-meta {
     font-size: var(--fs-meta);
-    color: #2f3f58;
-    line-height: 1.9;
+    color: #22324a;
+    line-height: 1.75;
     display: grid;
     grid-template-columns: 100px 1fr 60px 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+  }
+
+  .confirm-meta > div:nth-child(odd) {
+    font-weight: 700;
+    color: #2b3d5e;
+  }
+
+  .confirm-meta > div:nth-child(even) {
+    font-weight: 600;
+    color: #101828;
   }
 
   .confirm-brand {
@@ -198,8 +212,8 @@ end %>
 
   @media (max-width: 1100px) {
     :root {
-      --fs-title: 20px;
-      --fs-meta: 13px;
+      --fs-title: 22px;
+      --fs-meta: 15px;
       --fs-banner-name: 32px;
       --fs-banner-sub: 18px;
       --fs-section: 20px;
@@ -223,8 +237,8 @@ end %>
 
   @media (max-width: 700px) {
     :root {
-      --fs-title: 18px;
-      --fs-meta: 12px;
+      --fs-title: 19px;
+      --fs-meta: 14px;
       --fs-banner-name: 24px;
       --fs-banner-sub: 15px;
       --fs-section: 18px;
@@ -335,7 +349,7 @@ end %>
     <a class="btn cancel" href="/">Cancel</a>
     <div class="right-actions">
       <a class="btn warning" href="/patients/<%= patient.patient_id %>/edit?field=address2">Update Location</a>
-      <a class="btn success" href="/patients/<%= patient.patient_id %>">Confirm & Proceed</a>
+      <a class="btn success" href="/patients/<%= patient.id %>/confirm_and_proceed">Confirm & Proceed</a>
     </div>
   </div>
 </div>
