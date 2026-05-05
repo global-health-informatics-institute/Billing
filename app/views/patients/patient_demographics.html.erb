@@ -10,18 +10,29 @@ rescue
   ''
 end %>
 <% gender_text = (@person.gender.to_s.downcase == 'm' ? 'Male' : (@person.gender.to_s.downcase == 'f' ? 'Female' : '')) %>
+<%
+  session_user = current_user
+  session_location = current_location
+  session_role_record = session_user&.user_roles&.first
+  session_role_value = session_role_record&.role
+  session_role_name = if session_role_value.respond_to?(:name)
+                        session_role_value.name
+                      else
+                        session_role_value.to_s
+                      end
+%>
 
 <style type="text/css">
   :root {
     --font-base: "Century Gothic", "Trebuchet MS", Arial, sans-serif;
-    --fs-title: 24px;
-    --fs-meta: 16px;
-    --fs-banner-name: 38px;
-    --fs-banner-sub: 20px;
-    --fs-section: 22px;
-    --fs-label: 15px;
-    --fs-value: 20px;
-    --fs-button: 16px;
+    --fs-title: 20px;
+    --fs-meta: 14px;
+    --fs-banner-name: 30px;
+    --fs-banner-sub: 16px;
+    --fs-section: 18px;
+    --fs-label: 14px;
+    --fs-value: 16px;
+    --fs-button: 14px;
   }
 
   html, body {
@@ -29,14 +40,14 @@ end %>
     padding: 0;
     background: #d7d7d9;
     font-family: var(--font-base);
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.35;
     color: #0f1524;
   }
 
   .confirm-shell {
     min-height: 100vh;
-    border: 1px solid #2d2d2d;
+    border: 1px solid var(--ui-color-border);
     box-sizing: border-box;
     padding-bottom: 120px;
   }
@@ -46,11 +57,11 @@ end %>
     grid-template-columns: 1fr 190px;
     gap: 8px;
     padding: 12px;
-    border-bottom: 2px solid #3a45a6;
+    border-bottom: 2px solid var(--ui-color-border);
   }
 
   .confirm-top-main {
-    border: 2px solid #3a45a6;
+    border: 2px solid var(--ui-color-border);
     background: #f5f5f6;
     padding: 12px 18px;
   }
@@ -85,7 +96,7 @@ end %>
   }
 
   .confirm-brand {
-    border: 2px solid #3a45a6;
+    border: 2px solid var(--ui-color-border);
     background: #f5f5f6;
     display: flex;
     flex-direction: column;
@@ -94,8 +105,16 @@ end %>
     color: #0f1524;
   }
 
-  .confirm-brand strong { font-size: 20px; }
-  .confirm-brand span { font-size: 14px; }
+  .confirm-brand strong {
+    font-size: 1.5em;
+    color: #0f1524;
+    margin: 0;
+  }
+  .confirm-brand span {
+    margin: 6px 0 0;
+    font-size: 1.05em;
+    color: #2f3f58;
+  }
 
   .confirm-body {
     padding: 16px 20px;
@@ -104,7 +123,7 @@ end %>
   .patient-banner {
     background: linear-gradient(#4e67bb, #3b53a9);
     color: #fff;
-    border: 2px solid #314497;
+    border: 2px solid var(--ui-color-border);
     padding: 18px 20px;
     display: flex;
     justify-content: space-between;
@@ -125,7 +144,7 @@ end %>
   }
 
   .details-card {
-    border: 2px solid #3a45a6;
+    border: 2px solid var(--ui-color-border);
     background: #efeff0;
     padding: 30px 34px;
     margin-bottom: 26px;
@@ -136,7 +155,7 @@ end %>
     font-weight: 700;
     color: #111;
     margin: 4px 0 18px;
-    border-bottom: 2px solid #3a45a6;
+    border-bottom: 2px solid var(--ui-color-border);
     padding-bottom: 12px;
   }
 
@@ -212,14 +231,14 @@ end %>
 
   @media (max-width: 1100px) {
     :root {
-      --fs-title: 22px;
-      --fs-meta: 15px;
-      --fs-banner-name: 32px;
-      --fs-banner-sub: 18px;
-      --fs-section: 20px;
+      --fs-title: 18px;
+      --fs-meta: 14px;
+      --fs-banner-name: 26px;
+      --fs-banner-sub: 15px;
+      --fs-section: 17px;
       --fs-label: 14px;
-      --fs-value: 18px;
-      --fs-button: 15px;
+      --fs-value: 15px;
+      --fs-button: 14px;
     }
     .confirm-top {
       grid-template-columns: 1fr;
@@ -285,9 +304,9 @@ end %>
     <div class="confirm-top-main">
       <div class="confirm-top-title">Confirm Patient Details</div>
       <div class="confirm-meta">
-        <div>User</div><div><%= current_user&.name || 'Admin User' %></div>
-        <div>Location</div><div><%= current_location&.name || 'Reception' %></div>
-        <div>Role</div><div><%= current_user&.user_roles&.first&.role || 'Superuser' %></div>
+        <div>User</div><div><%= session_user&.name.presence || '-' %></div>
+        <div>Location</div><div><%= session_location&.name.presence || '-' %></div>
+        <div>Role</div><div><%= session_role_name.presence || '-' %></div>
       </div>
     </div>
     <div class="confirm-brand">
