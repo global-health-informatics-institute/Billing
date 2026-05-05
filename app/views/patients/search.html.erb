@@ -63,10 +63,11 @@
     border: 0;
     border-bottom: 1px solid #2f2f2f;
     background: transparent;
-    height: 14px;
-    margin-top: 20px;
+    height: 28px;
+    margin-top: 14px;
     outline: none;
-    font-size: 12px;
+    font-size: 20px;
+    line-height: 1.2;
     color: #111;
   }
 
@@ -315,11 +316,12 @@
   .manual-entry-ui .manual-label,
   .manual-entry-ui .manual-display,
   .manual-entry-ui .manual-error,
+  .manual-entry-ui .manual-gender-row,
   .manual-entry-ui .manual-hint,
   .manual-entry-ui .manual-keyboard-shell {
     width: min(100%, 1180px);
     margin-left: auto;
-    margin-right: 0;
+    margin-right: auto;
   }
 
   .manual-subtabs {
@@ -373,12 +375,35 @@
   }
 
   .manual-hint {
-    display: none;
+    display: block;
     min-height: 24px;
     margin: 0 0 10px;
     color: #2f3f58;
     font-size: 20px;
     font-weight: 700;
+  }
+
+  .manual-gender-row {
+    display: flex;
+    gap: 10px;
+    margin: -2px 0 10px;
+  }
+
+  .manual-gender-btn {
+    border: 1px solid #7d8798;
+    background: #f4f5f7;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+
+  .manual-gender-btn.active {
+    background: #2f66e5;
+    border-color: #1e4fbf;
+    color: #fff;
   }
 
   .manual-cursor {
@@ -428,7 +453,7 @@
     width: 100%;
     max-width: 760px;
     margin-left: auto;
-    margin-right: 0;
+    margin-right: auto;
   }
 
   @media (min-width: 1700px) {
@@ -443,6 +468,7 @@
     .manual-entry-ui .manual-label,
     .manual-entry-ui .manual-display,
     .manual-entry-ui .manual-error,
+    .manual-entry-ui .manual-gender-row,
     .manual-entry-ui .manual-hint,
     .manual-entry-ui .manual-keyboard-shell {
       width: 100%;
@@ -1068,6 +1094,10 @@
           <div class="manual-label" id="manualFieldLabel">First Name</div>
           <div class="manual-display" id="manualDisplayValue"></div>
           <div class="manual-error" id="manualDobError"></div>
+          <div class="manual-gender-row">
+            <button type="button" class="manual-gender-btn" id="manualGenderFemale">Female</button>
+            <button type="button" class="manual-gender-btn" id="manualGenderMale">Male</button>
+          </div>
           <div class="manual-hint" id="manualSearchHint"></div>
 
           <div class="manual-keyboard-shell">
@@ -1171,7 +1201,7 @@
           return;
         }
         setScanStatus("Processing scan...");
-        window.location = "/patients/patient_by_id/" + encodeURIComponent(code);
+        window.location = "/patients/patient_by_id/" + encodeURIComponent(code) + "?source=scan";
       });
     }
 
@@ -1190,6 +1220,15 @@
       if (!hint) return;
       hint.textContent = text || "";
       hint.style.color = isError ? "#b00020" : "#2f3f58";
+    }
+
+    function setManualGender(genderValue) {
+      var genderSelect = byId("gender");
+      if (genderSelect) genderSelect.value = genderValue;
+      var femaleBtn = byId("manualGenderFemale");
+      var maleBtn = byId("manualGenderMale");
+      if (femaleBtn) femaleBtn.classList.toggle("active", genderValue === "F");
+      if (maleBtn) maleBtn.classList.toggle("active", genderValue === "M");
     }
 
     function getSelectedPatientId() {
@@ -1242,6 +1281,7 @@
         if (byId("leftpanel")) byId("leftpanel").innerHTML = "";
         if (byId("rightpanel")) byId("rightpanel").innerHTML = "";
         setNextEnabled(false);
+        setManualGender("");
         refreshManualDisplay();
       };
     }
@@ -1295,11 +1335,11 @@
             }
             var candidate = results[0];
             if (candidate.patient_id) {
-              window.location = "/patients/patient_demographics/" + encodeURIComponent(candidate.patient_id);
+              window.location = "/patients/patient_demographics/" + encodeURIComponent(candidate.patient_id) + "?source=manual";
               return;
             }
             if (candidate.national_id) {
-              window.location = "/patients/patient_by_id/" + encodeURIComponent(candidate.national_id);
+              window.location = "/patients/patient_by_id/" + encodeURIComponent(candidate.national_id) + "?source=manual";
               return;
             }
             setManualHint("Patient match is missing identifiers.", true);
@@ -1312,7 +1352,7 @@
         var barcodeInput = byId("headerBarcodeInput");
         var barcode = barcodeInput ? barcodeInput.value.trim().replace(/\s+/g, "") : "";
         if (barcode.length > 0) {
-          window.location = "/patients/patient_by_id/" + encodeURIComponent(barcode);
+          window.location = "/patients/patient_by_id/" + encodeURIComponent(barcode) + "?source=scan";
           return;
         }
         setScanStatus("Enter/scan a barcode, then tap Next.");
@@ -1323,12 +1363,12 @@
         if (!selectedPatient) return;
 
         if (selectedPatient.patient_id) {
-          window.location = "/patients/patient_demographics/" + encodeURIComponent(selectedPatient.patient_id);
+          window.location = "/patients/patient_demographics/" + encodeURIComponent(selectedPatient.patient_id) + "?source=scan";
           return;
         }
 
         if (selectedPatient.national_id) {
-          window.location = "/patients/patient_by_id/" + encodeURIComponent(selectedPatient.national_id);
+          window.location = "/patients/patient_by_id/" + encodeURIComponent(selectedPatient.national_id) + "?source=scan";
           return;
         }
       };
@@ -1530,6 +1570,9 @@
       if (manualPanel) manualPanel.style.display = "none";
       if (manualEntryUi) manualEntryUi.style.display = "block";
       setManualField("given_name");
+      var currentGender = byId("gender") ? byId("gender").value : "";
+      if (!currentGender) currentGender = "F";
+      setManualGender(currentGender);
       setManualHint("Enter First Name, Surname, and Gender, then tap Next.", false);
       setNextEnabled(true);
     }
@@ -1539,6 +1582,10 @@
 
     var manualTabBtn = byId("manualTabBtn");
     if (manualTabBtn) manualTabBtn.onclick = activateManualTab;
+    var manualGenderFemaleBtn = byId("manualGenderFemale");
+    if (manualGenderFemaleBtn) manualGenderFemaleBtn.onclick = function () { setManualGender("F"); };
+    var manualGenderMaleBtn = byId("manualGenderMale");
+    if (manualGenderMaleBtn) manualGenderMaleBtn.onclick = function () { setManualGender("M"); };
 
     var subtabGiven = byId("subtabGiven");
     if (subtabGiven) subtabGiven.onclick = function () {
