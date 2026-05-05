@@ -51,6 +51,18 @@
     color: #2f3f58;
   }
 
+  #header .confirm-brand strong {
+    margin: 0;
+    font-size: 1.5em;
+    color: #0f1524;
+  }
+
+  #header .confirm-brand span {
+    margin: 6px 0 0;
+    font-size: 1.05em;
+    color: #2f3f58;
+  }
+
   .search-top {
     border-bottom: 1px solid #2378f8;
     padding: 6px;
@@ -189,12 +201,12 @@
   }
 
   .search-body {
-    padding: 10px 12px 130px;
-    margin-top: 20px;
+    padding: 10px 12px 96px;
+    margin-top: 3vh;
     width: 98vw;
     margin-left: auto;
     margin-right: auto;
-    min-height: calc(100vh - 18vh);
+    height: 70vh;
     box-sizing: border-box;
   }
 
@@ -225,7 +237,7 @@
     border: 1px solid #9aa0ad;
     background: #ececed;
     padding: 18px;
-    min-height: 390px;
+    min-height: calc(74vh - 70px);
     position: relative;
   }
 
@@ -259,7 +271,7 @@
 
   .scan-note {
     margin-top: 14px;
-    font-size: 14px;
+    font-size: 18px;
     color: #2f3f58;
   }
 
@@ -348,7 +360,7 @@
     border: 1px solid #9aa0ad;
     background: #ececed;
     padding: 18px;
-    min-height: 390px;
+    min-height: calc(74vh - 70px);
     position: relative;
     display: none;
   }
@@ -1145,9 +1157,9 @@
               </div>
             </div>
           </div>
-          <div class="header-cell" style="float: right;width:15vw;text-align: center;height: 15vh;vertical-align: middle">
-            <h2>eBilling</h2>
-            <p><%= Date.current.strftime('%d %b %Y') %></p>
+          <div class="header-cell confirm-brand" style="float: right;width:15vw;text-align: center;height: 15vh;vertical-align: middle">
+            <strong>eBilling</strong>
+            <span><%= Date.current.strftime('%d %b %Y') %></span>
           </div>
         </div>
       </div>
@@ -1197,7 +1209,7 @@
       <tr>
         <td colspan="2" style="padding-bottom: 10px; border-bottom: 1px dotted #999;">
           <div style="font-size: 14px; color: #555;">
-            <a href="/patients/scan" style="color: #2f66e5; text-decoration: none; font-weight: bold;">📱 Scan Patient Label</a>
+            <a href="/patients/scan" style="color: #2f66e5; text-decoration: none; font-weight: bold;"> Scan Patient Label</a>
             <span style="color: #999;"> | </span>
             <span style="color: #666;">or search manually below</span>
           </div>
