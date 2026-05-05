@@ -10,7 +10,7 @@ class ApplicationController < ActionController::Base
     @redirect_url = redirect_url
     @message = message
     @show_next_button = show_next_button
-    render :layout => false
+    render template: "application/print_and_redirect", layout: false
   end
 
   def just_redirect(redirect_url)
