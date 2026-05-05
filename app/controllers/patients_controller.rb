@@ -111,6 +111,12 @@ class PatientsController < ApplicationController
     render :layout => 'touch'
   end
 
+  def scan
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
+    @globals = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    render :layout => 'touch'
+  end
+
   def ajax_search
     pagesize = 3
 
@@ -124,8 +130,20 @@ class PatientsController < ApplicationController
 
     filter = {}
 
-    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] # rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+      settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")
+      if settings.is_a?(FalseClass)
+        settings = {}
+      else
+        settings = settings[Rails.env] if settings
+        settings ||= {}
+      end
+      use_dde_setting = YAML.load_file("#{Rails.root}/config/application.yml")
+      if use_dde_setting.is_a?(FalseClass)
+        use_dde = false
+      else
+        use_dde = use_dde_setting['create_from_dde'] if use_dde_setting
+        use_dde ||= false
+      end
     if !settings.blank? && use_dde
       search_hash = {
         "names" => {
@@ -184,7 +202,7 @@ class PatientsController < ApplicationController
 
     Person.all.joins(:names).where("given_name = ? AND family_name = ? AND gender = ?", params["given_name"], params["family_name"], params["gender"]).limit(pagesize).offset(offset).each do |person|
 
-      patient = person.patient # rescue nil
+       patient = person.patient rescue nil
 
       national_id = (patient.patient_identifiers.find_by_identifier_type(PatientIdentifierType.find_by_name("National id").id).identifier rescue nil)
 
@@ -243,7 +261,7 @@ class PatientsController < ApplicationController
 
     end if pagesize > 0 and result.length < 8
 
-    render :text => result.to_json
+     render json: result
 
   end
 
@@ -500,6 +518,7 @@ class PatientsController < ApplicationController
         address.county_district = params[:person][:addresses][:county_district]
         address.city_village = params[:person][:addresses][:city_village]
         address.save
+        print_barcode = true
 
       when 'cell_phone_number'
         attrib_type = PersonAttributeType.find_by_name("Cell Phone Number").id
@@ -563,6 +582,15 @@ class PatientsController < ApplicationController
     @today_payments = view_context.today_records(today_payments)
     @deposits = @patient.amount_deposited
 
+  end
+
+  def confirm_and_proceed
+    patient = Patient.find(params[:id])
+    if params[:source].to_s == "manual"
+      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", "/patients/#{patient.id}") and return
+    end
+
+    redirect_to "/patients/#{patient.id}" and return
   end
 
   def patient_by_id
@@ -700,18 +728,26 @@ class PatientsController < ApplicationController
         #if dde doesn't exist and patient is not available locally
         redirect_to "/patients/patient_not_found/#{params[:id]}" and return
       else
-        redirect_to "/patients/#{local_patient['patient_id']}" and return
+        source_value = params[:source].to_s
+        source = %w[manual scan].include?(source_value) ? "?source=#{source_value}" : ""
+        redirect_to "/patients/patient_demographics/#{local_patient['patient_id']}#{source}" and return
       end
     end
 
     render :layout => 'touch'
   end
 
-  def process_result
+   def process_result
 
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
-    json = JSON.parse(params["person"]) rescue {}
-    if (json["patient"]["identifiers"].class.to_s.downcase == "hash" rescue false)
+     use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+     json = JSON.parse(params["person"]) rescue {}
+
+     # Validate required fields
+     if json.blank? || json["names"].blank? || json["gender"].blank? || json["birthdate"].blank? || json["addresses"].blank?
+       redirect_to search_patients_path, alert: "Incomplete patient data. Please search and select a patient." and return
+     end
+
+     if (json["patient"]["identifiers"].class.to_s.downcase == "hash" rescue false)
 
       tmp = json["patient"]["identifiers"]
       json["patient"]["identifiers"] = []
@@ -805,10 +841,10 @@ class PatientsController < ApplicationController
     end
 
     #if print barcode
-    print_and_redirect("/patients/print_national_id?patient_id=#{patient_id}", "/patients/#{patient.id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
+    print_and_redirect("/patients/print_national_id?patient_id=#{patient_id}", "/patients/patient_demographics/#{patient.id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
 
 
-    redirect_to "/patients/#{patient.id}" and return if !patient.blank?
+    redirect_to "/patients/patient_demographics/#{patient.id}" and return if !patient.blank?
 
     flash["error"] = "Sorry! Something went wrong. Failed to process properly!"
 
@@ -1028,7 +1064,7 @@ class PatientsController < ApplicationController
     countries = countries.map do |v|
       "<li value=\"#{v.name}\">#{v.name}</li>"
     end
-    render :text => countries.join('') + "<li value='Other'>Other</li>" and return
+    render plain: countries.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Nationalities containing the string given in params[:value]
@@ -1039,7 +1075,7 @@ class PatientsController < ApplicationController
     nationalities = nationalities.map do |v|
       "<li value=\"#{v.name}\">#{v.name}</li>"
     end
-    render :text => nationalities.join('') + "<li value='Other'>Other</li>" and return
+    render plain: nationalities.join('') + "<li value='Other'>Other</li>" and return
   end
 
   def family_names
