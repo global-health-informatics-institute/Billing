@@ -31,7 +31,7 @@ class MedicalSchemeProvidersController < ApplicationController
       "<li value=\"#{v.medical_scheme_id}\">#{v.name}</li>"
     end
 
-    render :text => schemes.join('') and return
+    render plain: schemes.join('') and return
   end
 
   private
