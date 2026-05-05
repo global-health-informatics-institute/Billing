@@ -1,6 +1,48 @@
 <% title "Billing - Main" %>
 <style type="text/css">
+  #header {
+    font-size: 16px;
+  }
 
+  #header .header-cell {
+    border: 1.5px solid var(--ui-color-border);
+    box-shadow: none;
+    background: #f5f5f6;
+  }
+
+  #header .header-content-cell {
+    font-size: 1.1em;
+    color: #1f2d3d;
+  }
+
+  #header strong {
+    font-size: 1.35em;
+    color: #1c2869;
+  }
+
+  #header h2 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #0f1524;
+  }
+
+  #header p {
+    margin: 6px 0 0;
+    font-size: 1.05em;
+    color: #2f3f58;
+  }
+
+  #header .confirm-brand strong {
+    margin: 0;
+    font-size: 1.5em;
+    color: #0f1524;
+  }
+
+  #header .confirm-brand span {
+    margin: 6px 0 0;
+    font-size: 1.05em;
+    color: #2f3f58;
+  }
 </style>
 <div id="header" style="height: 15vh; width:98vw;margin-top:1vh;margin-left: auto;margin-right: auto;">
   <div style="display: table-row">
@@ -37,9 +79,9 @@
         </div>
       </div>
     </div>
-    <div class="header-cell" style="float: right;width:15vw;text-align: center;height: 15vh;vertical-align: middle">
-      <h2>eBilling</h2>
-      <p><%= Date.current.strftime('%d %b %Y') %></p>
+    <div class="header-cell confirm-brand" style="float: right;width:15vw;text-align: center;height: 15vh;vertical-align: middle">
+      <strong>eBilling</strong>
+      <span><%= Date.current.strftime('%d %b %Y') %></span>
     </div>
   </div>
 </div>
@@ -245,5 +287,3 @@
     // Start the initialization process
     setTimeout(initializeListener, 3000);
 </script>
-
-
