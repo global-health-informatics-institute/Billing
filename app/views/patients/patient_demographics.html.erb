@@ -127,7 +127,7 @@ end %>
   .details-card {
     border: 2px solid #3a45a6;
     background: #efeff0;
-    padding: 14px 18px;
+    padding: 24px 28px;
     margin-bottom: 22px;
   }
 
@@ -143,12 +143,12 @@ end %>
   .rows {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 18px;
   }
 
   .row {
     border-bottom: 1px solid #c9ccd3;
-    padding: 10px 0;
+    padding: 14px 0;
     display: grid;
     grid-template-columns: 170px 1fr;
     align-items: center;
@@ -301,7 +301,7 @@ end %>
       <div>
         <div class="patient-name"><%= [name&.family_name, name&.given_name].compact.join(', ') %></div>
         <div class="patient-sub">
-          ID <%= patient&.national_id || '-' %>
+          Patient ID: <%= patient&.national_id || '-' %>
         </div>
       </div>
     </div>
@@ -350,7 +350,9 @@ end %>
     <a class="btn cancel" href="/">Cancel</a>
     <div class="right-actions">
       <a class="btn warning" href="/patients/<%= patient.patient_id %>/edit?field=address2">Update Location</a>
-      <a class="btn success" href="/patients/<%= patient.id %>/confirm_and_proceed">Confirm & Proceed</a>
+      <% source_value = params[:source].to_s %>
+      <% safe_source = %w[manual scan].include?(source_value) ? source_value : "" %>
+      <a class="btn success" href="/patients/<%= patient.id %>/confirm_and_proceed?source=<%= safe_source %>">Confirm & Proceed</a>
     </div>
   </div>
 </div>
