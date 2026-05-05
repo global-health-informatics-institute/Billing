@@ -416,7 +416,35 @@
     border-radius: 20px;
     background: #efeff0;
     padding: 20px 18px 14px;
-    margin-bottom: 56px;
+    margin-bottom: 20px;
+  }
+
+  .manual-results {
+    width: min(100%, 1180px);
+    margin: 0 auto 24px;
+    border: 1px solid #9aa4be;
+    border-radius: 12px;
+    background: #f7f8fb;
+    display: none;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .manual-result-item {
+    border-bottom: 1px solid #d4d9e5;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #182437;
+    line-height: 1.35;
+  }
+
+  .manual-result-item:last-child {
+    border-bottom: 0;
+  }
+
+  .manual-result-item.active {
+    background: #dce8ff;
   }
 
   .manual-keyboard-row {
@@ -1103,6 +1131,7 @@
           <div class="manual-keyboard-shell">
             <div id="manualKeyboardRows"></div>
           </div>
+          <div class="manual-results" id="manualResultsList"></div>
         </div>
       </div>
 
@@ -1231,6 +1260,74 @@
       if (maleBtn) maleBtn.classList.toggle("active", genderValue === "M");
     }
 
+    var manualSearchResults = [];
+    var selectedManualPatientId = null;
+
+    function getManualPatientId(entry) {
+      return (entry && entry.patient_id) ? String(entry.patient_id) : "";
+    }
+
+    function formatManualDob(value) {
+      if (!value) return "-";
+      var dateObj = new Date(value);
+      if (isNaN(dateObj.getTime())) return String(value);
+      var d = String(dateObj.getDate()).padStart(2, "0");
+      var m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      var y = dateObj.getFullYear();
+      return d + "/" + m + "/" + y;
+    }
+
+    function renderManualResultsList() {
+      var wrap = byId("manualResultsList");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+
+      if (!manualSearchResults || manualSearchResults.length <= 1) {
+        wrap.style.display = "none";
+        return;
+      }
+
+      wrap.style.display = "block";
+
+      manualSearchResults.forEach(function (entry) {
+        var pid = getManualPatientId(entry);
+        if (!pid) return;
+
+        var item = document.createElement("div");
+        item.className = "manual-result-item" + (selectedManualPatientId === pid ? " active" : "");
+
+        var addresses = entry.addresses || {};
+        var dob = formatManualDob(entry.birthdate);
+        var district = addresses.home_district || addresses.current_district || "-";
+        var village = addresses.home_village || addresses.current_village || "-";
+        var ta = addresses.home_ta || addresses.current_ta || "-";
+
+        item.textContent = "Patient ID: " + pid +
+          " | DOB: " + dob +
+          " | District: " + district +
+          " | Village: " + village +
+          " | Home T/A: " + ta;
+
+        item.onclick = function () {
+          selectedManualPatientId = pid;
+          renderManualResultsList();
+          setManualHint("Selected Patient ID " + pid + ". Tap Next to continue.", false);
+        };
+
+        wrap.appendChild(item);
+      });
+    }
+
+    function clearManualResultsState() {
+      manualSearchResults = [];
+      selectedManualPatientId = null;
+      var wrap = byId("manualResultsList");
+      if (wrap) {
+        wrap.innerHTML = "";
+        wrap.style.display = "none";
+      }
+    }
+
     function getSelectedPatientId() {
       var selected = document.querySelector("#rightpanel .element.highlighted");
       return selected ? selected.id : null;
@@ -1282,6 +1379,7 @@
         if (byId("rightpanel")) byId("rightpanel").innerHTML = "";
         setNextEnabled(false);
         setManualGender("");
+        clearManualResultsState();
         refreshManualDisplay();
       };
     }
@@ -1315,7 +1413,17 @@
             return;
           }
 
+          if (manualSearchResults.length > 1) {
+            if (!selectedManualPatientId) {
+              setManualHint("Multiple matches found. Select the correct patient first.", true);
+              return;
+            }
+            window.location = "/patients/patient_demographics/" + encodeURIComponent(selectedManualPatientId) + "?source=manual";
+            return;
+          }
+
           setManualHint("Searching patient records...", false);
+          clearManualResultsState();
           var url = "/patients/ajax_search?given_name=" + encodeURIComponent(given) +
             "&family_name=" + encodeURIComponent(family) +
             "&gender=" + encodeURIComponent(gender) + "&page=1";
@@ -1333,16 +1441,22 @@
               setManualHint("No matching patient found.", true);
               return;
             }
-            var candidate = results[0];
-            if (candidate.patient_id) {
-              window.location = "/patients/patient_demographics/" + encodeURIComponent(candidate.patient_id) + "?source=manual";
+
+            var withPatientId = results.filter(function (entry) { return getManualPatientId(entry) !== ""; });
+            if (!withPatientId.length) {
+              setManualHint("Matching records found, but Patient ID is missing.", true);
               return;
             }
-            if (candidate.national_id) {
-              window.location = "/patients/patient_by_id/" + encodeURIComponent(candidate.national_id) + "?source=manual";
+
+            if (withPatientId.length === 1) {
+              window.location = "/patients/patient_demographics/" + encodeURIComponent(getManualPatientId(withPatientId[0])) + "?source=manual";
               return;
             }
-            setManualHint("Patient match is missing identifiers.", true);
+
+            manualSearchResults = withPatientId;
+            selectedManualPatientId = null;
+            renderManualResultsList();
+            setManualHint("Multiple matches found. Select the correct patient, then tap Next.", true);
           };
           req.open("GET", url, true);
           req.send(null);
@@ -1385,6 +1499,7 @@
       if (scanPanel) scanPanel.style.display = "block";
       if (manualPanel) manualPanel.style.display = "none";
       if (manualEntryUi) manualEntryUi.style.display = "none";
+      clearManualResultsState();
       setNextEnabled(true);
       focusHeaderBarcodeInput();
     }
@@ -1569,6 +1684,7 @@
       if (scanPanel) scanPanel.style.display = "none";
       if (manualPanel) manualPanel.style.display = "none";
       if (manualEntryUi) manualEntryUi.style.display = "block";
+      clearManualResultsState();
       setManualField("given_name");
       var currentGender = byId("gender") ? byId("gender").value : "";
       if (!currentGender) currentGender = "F";
