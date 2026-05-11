@@ -150,7 +150,7 @@ display: none !important;
 
 </style>
 
-<%= form_for :patients, :method => "POST" ,remote: true, :url => "/patients/confirm_demographics"  do |f| %>
+<%= form_for :patients, :method => "POST", :url => "/patients/confirm_demographics"  do |f| %>
 
     <% if params[:given_name].blank? %>
         <%= text_field_tag "person[names][given_name]", params[:given_name],
