@@ -694,8 +694,10 @@ class PatientsController < ApplicationController
   def confirm_and_proceed
     patient = Patient.find(params[:id])
     destination = "/order_entries/new?patient_id=#{patient.id}"
+    source = params[:source].to_s
 
-    if params[:source].to_s == "manual"
+    # Only manual-entry confirmations should print at this step.
+    if source == "manual"
       print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", destination) and return
     end
 
@@ -852,7 +854,7 @@ class PatientsController < ApplicationController
     render :layout => 'touch'
   end
 
-   def process_result
+  def process_result
 
      use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
      json = JSON.parse(params["person"]) rescue {}
@@ -874,6 +876,8 @@ class PatientsController < ApplicationController
       end
 
     end
+
+    new_patient_created = false
 
     if use_dde
       patient_id = DDE.search_and_or_create(json.to_json, current_location) # rescue nil
@@ -924,6 +928,7 @@ class PatientsController < ApplicationController
         patient = Patient.new
         patient.patient_id = new_person.person_id
         patient.save
+        new_patient_created = true
 
         (json["patient"]["identifiers"] || []).each{|identifier|
           identifier_type = PatientIdentifierType.find_by_name("National ID")
@@ -955,8 +960,9 @@ class PatientsController < ApplicationController
 
     end
 
-    #if print barcode
-    print_and_redirect("/patients/print_national_id?patient_id=#{patient_id}", "/patients/patient_demographics/#{patient.id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
+    # Print immediately for newly created patients.
+    should_print = (json["print_barcode"] rescue false) || new_patient_created
+    print_and_redirect("/patients/print_national_id?patient_id=#{patient_id}", "/patients/patient_demographics/#{patient.id}?source=new") and return if !patient.blank? && should_print
 
 
     redirect_to "/patients/patient_demographics/#{patient.id}" and return if !patient.blank?
