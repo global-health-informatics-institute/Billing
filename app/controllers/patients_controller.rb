@@ -7,8 +7,8 @@ class PatientsController < ApplicationController
 
   def confirm_demographics
 
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     json_params = view_context.patient_json(params[:person],params["CURRENT AREA OR T/A"],params["identifier"],true)
 
@@ -17,7 +17,7 @@ class PatientsController < ApplicationController
     if !@settings.blank? && @use_dde
       #DDE available
 
-      @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] # rescue {}
+      @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] # rescue {}
 
       if secure?
         url = "https://#{(@settings["dde_username"])}:#{(@settings["dde_password"])}@#{(@settings["dde_server"])}/ajax_process_data"
@@ -52,7 +52,7 @@ class PatientsController < ApplicationController
   def new
     
     
-    settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    settings = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
 
     @show_middle_name = (settings["show_middle_name"] == true ? true : false) rescue false
 
@@ -104,16 +104,16 @@ class PatientsController < ApplicationController
   end
 
   def search
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
 
-    @globals = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    @globals = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
 
     render :layout => 'touch'
   end
 
   def scan
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    @globals = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    @globals = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
     render :layout => 'touch'
   end
 
@@ -130,14 +130,14 @@ class PatientsController < ApplicationController
 
     filter = {}
 
-      settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")
+      settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)
       if settings.is_a?(FalseClass)
         settings = {}
       else
         settings = settings[Rails.env] if settings
         settings ||= {}
       end
-      use_dde_setting = YAML.load_file("#{Rails.root}/config/application.yml")
+      use_dde_setting = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)
       if use_dde_setting.is_a?(FalseClass)
         use_dde = false
       else
@@ -266,7 +266,7 @@ class PatientsController < ApplicationController
   end
 
   def patient_demographics
-    settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    settings = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
 
     @show_middle_name = (settings["show_middle_name"] == true ? true : false) rescue false
 
@@ -306,8 +306,8 @@ class PatientsController < ApplicationController
 
   def update
 
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     person = Person.find(params[:person_id])
     patient = person.patient rescue nil
@@ -595,8 +595,8 @@ class PatientsController < ApplicationController
 
   def patient_by_id
 
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     params[:id] = params[:id].strip.gsub(/\s/, "").gsub(/\-/, "") rescue params[:id]
 
@@ -739,7 +739,7 @@ class PatientsController < ApplicationController
 
    def process_result
 
-     use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+     use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
      json = JSON.parse(params["person"]) rescue {}
 
      # Validate required fields
@@ -854,8 +854,8 @@ class PatientsController < ApplicationController
 
   def ajax_process_data
 
-    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     person = params[:person] rescue {}
     result = []
@@ -955,8 +955,8 @@ class PatientsController < ApplicationController
 
     @results = []
 
-    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     if (!settings.blank? && use_dde)
       target = params[:target]
@@ -1100,7 +1100,7 @@ class PatientsController < ApplicationController
   end
 
   def secure?
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env]
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env]
     secure = @settings["secure_connection"] rescue false
   end
 

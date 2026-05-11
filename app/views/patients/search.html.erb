@@ -29,26 +29,73 @@
     background: #f5f5f6;
   }
 
-  #header .header-content-cell {
-    font-size: 1.1em;
-    color: #1f2d3d;
+  .confirm-top {
+    display: grid;
+    grid-template-columns: 1fr 15vw;
+    gap: 8px;
+    height: 15vh;
   }
 
-  #header strong {
-    font-size: 1.35em;
+  .confirm-top-main {
+    border: 2px solid var(--ui-color-border);
+    background: #efeff0;
+    padding: 10px 14px;
+  }
+
+  .confirm-top-title {
+    font-size: 1.45em;
     color: #1c2869;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.2;
   }
 
-  #header h2 {
-    margin: 0;
-    font-size: 1.5em;
+  .confirm-scan-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .confirm-scan-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1em;
+    font-weight: 700;
     color: #0f1524;
   }
 
-  #header p {
-    margin: 6px 0 0;
-    font-size: 1.05em;
-    color: #2f3f58;
+  .confirm-scan-input {
+    width: 100%;
+    max-width: 520px;
+    font-size: 1.1em;
+    padding: 6px 8px;
+    border: 1.5px solid #9fa6b2;
+    background: #fff;
+    color: #0f1524;
+    box-sizing: border-box;
+  }
+
+  .confirm-meta {
+    font-size: 1.08em;
+    color: #22324a;
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: 95px 1fr 95px 1fr;
+    column-gap: 12px;
+    row-gap: 3px;
+  }
+
+  .confirm-meta > div:nth-child(odd) {
+    font-weight: 700;
+    color: #2b3d5e;
+  }
+
+  .confirm-meta > div:nth-child(even) {
+    font-weight: 600;
+    color: #101828;
   }
 
   #header .confirm-brand strong {
@@ -75,6 +122,7 @@
     align-items: center;
     justify-content: center;
     color: #0f1524;
+    text-align: center;
   }
 
   .search-top-grid {
@@ -1132,41 +1180,24 @@
     <%= hidden_field_tag "patient", nil %>
     <div class="search-shell">
       <div id="header">
-        <div style="display: table-row">
-          <div class="header-cell" style="display: table-cell; width:85vw;vertical-align: middle;">
-            <table style="width: 100%;">
-              <tr>
-                <td style="width: 30%;" >
-                  <div style="display: table-row">
-                    <div style="display: table-cell;vertical-align: top;">
-                      <strong>Scan Patient Barcode</strong>
-                    </div>
-                    <div style="display: table-cell;float: right;">
-                      <img style="display: block;height: 30px;" src="/assets/barcode.jpg">
-                    </div>
-                  </div>
-                </td>
-                <td style="border: 0em !important;">
-                  <input id="headerBarcodeInput" type="text" class="scanner" style="width: 70%;" autocomplete="off" autofocus>
-                </td>
-              </tr>
-            </table>
-            <div style="display: table;width: 98%;margin-left: auto;margin-right: auto;">
-              <div style="display: table-row; ">
-                <div class="header-content-cell">Facility</div>
-                <div class="header-content-cell"><%= facility_name %></div>
-                <div class="header-content-cell">User</div>
-                <div class="header-content-cell"><%= display_user %></div>
-              </div>
-              <div style="display: table-row; ">
-                <div class="header-content-cell">Location</div>
-                <div class="header-content-cell"><%= display_location.titleize %></div>
-                <div class="header-content-cell">Role</div>
-                <div class="header-content-cell"><%= display_role %></div>
-              </div>
+        <div class="confirm-top">
+          <div class="confirm-top-main">
+            <div class="confirm-top-title">Scan Patient Barcode</div>
+            <div class="confirm-scan-row">
+              <label class="confirm-scan-label" for="headerBarcodeInput">
+                <img style="display: block;height: 28px;" src="/assets/barcode.jpg" alt="barcode icon">
+                <span>Barcode</span>
+              </label>
+              <input id="headerBarcodeInput" type="text" class="scanner confirm-scan-input" autocomplete="off" autofocus>
+            </div>
+            <div class="confirm-meta">
+              <div>Facility</div><div><%= facility_name %></div>
+              <div>User</div><div><%= display_user %></div>
+              <div>Location</div><div><%= display_location.titleize %></div>
+              <div>Role</div><div><%= display_role %></div>
             </div>
           </div>
-          <div class="header-cell confirm-brand" style="float: right;width:15vw;text-align: center;height: 15vh;vertical-align: middle">
+          <div class="confirm-brand">
             <strong>eBilling</strong>
             <span><%= Date.current.strftime('%d %b %Y') %></span>
           </div>
