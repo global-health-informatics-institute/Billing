@@ -558,6 +558,118 @@
     background: #dce8ff;
   }
 
+  .manual-compare-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 21, 36, 0.5);
+    z-index: 1200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .manual-compare-modal.show {
+    display: flex;
+  }
+
+  .manual-compare-card {
+    width: min(1220px, 100%);
+    max-height: calc(100vh - 64px);
+    background: #ececed;
+    border: 2px solid #2f3f58;
+    border-radius: 8px;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .manual-compare-title {
+    padding: 12px 16px;
+    border-bottom: 1px solid #9aa0ad;
+    background: #f5f5f6;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f1524;
+  }
+
+  .manual-compare-body {
+    padding: 12px;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 12px;
+  }
+
+  .compare-pane {
+    border: 1px solid #9aa0ad;
+    background: #fff;
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .compare-pane h3 {
+    margin: 0 0 8px;
+    background: #64c89e;
+    color: #0f1524;
+    font-size: 28px;
+    text-align: center;
+    padding: 6px;
+    font-weight: 700;
+  }
+
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 6px 8px;
+    font-size: 18px;
+    color: #101828;
+  }
+
+  .compare-grid .k {
+    font-weight: 700;
+    color: #2b3d5e;
+  }
+
+  .compare-match-list {
+    max-height: 210px;
+    overflow: auto;
+    border: 1px solid #cfd5e3;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: #f7f8fb;
+  }
+
+  .compare-match-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid #d4d9e5;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .compare-match-item:last-child {
+    border-bottom: 0;
+  }
+
+  .compare-match-item.active {
+    background: #dce8ff;
+    font-weight: 700;
+  }
+
+  .manual-compare-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: linear-gradient(#343438, #202024);
+    border-top: 1px solid #3f4046;
+  }
+
+  .manual-compare-actions-right {
+    display: flex;
+    gap: 8px;
+  }
+
   .manual-keyboard-row {
     display: flex;
     justify-content: space-between;
@@ -1244,6 +1356,29 @@
           <div class="manual-results" id="manualResultsList"></div>
         </div>
       </div>
+      <div class="manual-compare-modal" id="manualCompareModal">
+        <div class="manual-compare-card">
+          <div class="manual-compare-title">Multiple Matches Found. Select Patient to Continue</div>
+          <div class="manual-compare-body">
+            <div class="compare-pane">
+              <h3>Captured Data</h3>
+              <div class="compare-grid" id="capturedCompareGrid"></div>
+            </div>
+            <div class="compare-pane">
+              <h3>Matched Data</h3>
+              <div class="compare-match-list" id="compareMatchList"></div>
+              <div class="compare-grid" id="matchedCompareGrid"></div>
+            </div>
+          </div>
+          <div class="manual-compare-actions">
+            <button type="button" class="action-btn cancel" id="compareCancelBtn">Back</button>
+            <div class="manual-compare-actions-right">
+              <button type="button" class="action-btn" id="compareNewPersonBtn">New Person</button>
+              <button type="button" class="action-btn disabled" id="compareSelectBtn">Select Person</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <table width='100%' cellpadding=10 cellspacing=0 class="hidden-manual-search" id="manualSearchPanel">
       <tr>
@@ -1321,11 +1456,30 @@
     setTimeout(focusHeaderBarcodeInput, 0);
     setTimeout(function () { setScanStatus("Ready to scan..."); }, 0);
 
+    var scanAutoSubmitTimer = null;
+
+    function processScannedBarcode() {
+      var barcodeInput = byId("headerBarcodeInput");
+      var code = barcodeInput ? barcodeInput.value.trim().replace(/\s+/g, "") : "";
+      if (!code) {
+        setScanStatus("Ready to scan...");
+        return;
+      }
+      setScanStatus("Processing scan...");
+      window.location = "/patients/patient_by_id/" + encodeURIComponent(code) + "?source=scan";
+    }
+
     var headerBarcodeInput = byId("headerBarcodeInput");
     if (headerBarcodeInput) {
       headerBarcodeInput.addEventListener("input", function () {
+        if (scanAutoSubmitTimer) {
+          clearTimeout(scanAutoSubmitTimer);
+        }
         if (headerBarcodeInput.value.trim().length > 0) {
           setScanStatus("Scanning...");
+          scanAutoSubmitTimer = setTimeout(function () {
+            processScannedBarcode();
+          }, 350);
         } else {
           setScanStatus("Ready to scan...");
         }
@@ -1334,13 +1488,10 @@
       headerBarcodeInput.addEventListener("keydown", function (event) {
         if (event.key !== "Enter") return;
         event.preventDefault();
-        var code = headerBarcodeInput.value.trim().replace(/\s+/g, "");
-        if (!code) {
-          setScanStatus("Ready to scan...");
-          return;
+        if (scanAutoSubmitTimer) {
+          clearTimeout(scanAutoSubmitTimer);
         }
-        setScanStatus("Processing scan...");
-        window.location = "/patients/patient_by_id/" + encodeURIComponent(code) + "?source=scan";
+        processScannedBarcode();
       });
     }
 
@@ -1372,6 +1523,7 @@
 
     var manualSearchResults = [];
     var selectedManualPatientId = null;
+    var selectedManualResultEntry = null;
 
     function getManualPatientId(entry) {
       return (entry && entry.patient_id) ? String(entry.patient_id) : "";
@@ -1411,8 +1563,10 @@
         var district = addresses.home_district || addresses.current_district || "-";
         var village = addresses.home_village || addresses.current_village || "-";
         var ta = addresses.home_ta || addresses.current_ta || "-";
+        var matchCategory = entry.match_category === "likely_match" ? "Likely Match" :
+          (entry.match_category === "possible_match" ? "Possible Match" : "Match");
 
-        item.textContent = "Patient ID: " + pid +
+        item.textContent = matchCategory + " | Patient ID: " + pid +
           " | DOB: " + dob +
           " | District: " + district +
           " | Village: " + village +
@@ -1428,14 +1582,127 @@
       });
     }
 
+    function readCapturedData() {
+      return {
+        given_name: byId("given_name") ? byId("given_name").value.trim() : "",
+        family_name: byId("family_name") ? byId("family_name").value.trim() : "",
+        birthdate: byId("birthdate") ? byId("birthdate").value.trim() : "",
+        gender: byId("gender") ? byId("gender").value.trim() : "",
+        district: byId("district") ? byId("district").value.trim() : "",
+        ta: byId("traditional_authority") ? byId("traditional_authority").value.trim() : "",
+        village: byId("village") ? byId("village").value.trim() : ""
+      };
+    }
+
+    function textOrDash(value) {
+      return (value && String(value).trim().length > 0) ? String(value) : "-";
+    }
+
+    function genderText(value) {
+      if (String(value).toUpperCase() === "M") return "Male";
+      if (String(value).toUpperCase() === "F") return "Female";
+      return textOrDash(value);
+    }
+
+    function drawCompareGrid(targetId, rows) {
+      var node = byId(targetId);
+      if (!node) return;
+      node.innerHTML = "";
+      rows.forEach(function (row) {
+        var k = document.createElement("div");
+        k.className = "k";
+        k.textContent = row[0];
+        var v = document.createElement("div");
+        v.textContent = textOrDash(row[1]);
+        node.appendChild(k);
+        node.appendChild(v);
+      });
+    }
+
+    function drawCapturedCompare() {
+      var captured = readCapturedData();
+      drawCompareGrid("capturedCompareGrid", [
+        ["First Name", captured.given_name],
+        ["Last Name", captured.family_name],
+        ["Gender", genderText(captured.gender)],
+        ["Birthdate", captured.birthdate],
+        ["District", captured.district],
+        ["Home T/A", captured.ta],
+        ["Village", captured.village]
+      ]);
+    }
+
+    function drawMatchedCompare(entry) {
+      if (!entry) {
+        drawCompareGrid("matchedCompareGrid", []);
+        return;
+      }
+      var names = entry.names || {};
+      var addresses = entry.addresses || {};
+      drawCompareGrid("matchedCompareGrid", [
+        ["First Name", names.given_name],
+        ["Last Name", names.family_name],
+        ["Gender", genderText(entry.gender)],
+        ["Birthdate", formatManualDob(entry.birthdate)],
+        ["Patient ID", entry.patient_id],
+        ["National ID", entry.national_id],
+        ["District", addresses.home_district || addresses.current_district],
+        ["Home T/A", addresses.home_ta || addresses.current_ta],
+        ["Village", addresses.home_village || addresses.current_village]
+      ]);
+    }
+
+    function renderCompareMatchList() {
+      var wrap = byId("compareMatchList");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+
+      manualSearchResults.forEach(function (entry) {
+        var pid = getManualPatientId(entry);
+        if (!pid) return;
+        var item = document.createElement("div");
+        item.className = "compare-match-item" + (selectedManualPatientId === pid ? " active" : "");
+        item.textContent = (entry.names ? ((entry.names.given_name || "") + " " + (entry.names.family_name || "")) : "Unknown") +
+          " (" + genderText(entry.gender) + " - " + pid + ")";
+        item.onclick = function () {
+          selectedManualPatientId = pid;
+          selectedManualResultEntry = entry;
+          renderCompareMatchList();
+          drawMatchedCompare(entry);
+          var selectBtn = byId("compareSelectBtn");
+          if (selectBtn) selectBtn.classList.remove("disabled");
+        };
+        wrap.appendChild(item);
+      });
+    }
+
+    function openManualCompareModal() {
+      drawCapturedCompare();
+      selectedManualPatientId = null;
+      selectedManualResultEntry = null;
+      renderCompareMatchList();
+      drawMatchedCompare(null);
+      var selectBtn = byId("compareSelectBtn");
+      if (selectBtn) selectBtn.classList.add("disabled");
+      var modal = byId("manualCompareModal");
+      if (modal) modal.classList.add("show");
+    }
+
+    function closeManualCompareModal() {
+      var modal = byId("manualCompareModal");
+      if (modal) modal.classList.remove("show");
+    }
+
     function clearManualResultsState() {
       manualSearchResults = [];
       selectedManualPatientId = null;
+      selectedManualResultEntry = null;
       var wrap = byId("manualResultsList");
       if (wrap) {
         wrap.innerHTML = "";
         wrap.style.display = "none";
       }
+      closeManualCompareModal();
     }
 
     function getSelectedPatientId() {
@@ -1534,9 +1801,11 @@
 
           setManualHint("Searching patient records...", false);
           clearManualResultsState();
+          var dob = (byId("birthdate") ? byId("birthdate").value.trim() : "");
           var url = "/patients/ajax_search?given_name=" + encodeURIComponent(given) +
             "&family_name=" + encodeURIComponent(family) +
-            "&gender=" + encodeURIComponent(gender) + "&page=1";
+            "&gender=" + encodeURIComponent(gender) +
+            "&birthdate=" + encodeURIComponent(dob) + "&page=1";
 
           var req = new XMLHttpRequest();
           req.onreadystatechange = function () {
@@ -1548,7 +1817,10 @@
             var results = [];
             try { results = JSON.parse(req.responseText || "[]"); } catch (e) { results = []; }
             if (!results || results.length === 0) {
-              setManualHint("No matching patient found.", true);
+              setManualHint("No matching patient found. Opening new registration...", false);
+              window.location = "/patients/new?given_name=" + encodeURIComponent(given) +
+                "&family_name=" + encodeURIComponent(family) +
+                "&gender=" + encodeURIComponent(gender);
               return;
             }
 
@@ -1567,6 +1839,7 @@
             selectedManualPatientId = null;
             renderManualResultsList();
             setManualHint("Multiple matches found. Select the correct patient, then tap Next.", true);
+            openManualCompareModal();
           };
           req.open("GET", url, true);
           req.send(null);
@@ -1576,7 +1849,7 @@
         var barcodeInput = byId("headerBarcodeInput");
         var barcode = barcodeInput ? barcodeInput.value.trim().replace(/\s+/g, "") : "";
         if (barcode.length > 0) {
-          window.location = "/patients/patient_by_id/" + encodeURIComponent(barcode) + "?source=scan";
+          processScannedBarcode();
           return;
         }
         setScanStatus("Enter/scan a barcode, then tap Next.");
@@ -1812,6 +2085,27 @@
     if (manualGenderFemaleBtn) manualGenderFemaleBtn.onclick = function () { setManualGender("F"); };
     var manualGenderMaleBtn = byId("manualGenderMale");
     if (manualGenderMaleBtn) manualGenderMaleBtn.onclick = function () { setManualGender("M"); };
+    var compareCancelBtn = byId("compareCancelBtn");
+    if (compareCancelBtn) compareCancelBtn.onclick = closeManualCompareModal;
+    var compareNewPersonBtn = byId("compareNewPersonBtn");
+    if (compareNewPersonBtn) {
+      compareNewPersonBtn.onclick = function () {
+        var given = (byId("given_name") ? byId("given_name").value.trim() : "");
+        var family = (byId("family_name") ? byId("family_name").value.trim() : "");
+        var gender = (byId("gender") ? byId("gender").value.trim() : "");
+        window.location = "/patients/new?given_name=" + encodeURIComponent(given) +
+          "&family_name=" + encodeURIComponent(family) +
+          "&gender=" + encodeURIComponent(gender);
+      };
+    }
+    var compareSelectBtn = byId("compareSelectBtn");
+    if (compareSelectBtn) {
+      compareSelectBtn.onclick = function () {
+        if (compareSelectBtn.classList.contains("disabled")) return;
+        if (!selectedManualPatientId) return;
+        window.location = "/patients/patient_demographics/" + encodeURIComponent(selectedManualPatientId) + "?source=manual";
+      };
+    }
 
     var subtabGiven = byId("subtabGiven");
     if (subtabGiven) subtabGiven.onclick = function () {
