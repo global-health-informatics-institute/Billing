@@ -647,6 +647,25 @@
     cursor: pointer;
     font-size: 16px;
   }
+  .compare-match-item .meta {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #2f3f58;
+    line-height: 1.35;
+  }
+  .compare-match-item .badge {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: #3b53a9;
+  }
+  .compare-match-item .badge.possible {
+    background: #b26a00;
+  }
 
   .compare-match-item:last-child {
     border-bottom: 0;
@@ -1539,6 +1558,62 @@
       return d + "/" + m + "/" + y;
     }
 
+    function norm(v) {
+      return String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function computeLocalMatchScore(captured, entry) {
+      var score = 0;
+      var names = entry.names || {};
+      var addresses = entry.addresses || {};
+      var givenIn = norm(captured.given_name);
+      var familyIn = norm(captured.family_name);
+      var givenDb = norm(names.given_name);
+      var familyDb = norm(names.family_name);
+      var dobIn = (captured.birthdate || "").trim();
+      var dobDb = formatManualDob(entry.birthdate);
+      var genderIn = (captured.gender || "").toUpperCase();
+      var genderDb = String(entry.gender || "").toUpperCase();
+      var districtIn = norm(captured.district);
+      var taIn = norm(captured.ta);
+      var villageIn = norm(captured.village);
+      var districtDb = norm(addresses.home_district || addresses.current_district);
+      var taDb = norm(addresses.home_ta || addresses.current_ta);
+      var villageDb = norm(addresses.home_village || addresses.current_village);
+
+      if (givenIn && givenIn === givenDb) score += 25;
+      if (familyIn && familyIn === familyDb) score += 25;
+      if (dobIn && dobDb !== "-" && dobIn === dobDb) score += 25;
+      if (genderIn && genderIn === genderDb) score += 10;
+      if (districtIn && districtIn === districtDb) score += 6;
+      if (taIn && taIn === taDb) score += 5;
+      if (villageIn && villageIn === villageDb) score += 4;
+
+      return score;
+    }
+
+    function deepFilterMatches(results) {
+      var captured = readCapturedData();
+      var ranked = (results || []).map(function (entry) {
+        entry._local_match_score = computeLocalMatchScore(captured, entry);
+        return entry;
+      }).sort(function (a, b) {
+        var aCat = a.match_category === "likely_match" ? 0 : 1;
+        var bCat = b.match_category === "likely_match" ? 0 : 1;
+        if (aCat !== bCat) return aCat - bCat;
+        var aScore = (a._local_match_score || 0);
+        var bScore = (b._local_match_score || 0);
+        if (aScore !== bScore) return bScore - aScore;
+        return (b.match_score || 0) - (a.match_score || 0);
+      });
+
+      if (ranked.length <= 8) return ranked;
+
+      var strong = ranked.filter(function (entry) { return (entry._local_match_score || 0) >= 50; });
+      if (strong.length >= 2) return strong.slice(0, 12);
+      return ranked.slice(0, 12);
+    }
+
     function renderManualResultsList() {
       var wrap = byId("manualResultsList");
       if (!wrap) return;
@@ -1639,16 +1714,15 @@
       }
       var names = entry.names || {};
       var addresses = entry.addresses || {};
+      var fullName = ((names.given_name || "") + " " + (names.family_name || "")).replace(/\s+/g, " ").trim();
+      var district = addresses.home_district || addresses.current_district || "-";
+      var ta = addresses.home_ta || addresses.current_ta || "-";
+      var village = addresses.home_village || addresses.current_village || "-";
       drawCompareGrid("matchedCompareGrid", [
-        ["First Name", names.given_name],
-        ["Last Name", names.family_name],
-        ["Gender", genderText(entry.gender)],
-        ["Birthdate", formatManualDob(entry.birthdate)],
+        ["Full Name", fullName],
         ["Patient ID", entry.patient_id],
-        ["National ID", entry.national_id],
-        ["District", addresses.home_district || addresses.current_district],
-        ["Home T/A", addresses.home_ta || addresses.current_ta],
-        ["Village", addresses.home_village || addresses.current_village]
+        ["DOB", formatManualDob(entry.birthdate)],
+        ["Location", "District: " + district + ", T/A: " + ta + ", Village: " + village]
       ]);
     }
 
@@ -1660,10 +1734,25 @@
       manualSearchResults.forEach(function (entry) {
         var pid = getManualPatientId(entry);
         if (!pid) return;
+        var names = entry.names || {};
+        var addresses = entry.addresses || {};
+        var fullName = ((names.given_name || "") + " " + (names.family_name || "")).replace(/\s+/g, " ").trim() || "Unknown";
+        var district = addresses.home_district || addresses.current_district || "-";
+        var ta = addresses.home_ta || addresses.current_ta || "-";
+        var village = addresses.home_village || addresses.current_village || "-";
+        var dob = formatManualDob(entry.birthdate);
+        var badgeClass = entry.match_category === "possible_match" ? "badge possible" : "badge";
+        var badgeText = entry.match_category === "possible_match" ? "Possible Match" : "Likely Match";
+        var reasons = (entry.match_reasons || []).join(", ");
+
         var item = document.createElement("div");
         item.className = "compare-match-item" + (selectedManualPatientId === pid ? " active" : "");
-        item.textContent = (entry.names ? ((entry.names.given_name || "") + " " + (entry.names.family_name || "")) : "Unknown") +
-          " (" + genderText(entry.gender) + " - " + pid + ")";
+        item.innerHTML =
+          "<div><span class='" + badgeClass + "'>" + badgeText + "</span><b>" + fullName +
+          "</b> (" + genderText(entry.gender) + ")</div>" +
+          "<div class='meta'>Patient ID: " + pid + " | DOB: " + dob +
+          " | District: " + district + " | T/A: " + ta + " | Village: " + village + "</div>" +
+          (reasons ? "<div class='meta'>Matched by: " + reasons + "</div>" : "");
         item.onclick = function () {
           selectedManualPatientId = pid;
           selectedManualResultEntry = entry;
@@ -1835,10 +1924,10 @@
               return;
             }
 
-            manualSearchResults = withPatientId;
+            manualSearchResults = deepFilterMatches(withPatientId);
             selectedManualPatientId = null;
             renderManualResultsList();
-            setManualHint("Multiple matches found. Select the correct patient, then tap Next.", true);
+            setManualHint("Multiple matches found. Review Matched Data details and select the correct patient.", true);
             openManualCompareModal();
           };
           req.open("GET", url, true);
