@@ -6,47 +6,9 @@ class PatientsController < ApplicationController
   end
 
   def confirm_demographics
-
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
-    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
-
-    json_params = view_context.patient_json(params[:person],params["CURRENT AREA OR T/A"],params["identifier"],true)
-
-    @json = JSON.parse(json_params)
-
-    if !@settings.blank? && @use_dde
-      #DDE available
-
-      @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] # rescue {}
-
-      if secure?
-        url = "https://#{(@settings["dde_username"])}:#{(@settings["dde_password"])}@#{(@settings["dde_server"])}/ajax_process_data"
-      else
-        url = "http://#{(@settings["dde_username"])}:#{(@settings["dde_password"])}@#{(@settings["dde_server"])}/ajax_process_data"
-      end
-
-      @results = RestClient.post(url, {"person" => json_params})
-
-    else
-      #No dde setting therefore create locally
-
-      @results = Person.joins(:names).where(person_name: {given_name: @json["names"]["given_name"],
-                                                          family_name: @json["names"]["family_name"]},
-                                            gender: @json["names"]["gender"])
-
-
-      if @results.blank?
-        matching_people = @results.collect{| person |
-          person.person_id
-        }
-
-        # raise matching_people.to_yaml
-
-        people_like = Person.joins(:names =>[:person_name_code]).where(person_name_code: {given_name_code: @json["names"]["given_name"].soundex, family_name_code: @json["names"]["family_name"].soundex}, gender: @json["names"]["gender"]).where.not(person_id: matching_people).order("person_name.given_name ASC, person_name_code.family_name_code ASC")
-        @results = @results + people_like
-      end
-    end
-    render :layout => 'touch'
+    json_params = view_context.patient_json(params[:person], params["CURRENT AREA OR T/A"], params["identifier"], true)
+    params["person"] = json_params
+    process_result
   end
 
   def new
@@ -200,9 +162,31 @@ class PatientsController < ApplicationController
 
     # pagesize = ((pagesize) * 2) - result.length
 
-    Person.all.joins(:names).where("given_name = ? AND family_name = ? AND gender = ?", params["given_name"], params["family_name"], params["gender"]).limit(pagesize).offset(offset).each do |person|
+    candidate_scope = Person.all.joins(:names).where(voided: 0)
+    candidate_scope = candidate_scope.where(gender: params["gender"]) if params["gender"].present?
 
-       patient = person.patient rescue nil
+    input_birthdate = parse_search_birthdate(params["birthdate"])
+    candidate_scope = candidate_scope.where(birthdate: input_birthdate) if input_birthdate.present?
+
+    requested_district = normalize_match_string(params["district"])
+    requested_ta = normalize_match_string(params["traditional_authority"] || params["ta"])
+    requested_village = normalize_match_string(params["village"])
+    requested_national_id = normalize_identifier(params["national_id"])
+    requested_phone = normalize_phone(params["phone_number"] || params["cell_phone_number"] || params["home_phone_number"])
+
+    if requested_district.present?
+      candidate_scope = candidate_scope.joins(:addresses).where("LOWER(COALESCE(person_address.address2, person_address.state_province, '')) = ?", requested_district)
+    end
+
+    if requested_ta.present?
+      candidate_scope = candidate_scope.joins(:addresses).where("LOWER(COALESCE(person_address.county_district, person_address.township_division, '')) = ?", requested_ta)
+    end
+
+    local_candidates = candidate_scope.limit(200).offset(offset).to_a
+
+    local_candidates.each do |person|
+      patient = person.patient rescue nil
+      next if patient.blank?
 
       national_id = (patient.patient_identifiers.find_by_identifier_type(PatientIdentifierType.find_by_name("National id").id).identifier rescue nil)
 
@@ -253,6 +237,27 @@ class PatientsController < ApplicationController
       person["application"] = "#{name_of_app}"
       person["site_code"] = "#{facility_code}"
 
+      match = classify_duplicate_match(
+        input: {
+          given_name: params["given_name"],
+          family_name: params["family_name"],
+          gender: params["gender"],
+          birthdate: input_birthdate,
+          district: requested_district,
+          ta: requested_ta,
+          village: requested_village,
+          national_id: requested_national_id,
+          phone: requested_phone
+        },
+        candidate: person
+      )
+
+      next if match[:category] == "no_match"
+
+      person["match_category"] = match[:category]
+      person["match_score"] = match[:score]
+      person["match_reasons"] = match[:reasons]
+
       result << person
 
       # TODO: Need to find a way to limit in a better way the number of records returned without skipping any as some will never be seen with the current approach
@@ -261,8 +266,110 @@ class PatientsController < ApplicationController
 
     end if pagesize > 0 and result.length < 8
 
-     render json: result
+    ranked = result.sort_by do |entry|
+      category_rank = entry["match_category"] == "likely_match" ? 0 : 1
+      [category_rank, -(entry["match_score"] || 0)]
+    end
 
+    render json: ranked
+
+  end
+
+  def parse_search_birthdate(value)
+    return nil if value.blank?
+
+    Date.strptime(value.to_s, "%d/%m/%Y")
+  rescue ArgumentError
+    nil
+  end
+
+  def normalize_match_string(value)
+    value.to_s.downcase.gsub(/[^a-z0-9]/, "")
+  end
+
+  def normalize_identifier(value)
+    value.to_s.upcase.gsub(/[^A-Z0-9]/, "")
+  end
+
+  def normalize_phone(value)
+    value.to_s.gsub(/\D/, "")
+  end
+
+  def classify_duplicate_match(input:, candidate:)
+    score = 0
+    reasons = []
+
+    input_given = normalize_match_string(input[:given_name])
+    input_family = normalize_match_string(input[:family_name])
+    candidate_given = normalize_match_string(candidate.dig("names", "given_name"))
+    candidate_family = normalize_match_string(candidate.dig("names", "family_name"))
+
+    if input_given.present? && input_family.present? && input_given == candidate_given && input_family == candidate_family
+      score += 5
+      reasons << "exact_name"
+    elsif (input_given.present? && candidate_given.start_with?(input_given[0])) && (input_family.present? && candidate_family.start_with?(input_family[0]))
+      score += 2
+      reasons << "partial_name"
+    end
+
+    if input[:birthdate].present?
+      candidate_birthdate = begin
+        Date.parse(candidate["birthdate"].to_s)
+      rescue ArgumentError
+        nil
+      end
+      if candidate_birthdate.present? && candidate_birthdate == input[:birthdate]
+        score += 3
+        reasons << "birthdate"
+      end
+    end
+
+    if input[:gender].present? && input[:gender].to_s.strip.casecmp(candidate["gender"].to_s.strip).zero?
+      score += 2
+      reasons << "gender"
+    end
+
+    candidate_addresses = candidate["addresses"] || {}
+    candidate_district = normalize_match_string(candidate_addresses["home_district"].presence || candidate_addresses["current_district"])
+    candidate_ta = normalize_match_string(candidate_addresses["home_ta"].presence || candidate_addresses["current_ta"])
+    candidate_village = normalize_match_string(candidate_addresses["home_village"].presence || candidate_addresses["current_village"])
+
+    if input[:district].present? && input[:district] == candidate_district
+      score += 2
+      reasons << "district"
+    end
+    if input[:ta].present? && input[:ta] == candidate_ta
+      score += 2
+      reasons << "traditional_authority"
+    end
+    if input[:village].present? && input[:village] == candidate_village
+      score += 1
+      reasons << "village"
+    end
+
+    candidate_national_id = normalize_identifier(candidate["national_id"])
+    if input[:national_id].present? && input[:national_id] == candidate_national_id
+      score += 10
+      reasons << "national_id"
+    end
+
+    candidate_phone = normalize_phone(candidate.dig("person_attributes", "cell_phone_number")).
+      presence || normalize_phone(candidate.dig("person_attributes", "home_phone_number")).
+      presence || normalize_phone(candidate.dig("person_attributes", "office_phone_number"))
+    if input[:phone].present? && candidate_phone.present? && input[:phone] == candidate_phone
+      score += 8
+      reasons << "phone"
+    end
+
+    category = if (reasons.include?("exact_name") && reasons.include?("birthdate") && (reasons.include?("district") || reasons.include?("traditional_authority") || reasons.include?("village"))) || score >= 11
+                 "likely_match"
+               elsif score >= 6
+                 "possible_match"
+               else
+                 "no_match"
+               end
+
+    { category: category, score: score, reasons: reasons }
   end
 
   def patient_demographics
@@ -586,11 +693,13 @@ class PatientsController < ApplicationController
 
   def confirm_and_proceed
     patient = Patient.find(params[:id])
+    destination = "/order_entries/new?patient_id=#{patient.id}"
+
     if params[:source].to_s == "manual"
-      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", "/patients/#{patient.id}") and return
+      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", destination) and return
     end
 
-    redirect_to "/patients/#{patient.id}" and return
+    redirect_to destination and return
   end
 
   def patient_by_id
@@ -715,6 +824,9 @@ class PatientsController < ApplicationController
         patient = PatientIdentifier.find_by_identifier(@json["national_id"]).patient rescue nil
 
         if patient.blank?
+          if params[:source].to_s == "scan"
+            redirect_to "/patients/new?identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
+          end
           redirect_to "/patients/patient_not_found/#{params[:id]}" and return
         else
           @results = []
@@ -726,6 +838,9 @@ class PatientsController < ApplicationController
     else
       if local_patient.blank? || local_patient["patient_id"].blank?
         #if dde doesn't exist and patient is not available locally
+        if params[:source].to_s == "scan"
+          redirect_to "/patients/new?identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
+        end
         redirect_to "/patients/patient_not_found/#{params[:id]}" and return
       else
         source_value = params[:source].to_s
