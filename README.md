@@ -1,24 +1,83 @@
-# README
+# Feature modifications
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Patient Search and Demographics flow logic
 
-Things you may want to cover:
+### 1) `patients/search` UI and search logic
 
-* Ruby version
+File: `app/views/patients/search.html.erb`  
+Controller action: `PatientsController#search`  
+Search endpoint: `PatientsController#ajax_search`
 
-* System dependencies
+- The page has two tabs:
+  - **Scan Barcode**: captures scanner/manual barcode input and routes to `/patients/patient_by_id/:identifier?source=scan`.
+  - **Manual Entry (Lost Card)**: captures `given_name`, `family_name`, and `gender`, then calls `/patients/ajax_search`.
+- Action buttons:
+  - `Cancel` -> `/`
+  - `New Patient` -> `/patients/new` with prefilled query params from manual entry
+  - `Clear` -> clears active tab inputs/state
+  - `Back` -> returns to scan/manual previous state (or `/`)
+  - `Next` -> continues with selected patient
+- Manual matching behavior:
+  - `ajax_search` can query both DDE (if configured) and local patients.
+  - Local candidates are scored using `classify_duplicate_match`:
+    - identifiers and phone carry higher weight
+    - exact/partial names, birthdate, gender, and address fields add weighted points
+  - Match categories:
+    - `likely_match` (high confidence or threshold met)
+    - `possible_match`
+    - `no_match` (excluded)
+  - Results are ranked with likely matches first, then by descending score.
+- Source tracking:
+  - flow keeps `source=scan` or `source=manual` and forwards it to demographics/confirm step.
 
-* Configuration
+### 2) `patient_demographics` display and confirmation
 
-* Database creation
+File: `app/views/patients/patient_demographics.html.erb`  
+Controller action: `PatientsController#patient_demographics`
 
-* Database initialization
+- Controller loads `@person = Patient.find(params[:id]).person`.
+- View shows:
+  - session user, location, role in the header
+  - patient banner (name and ID)
+  - core demographics: first/last name, gender, DOB, home district, TA, village
+- `source` is sanitized in the view to only allow `manual` or `scan`.
+- Footer actions:
+  - `Cancel` -> `/`
+  - `Update Location` -> `/patients/:patient_id/edit?field=address2`
+  - `Confirm & Add Transaction` -> `/patients/:id/confirm_and_proceed?source=<safe_source>`
 
-* How to run the test suite
+### 3) Update patient location logic
 
-* Services (job queues, cache servers, search engines, etc.)
+Edit entry point: `GET /patients/:id/edit?field=address2`  
+Update action: `PATCH/PUT /patients/:person_id` via `PatientsController#update`
 
-* Deployment instructions
+- In the local (non-DDE) update branch, `update_field` drives what is changed.
+- For location update (`update_field == 'address2'`):
+  - `PersonAddress.where(person_id: person.id).first_or_initialize`
+  - updates:
+    - `address2` (home district)
+    - `county_district` (home T/A)
+    - `city_village` (home village)
+  - saves address and triggers barcode print redirect.
+- Redirect after update returns to:
+  - `/patients/patient_demographics/:patient_id`
 
-* ...
+### 4) Routing changes  endpoints
+
+File: `config/routes.rb`
+
+- Search and scan routes under `patients` collection:
+  - `GET /patients/search`
+  - `GET /patients/scan`
+  - `GET /patients/ajax_search`
+- Demographics route:
+  - `GET /patients/patient_demographics(/:id)` -> `patients#patient_demographics`
+- Processing routes:
+  - `POST /patients/process_result`
+  - `POST /patients/confirm_demographics`
+  - `POST /patients/ajax_process_result`
+  - `POST /patients/ajax_process_data`
+- Patient lookup route used by scan/manual identifier flow:
+  - `GET /patients/patient_by_id(/:id)` -> `patients#patient_by_id`
+- Confirm route used from demographics page:
+  - `GET /patients/:id/confirm_and_proceed`
