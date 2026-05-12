@@ -22,7 +22,7 @@
 </style>
 <% title "Patient Dashboard" %>
 <div id="shadow" class="opaqueLayer"> </div>
-<div id="question" class="questionLayer" style="font-size: 0.9em;">
+<div id="question" class="questionLayer" style="font-size: 1.1em;">
   <%= form_for :order_entry, :method => 'POST', url: '/order_entries/void',:html => {:id =>'voidingForm', :name =>'confirmingForm'}  do |f| %>
       <div class="dialogBox">
         <div style="display: table-row">
