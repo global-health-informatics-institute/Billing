@@ -25,14 +25,14 @@ end %>
 <style type="text/css">
   :root {
     --font-base: "Century Gothic", "Trebuchet MS", Arial, sans-serif;
-    --fs-title: 26px;
-    --fs-meta: 19px;
-    --fs-banner-name: 33px;
-    --fs-banner-sub: 18px;
-    --fs-section: 21px;
-    --fs-label: 16px;
-    --fs-value: 18px;
-    --fs-button: 16px;
+    --fs-title: 28px;
+    --fs-meta: 20px;
+    --fs-banner-name: 36px;
+    --fs-banner-sub: 20px;
+    --fs-section: 24px;
+    --fs-label: 18px;
+    --fs-value: 20px;
+    --fs-button: 18px;
   }
 
   html, body {
@@ -88,6 +88,7 @@ end %>
   .confirm-meta > div:nth-child(odd) {
     font-weight: 700;
     color: #2b3d5e;
+    padding-right: 20px;
   }
 
   .confirm-meta > div:nth-child(even) {
@@ -148,15 +149,18 @@ end %>
   .details-card {
     border: 2px solid var(--ui-color-border);
     background: #efeff0;
-    padding: 30px 34px;
-    margin-bottom: 26px;
+    padding: 34px 40px;
+    margin-bottom: 60px;
+    min-height: calc(100vh - 600px);
+    display: grid;
+    gap: 24px;
   }
 
   .section-title {
     font-size: var(--fs-section);
     font-weight: 700;
     color: #111;
-    margin: 4px 0 18px;
+    margin: 0 0 16px;
     border-bottom: 2px solid var(--ui-color-border);
     padding-bottom: 12px;
   }
@@ -164,16 +168,17 @@ end %>
   .rows {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 22px;
+    gap: 30px;
+    align-content: start;
   }
 
   .row {
     border-bottom: 1px solid #c9ccd3;
-    padding: 18px 0;
+    padding: 22px 0;
     display: grid;
-    grid-template-columns: 170px 1fr;
+    grid-template-columns: 180px minmax(0, 1fr);
     align-items: center;
-    gap: 16px;
+    gap: 20px;
   }
 
   .label {
@@ -373,7 +378,7 @@ end %>
       <a class="btn warning" href="/patients/<%= patient.patient_id %>/edit?field=address2">Update Location</a>
       <% source_value = params[:source].to_s %>
       <% safe_source = %w[manual scan].include?(source_value) ? source_value : "" %>
-      <a class="btn success" href="/patients/<%= patient.id %>/confirm_and_proceed?source=<%= safe_source %>">Confirm & Proceed</a>
+      <a class="btn success" href="/patients/<%= patient.id %>/confirm_and_proceed?source=<%= safe_source %>">Confirm & Add Transaction</a>
     </div>
   </div>
 </div>
