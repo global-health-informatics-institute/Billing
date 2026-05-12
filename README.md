@@ -1,6 +1,5 @@
 # Feature modifications
 
-## Patient Search and Demographics flow logic
 
 ### 1) `patients/search` UI and search logic
 
@@ -39,9 +38,9 @@ Controller action: `PatientsController#patient_demographics`
   - core demographics: first/last name, gender, DOB, home district, TA, village
 
 - Footer actions:
-  - `Cancel` -> `/`
-  - `Update Location` -> `/patients/:patient_id/edit?field=address2`
-  - `Confirm & Add Transaction` -> `/patients/:id/confirm_and_proceed?source=<safe_source>`
+  - `Cancel` => `/`
+  - `Update Location` => `/patients/:patient_id/edit?field=address2`
+  - `Confirm & Add Transaction` => `/patients/:id/confirm_and_proceed?source=<safe_source>`
 
 ### 3) Update patient location logic
 
@@ -67,13 +66,13 @@ File: `config/routes.rb`
   - `GET /patients/scan`
   - `GET /patients/ajax_search`
 - Demographics route:
-  - `GET /patients/patient_demographics(/:id)` -> `patients#patient_demographics`
+  - `GET /patients/patient_demographics(/:id)` => `patients#patient_demographics`
 - Processing routes:
   - `POST /patients/process_result`
   - `POST /patients/confirm_demographics`
   - `POST /patients/ajax_process_result`
   - `POST /patients/ajax_process_data`
 - Patient lookup route used by scan/manual identifier flow:
-  - `GET /patients/patient_by_id(/:id)` -> `patients#patient_by_id`
+  - `GET /patients/patient_by_id(/:id)` => `patients#patient_by_id`
 - Confirm route used from demographics page:
   - `GET /patients/:id/confirm_and_proceed`
