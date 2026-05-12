@@ -55,8 +55,6 @@ Rails.application.routes.draw do
       post 'ajax_process_result'
       post 'confirm_demographics'
       post 'ajax_process_data'
-      get 'patient_not_found(/:id)', action: :patient_not_found
-      post 'patient_not_found(/:id)', action: :patient_not_found
       get 'print_national_id'
       get 'patient_by_id(/:id)', action: :patient_by_id
     end
