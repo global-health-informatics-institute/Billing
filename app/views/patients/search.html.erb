@@ -135,7 +135,7 @@
     border: 3px solid #2378f8;
     background: #fff;
     padding: 5px 8px 6px;
-    font-size: 12px;
+    font-size: 16px;
     color: #0f1524;
     min-height: 90px;
     box-sizing: border-box;
@@ -150,14 +150,14 @@
 
   .search-top-icon {
     color: #2b2ca8;
-    font-size: 14px;
+    font-size: 18px;
     line-height: 1;
     margin-top: -2px;
   }
 
   .search-top-bars {
     color: #2b2b2b;
-    font-size: 12px;
+    font-size: 16px;
     letter-spacing: -1px;
     line-height: 1;
     margin-left: 1px;
@@ -187,7 +187,7 @@
 
   .search-top-main table {
     width: 100%;
-    font-size: 12px;
+    font-size: 16px;
     color: #121826;
     border-collapse: collapse;
     line-height: 1.2;
@@ -278,11 +278,11 @@
     border: 1px solid #9097a6;
     border-bottom: 0;
     background: #cfd2d6;
-    padding: 8px 16px;
+    padding: 10px 18px;
     border-radius: 8px 8px 0 0;
     color: #2d3340;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .search-tab.active {
@@ -336,16 +336,16 @@
     position: absolute;
     right: 14px;
     top: 14px;
-    width: 25px;
-    height: 25px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: 1px solid #4650a7;
     background: #4f58b1;
     color: #fff;
     text-align: center;
-    line-height: 23px;
+    line-height: 26px;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 16px;
     cursor: pointer;
   }
 
@@ -374,8 +374,8 @@
     border-radius: 4px;
     color: #fff;
     font-weight: 700;
-    padding: 8px 18px;
-    font-size: 16px;
+    padding: 10px 20px;
+    font-size: 18px;
     background: linear-gradient(#5e78d1, #30489c);
     cursor: pointer;
   }
@@ -397,20 +397,57 @@
     position: absolute;
     right: 14px;
     top: 44px;
-    width: 320px;
+    width: 340px;
     background: #fff;
     border: 1px solid #838aa2;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
     border-radius: 4px;
-    padding: 10px 12px;
-    font-size: 13px;
-    line-height: 1.4;
+    padding: 12px 14px;
+    font-size: 16px;
+    line-height: 1.5;
     color: #22324a;
     z-index: 20;
   }
 
   .search-help-pop.show {
     display: block;
+  }
+
+  .toast-notification {
+    position: fixed;
+    top: 84px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    min-width: 360px;
+    max-width: 760px;
+    padding: 18px 24px;
+    background: #fff4d4;
+    border: 1px solid #f0b20b;
+    color: #2e2e1f;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 2600;
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+  }
+
+  .toast-notification.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+
+  .toast-notification.error {
+    background: #ffe3e3;
+    border-color: #d80101;
+    color: #590000;
   }
 
   .manual-entry-ui {
@@ -656,9 +693,9 @@
   .compare-match-item .badge {
     display: inline-block;
     margin-right: 6px;
-    padding: 1px 6px;
+    padding: 2px 8px;
     border-radius: 10px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     color: #fff;
     background: #3b53a9;
@@ -850,8 +887,8 @@
         "Find Patient": "<%= @settings["help_base_url"] rescue "" %>find_patient",
         "Register Patient": "<%= @settings["help_base_url"] rescue "" %>new_patient",
         "Cancel": "<%= @settings["help_base_url"] rescue "" %>cancel",
-        "New Person": "<%= @settings["help_base_url"] rescue "" %>add_patient",
-        "Select Person": "<%= @settings["help_base_url"] rescue "" %>select_patient"
+        "New Patient": "<%= @settings["help_base_url"] rescue "" %>add_patient",
+        "Select Patient": "<%= @settings["help_base_url"] rescue "" %>select_patient"
     };
 
     function hidekeyboard() {
@@ -1340,11 +1377,12 @@
           <div class="search-tab active" id="scanTabBtn">Scan Barcode</div>
           <div class="search-tab" id="manualTabBtn">Manual Entry (Lost Card)</div>
         </div>
+        <div id="searchToast" class="toast-notification" data-message="<%= params[:not_found].present? ? "No matching patient was found for identifier #{h(params[:identifier].to_s)}. Tap New Patient to create a record." : "" %>"></div>
 
         <div class="search-panel" id="scanPanel">
-          <div class="search-info-dot" id="searchInfoDot" title="Help">i</div>
+          <div class="search-info-dot" id="searchInfoDot" data-help-pop="searchHelpPop" title="Help">i</div>
           <div class="search-help-pop" id="searchHelpPop">
-            Scan the patient barcode to auto-find records. Use Manual Entry if the card is unavailable.
+            Scan the patient barcode to auto-find the record automatically. If the barcode is unreadable or the card is missing, switch to Manual Entry and enter the patient details.
           </div>
           <h2>Patient Barcode</h2>
           <div class="scan-zone"><span class="scan-status" id="scanStatusText">Awaiting scan...</span></div>
@@ -1354,7 +1392,10 @@
         </div>
 
         <div class="manual-entry-ui" id="manualEntryUi">
-          <div class="search-info-dot" title="Help">i</div>
+          <div class="search-info-dot" id="manualSearchInfoDot" data-help-pop="manualHelpPop" title="Help">i</div>
+          <div class="search-help-pop" id="manualHelpPop">
+            Use the keyboard to enter first name, surname, and gender. Tap Next to search patient records. If no match appears, use New Patient to create a new record.
+          </div>
           <div class="manual-subtabs">
             <div class="manual-subtab active" id="subtabGiven">Firstname</div>
             <div class="manual-subtab" id="subtabFamily">Surname</div>
@@ -1402,7 +1443,7 @@
       <table width='100%' cellpadding=10 cellspacing=0 class="hidden-manual-search" id="manualSearchPanel">
       <tr>
         <td colspan="2" style="padding-bottom: 10px; border-bottom: 1px dotted #999;">
-          <div style="font-size: 14px; color: #555;">
+          <div style="font-size: 16px; color: #555;">
             <a href="/patients/scan" style="color: #2f66e5; text-decoration: none; font-weight: bold;"> Scan Patient Label</a>
             <span style="color: #999;"> | </span>
             <span style="color: #666;">or search manually below</span>
@@ -1474,6 +1515,22 @@
 
     setTimeout(focusHeaderBarcodeInput, 0);
     setTimeout(function () { setScanStatus("Ready to scan..."); }, 0);
+
+    function showToast(message, type) {
+      var toast = byId("searchToast");
+      if (!toast || !message) return;
+      toast.textContent = message;
+      toast.classList.add("show");
+      toast.classList.toggle("error", type === "error");
+      setTimeout(function () {
+        toast.classList.remove("show");
+      }, 5200);
+    }
+
+    var toastEl = byId("searchToast");
+    if (toastEl && toastEl.dataset && toastEl.dataset.message) {
+      showToast(toastEl.dataset.message, "warning");
+    }
 
     var scanAutoSubmitTimer = null;
 
@@ -1799,19 +1856,31 @@
       return selected ? selected.id : null;
     }
 
-    document.addEventListener("click", function (e) {
-      var infoDot = byId("searchInfoDot");
-      var helpPop = byId("searchHelpPop");
-      if (!infoDot || !helpPop) return;
+    function toggleHelpPopup(icon, popupId) {
+      var pop = byId(popupId);
+      if (!pop) return;
+      document.querySelectorAll('.search-help-pop.show').forEach(function(openPop) {
+        if (openPop.id !== popupId) openPop.classList.remove('show');
+      });
+      pop.classList.toggle('show');
+    }
 
-      if (e.target === infoDot) {
-        helpPop.classList.toggle("show");
-        return;
+    document.addEventListener('click', function (e) {
+      var helpIcon = e.target.closest('.search-info-dot[title="Help"]');
+      if (helpIcon) {
+        var popId = helpIcon.getAttribute('data-help-pop');
+        if (popId) {
+          e.stopPropagation();
+          toggleHelpPopup(helpIcon, popId);
+          return;
+        }
       }
 
-      if (!helpPop.contains(e.target)) {
-        helpPop.classList.remove("show");
-      }
+      document.querySelectorAll('.search-help-pop.show').forEach(function(openPop) {
+        if (!openPop.contains(e.target)) {
+          openPop.classList.remove('show');
+        }
+      });
     });
 
     var cancelBtn = byId("searchCancelBtn");
@@ -1906,10 +1975,8 @@
             var results = [];
             try { results = JSON.parse(req.responseText || "[]"); } catch (e) { results = []; }
             if (!results || results.length === 0) {
-              setManualHint("No matching patient found. Opening new registration...", false);
-              window.location = "/patients/new?given_name=" + encodeURIComponent(given) +
-                "&family_name=" + encodeURIComponent(family) +
-                "&gender=" + encodeURIComponent(gender);
+              setManualHint("No matching patient found. Tap New Patient to create a record.", false);
+              showToast("No matching patient was found. Use New Patient to start registration.", "warning");
               return;
             }
 

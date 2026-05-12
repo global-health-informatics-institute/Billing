@@ -826,10 +826,7 @@ class PatientsController < ApplicationController
         patient = PatientIdentifier.find_by_identifier(@json["national_id"]).patient rescue nil
 
         if patient.blank?
-          if params[:source].to_s == "scan"
-            redirect_to "/patients/new?identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
-          end
-          redirect_to "/patients/patient_not_found/#{params[:id]}" and return
+          redirect_to "/patients/search?not_found=1&identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
         else
           @results = []
           @results << local_patient.to_json
@@ -840,10 +837,7 @@ class PatientsController < ApplicationController
     else
       if local_patient.blank? || local_patient["patient_id"].blank?
         #if dde doesn't exist and patient is not available locally
-        if params[:source].to_s == "scan"
-          redirect_to "/patients/new?identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
-        end
-        redirect_to "/patients/patient_not_found/#{params[:id]}" and return
+        redirect_to "/patients/search?not_found=1&identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
       else
         source_value = params[:source].to_s
         source = %w[manual scan].include?(source_value) ? "?source=#{source_value}" : ""
@@ -1100,12 +1094,6 @@ class PatientsController < ApplicationController
     render :json => @results
   end
 
-  def patient_not_found
-    @id = params[:id]
-
-    redirect_to "/" and return if !params[:create].blank? and params[:create] == "false"
-  end
-
   def print_national_id
     @patient = Patient.find(params[:patient_id])
     print_string = Misc.patient_national_id_label(@patient)
@@ -1223,19 +1211,6 @@ class PatientsController < ApplicationController
   def secure?
     @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env]
     secure = @settings["secure_connection"] rescue false
-  end
-
-  def patient_not_found
-    if request.post?
-      if params[:create] == "true"
-        redirect_to "/patients/new?identifier=#{params[:id]}" and return
-      else
-        redirect_to "/" and return
-      end
-    else
-      @id = params[:id]
-      render :layout => 'touch'
-    end
   end
 
   def update_attributes

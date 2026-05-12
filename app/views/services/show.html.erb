@@ -3,8 +3,8 @@
     <b>Service :</b> <%= @service.name %>
   </div>
   <div style="display: table-cell;text-align: center; width: 30vw;border: 1px solid cornflowerblue;">
-    <span style="font-size: 0.8em;">General Price</span>
-    <div style="display: table-cell;vertical-align: middle;width: 60%;font-size: 0.5em;padding-left: 5px;">
+    <span style="font-size: 18px;">General Price</span>
+    <div style="display: table-cell;vertical-align: middle;width: 60%;font-size: 20px;padding-left: 5px;">
       <%= "#{local_currency(@service.get_price("General").price) rescue ''}" %>
     </div>
     <div style="display: table-cell;vertical-align: middle;text-align: right;width: 40%;">
@@ -12,8 +12,8 @@
     </div>
   </div>
   <div style="display: table-cell;text-align: center; width: 30vw;border: 1px solid cornflowerblue;">
-    <span style="font-size: 0.8em;">Private Price</span>
-    <div style="display: table-cell;vertical-align: middle;width: 60%;font-size: 0.5em;padding-left: 5px;">
+    <span style="font-size: 18px;">Private Price</span>
+    <div style="display: table-cell;vertical-align: middle;width: 60%;font-size: 20px;padding-left: 5px;">
       <%= "#{local_currency(@service.get_price("Private").price) rescue ''}" %>
     </div>
     <div style="display: table-cell;vertical-align: middle;text-align: right;width: 40%;">

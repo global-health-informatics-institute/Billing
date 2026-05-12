@@ -46,7 +46,7 @@ class ApplicationController < ActionController::Base
   end
 
   def facility_code
-    return YAML.load_file("#{Rails.root}/config/application.yml")['facility_code']
+    return YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['facility_code']
   end
 
    def render_500(exception = nil)
