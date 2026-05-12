@@ -15,8 +15,8 @@
 
  :root {
     --ui-font-family: "Century Gothic", "Trebuchet MS", Arial, sans-serif;
-    --ui-font-size-body: 14px;
-    --ui-line-height: 1.4;
+    --ui-font-size-body: 16px;
+    --ui-line-height: 1.5;
     --ui-color-bg: #d7d7d9;
     --ui-color-surface: #efeff0;
     --ui-color-text: #0f1524;
