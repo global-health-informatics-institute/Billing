@@ -242,7 +242,7 @@ class ReportGenerator:
                 WHEN cashier = '8' THEN 'James'
                 WHEN cashier = '9' THEN 'Elvin'
             END AS cashier_name,
-            SUM(full_price) AS total_full_price
+            SUM(full_price) AS 'Total Collected (MKW)'
         FROM order_entries
         WHERE cashier IN ('8', '9')
         AND created_at BETWEEN %s AND %s
@@ -275,7 +275,7 @@ class ReportGenerator:
         query = """
         SELECT 
             DATE(created_at) AS transaction_date,
-            SUM(full_price) AS total_collected
+            SUM(full_price) AS 'Total Collected (MKW)'
         FROM order_entries
         WHERE cashier IN ('8', '9')
         AND created_at BETWEEN %s AND %s
@@ -508,10 +508,10 @@ class ReportGenerator:
             msg = MIMEMultipart()
             msg['From'] = sender_email
             msg['To'] = recipient_email
-            msg['Subject'] = f'Wandikweza Hospital Monthly Report - {self.start_date} to {self.end_date}'
+            msg['Subject'] = f'[SAMPLE] Wandikweza Hospital Monthly Report - {self.start_date} to {self.end_date}'
             
             # Email body
-            body = f"""Dear Wandikweza Headquarters Team,
+            body = f"""Dear Wandikweza M&E Team,
 
 Please find attached the monthly billing and registration report for the period from {self.start_date} to {self.end_date}.
 
@@ -525,7 +525,7 @@ This report includes:
 If you have any questions or need additional information, please don't hesitate to contact us.
 
 Best regards,
-Wandikweza Hospital - Automated Reporting System
+Wandikweza Health Center - Automated Reporting System
 """
             
             msg.attach(MIMEText(body, 'plain'))
@@ -637,8 +637,8 @@ Wandikweza Hospital - Automated Reporting System
         
         # Calculate total
         if money_collected:
-            total_revenue = sum(row['total_full_price'] for row in money_collected if row['total_full_price'])
-            self.add_metric(doc, 'Total Revenue', f'{total_revenue:,.2f}')
+            total_revenue = sum(row['Total Collected (MKW)'] for row in money_collected if row['Total Collected (MKW)'])
+            self.add_metric(doc, 'Total Revenue (MKW)', f'{total_revenue:,.2f}')
             print(f"Financial analysis - Total: {total_revenue:,.2f}")
         
         paying_breakdown = self.get_paying_vs_nonpaying()
