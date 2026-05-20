@@ -13,6 +13,15 @@ from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
 import sys
+import platform
+import subprocess
+
+# Import PDF conversion library (only works on Windows)
+try:
+    from docx2pdf import convert as docx2pdf_convert
+    DOCX2PDF_AVAILABLE = True
+except ImportError:
+    DOCX2PDF_AVAILABLE = False
 
 
 class ReportGenerator:
@@ -327,6 +336,15 @@ class ReportGenerator:
         normal_style.font.name = 'Arial'
         normal_style.font.size = Pt(10)
         
+        # Add logo at the top (centered)
+        logo_path = os.path.join(os.path.dirname(__file__), 'WKZ_Logo.png')
+        if os.path.exists(logo_path):
+            logo_paragraph = doc.add_paragraph()
+            logo_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            logo_run = logo_paragraph.add_run()
+            logo_run.add_picture(logo_path, width=Inches(0.8))  # 0.8 inches wide
+            logo_paragraph.space_after = Pt(6)
+        
         # Add title
         title = doc.add_heading('Wandikweza Billing and Registration Report', 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -425,12 +443,21 @@ class ReportGenerator:
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
         table.autofit = True
         
-        # Add headers
+        # Add headers with background color
         header_cells = table.rows[0].cells
         for i, header in enumerate(headers):
             label = str(header).replace('_', ' ').title()
+            cell = header_cells[i]
+            
+            # Set cell background color (blue header)
+            from docx.oxml.ns import nsdecls
+            from docx.oxml import parse_xml
+            shading_elm = parse_xml(r'<w:shd {} w:fill="1F4E79"/>'.format(nsdecls('w')))
+            cell._element.get_or_add_tcPr().append(shading_elm)
+            
+            # Set text with white color for contrast
             self._set_cell_text(
-                header_cells[i],
+                cell,
                 label,
                 bold=True,
                 color=RGBColor(255, 255, 255),
@@ -559,14 +586,66 @@ class ReportGenerator:
         
         filename_prefix = self.config.get('output', 'filename_prefix')
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{filename_prefix}_{self.start_date}_to_{self.end_date}_{timestamp}.docx"
-        filepath = os.path.join(output_dir, filename)
+        base_filename = f"{filename_prefix}_{self.start_date}_to_{self.end_date}_{timestamp}"
         
-        doc.save(filepath)
+        # Save DOCX file
+        docx_filename = f"{base_filename}.docx"
+        docx_filepath = os.path.join(output_dir, docx_filename)
+        doc.save(docx_filepath)
         
         print("\n" + "="*60)
-        print(f"Report generated successfully!")
-        print(f"Saved to: {filepath}")
+        print(f"DOCX report generated successfully!")
+        print(f"Saved to: {docx_filepath}")
+        
+        # Generate PDF file
+        pdf_filepath = os.path.join(output_dir, f"{base_filename}.pdf")
+        pdf_generated = False
+        
+        print("\nGenerating PDF version...")
+        
+        # Try platform-specific PDF conversion
+        system = platform.system()
+        
+        if system == 'Windows' and DOCX2PDF_AVAILABLE:
+            # Use docx2pdf on Windows (requires MS Word)
+            try:
+                docx2pdf_convert(docx_filepath, pdf_filepath)
+                pdf_generated = True
+            except Exception as e:
+                print(f"Warning: docx2pdf failed: {e}")
+        
+        elif system in ['Linux', 'Darwin']:  # Linux or macOS
+            # Use LibreOffice for conversion
+            try:
+                # Check if LibreOffice is available
+                libreoffice_cmd = 'libreoffice' if system == 'Linux' else 'soffice'
+                
+                # Convert using LibreOffice headless mode
+                result = subprocess.run(
+                    [libreoffice_cmd, '--headless', '--convert-to', 'pdf', 
+                     '--outdir', output_dir, docx_filepath],
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                
+                if result.returncode == 0:
+                    pdf_generated = True
+                else:
+                    print(f"Warning: LibreOffice conversion failed: {result.stderr}")
+            except FileNotFoundError:
+                print(f"Warning: LibreOffice not found. Install with: sudo apt-get install libreoffice")
+            except subprocess.TimeoutExpired:
+                print("Warning: PDF conversion timed out")
+            except Exception as e:
+                print(f"Warning: Failed to generate PDF: {e}")
+        
+        if pdf_generated:
+            print(f"PDF report generated successfully!")
+            print(f"Saved to: {pdf_filepath}")
+        else:
+            print("PDF generation failed, but DOCX file is available.")
+        
         print("="*60 + "\n")
         
         # Close database connection
