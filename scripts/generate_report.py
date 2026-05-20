@@ -15,6 +15,11 @@ from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
 import sys
 import platform
 import subprocess
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
 # Import PDF conversion library (only works on Windows)
 try:
@@ -483,6 +488,79 @@ class ReportGenerator:
         p.add_run(str(value))
         p.paragraph_format.space_after = Pt(4)
     
+    def send_email_report(self, pdf_filepath):
+        """Send the PDF report via email"""
+        try:
+            # Check if email sending is enabled
+            send_email = self.config.get('email', 'send_email', fallback='no').lower()
+            if send_email != 'yes':
+                print("\nEmail sending is disabled in configuration")
+                return False
+            
+            # Get email configuration
+            smtp_server = self.config.get('email', 'smtp_server')
+            smtp_port = self.config.getint('email', 'smtp_port')
+            sender_email = self.config.get('email', 'sender_email')
+            sender_password = self.config.get('email', 'sender_password')
+            recipient_email = self.config.get('email', 'recipient_email')
+            
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = recipient_email
+            msg['Subject'] = f'Wandikweza Hospital Monthly Report - {self.start_date} to {self.end_date}'
+            
+            # Email body
+            body = f"""Dear Wandikweza Headquarters Team,
+
+Please find attached the monthly billing and registration report for the period from {self.start_date} to {self.end_date}.
+
+This report includes:
+- Patient registration statistics
+- Returning patients analysis
+- Age group and gender distribution
+- Financial analysis and revenue trends
+- Daily patient visit trends
+
+If you have any questions or need additional information, please don't hesitate to contact us.
+
+Best regards,
+Wandikweza Hospital - Automated Reporting System
+"""
+            
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Attach PDF file
+            if os.path.exists(pdf_filepath):
+                with open(pdf_filepath, 'rb') as attachment:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(attachment.read())
+                    encoders.encode_base64(part)
+                    filename = os.path.basename(pdf_filepath)
+                    part.add_header('Content-Disposition', f'attachment; filename= {filename}')
+                    msg.attach(part)
+            else:
+                print(f"Warning: PDF file not found: {pdf_filepath}")
+                return False
+            
+            # Send email
+            print("\nSending email report...")
+            print(f"From: {sender_email}")
+            print(f"To: {recipient_email}")
+            
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+            server.quit()
+            
+            print("Email sent successfully!")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+            return False
+    
     def generate_report(self):
         """Main method to generate the complete report"""
         print("\n" + "="*60)
@@ -643,6 +721,9 @@ class ReportGenerator:
         if pdf_generated:
             print(f"PDF report generated successfully!")
             print(f"Saved to: {pdf_filepath}")
+            
+            # Send email with PDF attachment
+            self.send_email_report(pdf_filepath)
         else:
             print("PDF generation failed, but DOCX file is available.")
         
