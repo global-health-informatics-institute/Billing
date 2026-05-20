@@ -99,7 +99,7 @@ class ApplicationController < ActionController::Base
            <p>Please contact support</p>
            <p>Something went wrong. We are working on it.</p>
            <div class="error-message">#{error_message}</div>
-           <%= link_to ' to Home', root_path, class: 'btn btn-primary', style: 'margin-top: 20px;' %>
+           <%= link_to 'Go to Home', root_path, class: 'btn btn-primary', style: 'margin-top: 20px;' %>
        </body>
        </html>
      HTML
