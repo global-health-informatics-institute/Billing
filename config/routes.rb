@@ -3,7 +3,6 @@ Rails.application.routes.draw do
   root 'main#index'
 
   get "/main/index"
-
   get "login" => "sessions#login"
   get "location" => "sessions#location"
   post "location" => "sessions#add_location"
@@ -25,7 +24,7 @@ Rails.application.routes.draw do
   get "/main/void_listing"
   post "/order_payments/void_entry"
   get 'print_refund' => "deposits#print_refund"
-
+  
   # Route for handling general options page
   #get 'order_entries/general_options', to: 'order_entries#general_options'
 
