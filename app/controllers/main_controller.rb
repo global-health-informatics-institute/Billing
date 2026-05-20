@@ -1,4 +1,4 @@
-class MainController < ApplicationController
+class MainController < ApplicationController  
   def index
     range = DateTime.now.beginning_of_day..DateTime.now.end_of_day
     @collected = OrderPayment.select("COALESCE(sum(amount),0) as amount").where(created_at: range).first.amount rescue 0
