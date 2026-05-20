@@ -76,3 +76,4 @@ File: `config/routes.rb`
   - `GET /patients/patient_by_id(/:id)` => `patients#patient_by_id`
 - Confirm route used from demographics page:
   - `GET /patients/:id/confirm_and_proceed`
+### 5) Add Back to home button to improve user experience
