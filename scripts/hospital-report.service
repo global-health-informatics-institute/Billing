@@ -1,0 +1,14 @@
+[Unit]
+Description=Wandikweza Hospital Monthly Report Generator
+After=network.target mysql.service
+
+[Service]
+Type=oneshot
+User=shadreck
+WorkingDirectory=/home/shadreck/Desktop/Git/Billing/scripts
+ExecStart=/usr/bin/python3 /home/shadreck/Desktop/Git/Billing/scripts/generate_report.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

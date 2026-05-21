@@ -508,7 +508,7 @@ class ReportGenerator:
             msg = MIMEMultipart()
             msg['From'] = sender_email
             msg['To'] = recipient_email
-            msg['Subject'] = f'[SAMPLE] Wandikweza Hospital Monthly Report - {self.start_date} to {self.end_date}'
+            msg['Subject'] = f'Wandikweza Hospital Monthly Report - {self.start_date} to {self.end_date}'
             
             # Email body
             body = f"""Dear Wandikweza M&E Team,
@@ -521,8 +521,6 @@ This report includes:
 - Age group and gender distribution
 - Financial analysis and revenue trends
 - Daily patient visit trends
-
-If you have any questions or need additional information, please don't hesitate to contact us.
 
 Best regards,
 Wandikweza Health Center - Automated Reporting System
