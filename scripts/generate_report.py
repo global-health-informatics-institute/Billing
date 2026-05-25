@@ -488,6 +488,24 @@ class ReportGenerator:
         p.add_run(str(value))
         p.paragraph_format.space_after = Pt(4)
     
+    def add_key_explanation(self, doc, text):
+        """Add a KEY explanation box to help interpret the data"""
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(8)
+        p.paragraph_format.space_after = Pt(8)
+        
+        key_run = p.add_run('KEY: ')
+        key_run.bold = True
+        key_run.font.name = 'Arial'
+        key_run.font.size = Pt(9)
+        key_run.font.color.rgb = RGBColor(31, 78, 121)
+        
+        text_run = p.add_run(text)
+        text_run.font.name = 'Arial'
+        text_run.font.size = Pt(9)
+        text_run.font.color.rgb = RGBColor(60, 60, 60)
+        text_run.italic = True
+    
     def send_email_report(self, pdf_filepath):
         """Send the PDF report via email"""
         try:
@@ -594,18 +612,21 @@ Wandikweza Health Center - Automated Reporting System
         
         returning_dist = self.get_returning_patients_distribution()
         self.add_table_from_data(doc, returning_dist, 'Distribution by Age and Gender')
+        self.add_key_explanation(doc, 'Returning patients are those who made more than one visit during the reporting period. Age categories: Under Five (<5 years), Under Thirteen (5-12 years), and Adult (13+ years).')
         print(f"Returning patients distribution")
         
         # Section 3: Age Group Analysis
         self.add_section_header(doc, '3. Age Group Analysis')
         adolescence_data = self.get_registered_patients_adolescence()
         self.add_table_from_data(doc, adolescence_data, 'Registered Patients by Adolescence Groups')
+        self.add_key_explanation(doc, 'Patients are grouped by age ranges: Under 5, 5-9, 10-14, 15-19, 20-24, and Other (25+). This helps identify which age groups are most served by the facility.')
         print(f"Adolescence age group analysis")
         
         # Section 4: Visit Frequency
         self.add_section_header(doc, '4. Visit Frequency Analysis')
         frequency_data = self.get_returning_frequency()
         self.add_table_from_data(doc, frequency_data, 'Frequency of Returning Patients')
+        self.add_key_explanation(doc, 'Shows how many patients visited a specific number of times. For example, if 133 patients visited 2 times, it means 133 patients made exactly 2 visits during the reporting period.')
         print(f"Visit frequency analysis")
         
         # Section 5: Gender Distribution
@@ -615,6 +636,7 @@ Wandikweza Health Center - Automated Reporting System
         
         gender_returning = self.get_gender_distribution_returning()
         self.add_table_from_data(doc, gender_returning, 'Returning Patients by Gender and Age Group')
+        self.add_key_explanation(doc, 'Gender distribution across three age groups: Under 5 (children), 5-13 (school age), and Adults (14+). Helps identify service utilization patterns by gender and age.')
         print(f"Gender distribution analysis")
         
         # Section 6: Duplicate Patient Analysis
@@ -626,6 +648,7 @@ Wandikweza Health Center - Automated Reporting System
         self.add_metric(doc, 'Duplicate Groups', duplicate_groups_count)
         self.add_metric(doc, 'Extra Duplicate Records', total_duplicate_records)
         self.add_metric(doc, 'Patients In Duplicate Groups', total_patients_in_duplicates)
+        self.add_key_explanation(doc, 'Duplicate Groups: Number of unique patients who appear more than once in the system. Extra Duplicate Records: Number of repeated records beyond the first for each duplicated patient. Patients In Duplicate Groups: Total records linked to patients with duplicates, including the first record.')
         print(f"Duplicate patient analysis")
         
         # Section 7: Financial Analysis
@@ -641,16 +664,19 @@ Wandikweza Health Center - Automated Reporting System
         
         paying_breakdown = self.get_paying_vs_nonpaying()
         self.add_table_from_data(doc, paying_breakdown, 'Paying vs Non-Paying Patients Breakdown')
+        self.add_key_explanation(doc, 'Shows total patients, those who only paid, those who never paid, and those who had both paying and non-paying visits during the reporting period.')
         print(f"Paying vs non-paying breakdown")
         
         # Section 8: Daily Trends
         self.add_section_header(doc, '8. Daily Trends')
         daily_revenue = self.get_daily_revenue_trend()
         self.add_table_from_data(doc, daily_revenue, 'Daily Revenue Trend')
+        self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting period.')
         print(f"Daily revenue trend")
         
         daily_visits = self.get_daily_patient_visits()
         self.add_table_from_data(doc, daily_visits, 'Daily Patient Visits')
+        self.add_key_explanation(doc, 'Daily breakdown of new registrations, returning patients, and total visits. Total visits = new registrations + returning patients for each day.')
         print(f"Daily patient visits")
         
         # Section 9: Key Findings
