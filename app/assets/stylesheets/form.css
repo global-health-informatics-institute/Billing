@@ -73,7 +73,7 @@ body{
 }
 
 ul.list {
-    font-size:0.9em;
+    font-size:1.0em;
     border:2px solid black;
     padding:0px;
     overflow:scroll;
@@ -89,7 +89,7 @@ ul.list li.data {
 ul.list li.data .summary {  
     padding:3px;
     padding-left:10px;
-    font-size:0.6em;
+    font-size:0.95em;
     color:#444;
 }
 ul.list li.odd {

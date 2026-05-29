@@ -3,7 +3,6 @@ Rails.application.routes.draw do
   root 'main#index'
 
   get "/main/index"
-
   get "login" => "sessions#login"
   get "location" => "sessions#location"
   post "location" => "sessions#add_location"
@@ -17,11 +16,29 @@ Rails.application.routes.draw do
   get "/main/daily_cash_summary"
   get "/main/print_daily_cash_summary"
   post "/main/census_report"
+  post "/main/income_listing"
+  post "/main/cashier_listing"
+  post "/main/void_listing"
+  get "/main/cashier_listing"
+  get "/main/income_listing"
+  get "/main/void_listing"
+  post "/order_payments/void_entry"
   get 'print_refund' => "deposits#print_refund"
+  
+  # Route for handling general options page
+  #get 'order_entries/general_options', to: 'order_entries#general_options'
+
+  # Route for creating an order entry
+  #post 'order_entries', to: 'order_entries#create'
+  
 
   resources :patients do
+    member do
+      get 'confirm_and_proceed'
+    end
     collection do
       get 'search'
+      get 'scan'
       get 'ajax_search'
       get 'given_names'
       get 'family_names'
@@ -37,8 +54,6 @@ Rails.application.routes.draw do
       post 'ajax_process_result'
       post 'confirm_demographics'
       post 'ajax_process_data'
-      get 'patient_not_found(/:id)', action: :patient_not_found
-      post 'patient_not_found(/:id)', action: :patient_not_found
       get 'print_national_id'
       get 'patient_by_id(/:id)', action: :patient_by_id
     end

@@ -1,6 +1,28 @@
+<style>
+.snackbar {
+  visibility: hidden;
+  min-width: 250px;
+  background-color: green;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 5px;
+  padding: 22px;
+  position: fixed;
+  z-index: 1000;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 26px;
+}
+
+.snackbar.show {
+  visibility: visible;
+  animation: fadein 0.5s, fadeout 1.5s 5s;
+}
+</style>
 <% title "Patient Dashboard" %>
 <div id="shadow" class="opaqueLayer"> </div>
-<div id="question" class="questionLayer" style="font-size: 0.9em;">
+<div id="question" class="questionLayer" style="font-size: 1.1em;">
   <%= form_for :order_entry, :method => 'POST', url: '/order_entries/void',:html => {:id =>'voidingForm', :name =>'confirmingForm'}  do |f| %>
       <div class="dialogBox">
         <div style="display: table-row">
@@ -97,7 +119,7 @@
             </tr>
             <% end %>
           </table>
-          <div class = "link-button submit-link" style="width: 12vw !important;margin-left: auto;margin-right: auto;margin-top: 15vh;" onmousedown="submitPayment();">
+          <div class = "link-button submit-link" style="width: 12vw !important;margin-left: auto;margin-right: auto;margin-top: 10vh;" onmousedown="submitPayment();">
             Pay
           </div>
         </div>
@@ -150,7 +172,7 @@
               <div class="header-content-cell"><%= @patient.person.display_age %></div>
             </div>
             <div style="display: table-row; ">
-              <div class="header-content-cell"><b>National ID</b></div>
+              <div class="header-content-cell"><b>Patient ID</b></div>
               <div class="header-content-cell"><%= Misc.dash_formatter(@patient.national_id) %></div>
               <div class="header-content-cell"><b>Health insurance</b></div>
               <div class="header-content-cell"><%= @patient.health_insurance %></div>
@@ -217,8 +239,18 @@
         <th style="color: darkred;text-align: right;">Amount Due</th>
         <th style="color: darkred; text-align: right;padding-right: 10px;"><%= local_currency(@amount_due -@deposits) %></th>
       </tr>
+      <tr>
+        <div id="snackbar" class="snackbar">
+          <%= flash[:notice] || flash[:alert] %>
+        </div>
+      </tr>
       </tfoot>
+        <div id="snackbar" class="snackbar">
+          <%= flash[:notice] || flash[:alert] %>
+        </div>
     </table>
+
+
   </div>
   <div id="todayTab" class="tab-content invisible" >
     <table class="dashboard-main" border="2">
@@ -226,6 +258,7 @@
       <tr>
         <th style="width: 5vw;">&nbsp;</th>
         <th style="text-align: left;;padding-left: 5px;">Item</th>
+        <th style="text-align: left;">Available Option</th>
         <th style="text-align:center;">Quantity</th>
         <th style="text-align: right;padding-right: 10px;">Price</th>
         <th style="text-align: right;padding-right: 10px;">Paid</th>
@@ -240,12 +273,72 @@
                 <th style="padding: 0px;">
                   <input type="checkbox" class="custom-checkbox delete" data-id=<%= order[:id]%> >
                 </th>
-                <th><%= order[:service] %></th>
+                <th>
+                  <%= order[:service] %>
+                </th>
+                  <th>
+                  <% if ['female (non) antenatal', 'male adult', 'scanning', 'ambulance'].include?(order[:service].downcase) %>
+                    <% embed_button = "
+                      <span
+                        style='
+                          cursor: pointer;
+                          color: white;
+                          background-color: green;
+                          padding: 5px 20px;
+                          margin-left: 20px;
+                          border-radius: 5px;
+                          border: none;
+                          width: fit-content;
+                          display: inline-block;
+                          font-size: 22px;
+                          font-weight: bold;
+                        '
+                        onclick='voidOrder(#{order[:id]}, #{@patient.id})'
+                      >
+                        Refund
+                      </span>
+
+                      <script>
+                        function voidOrder(orderId, patientId) {
+                          fetch('/order_payments/void_entry', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'X-CSRF-Token': document.querySelector(\"meta[name='csrf-token']\").content
+                            },
+                            body: JSON.stringify({
+                              void_ids: orderId,
+                              void_reason: \"Refund\",
+                              patient_id: patientId
+                            })
+                          })
+                          .then(response => {
+                            if (response.redirected) {
+                              window.location.href = response.url;
+                            } else {
+                              return response.json();
+                            }
+                          })
+                          .then(data => {
+                            if (data && data.error) {
+                              alert(\"Error: \" + data.error);
+                            }
+                          })
+                          .catch(error => console.error('Error:', error));
+                        }
+                      </script>
+                    " %>
+
+                    <%= embed_button.html_safe %>
+
+                  <% end %>
+                  </th>
+                </th>
                 <th style="text-align: center"><%= order[:quantity] %></th>
                 <td style="text-align: right;padding-right: 5px;"><%= local_currency(order[:price]) %></td>
                 <td style="text-align: right;padding-right: 5px;"><%= local_currency(order[:amount_paid]) %></td>
                 <% if order == @today_payments[receipt_number]["details"].first %>
-                    <td rowspan="<%= entries%>" style="border: 1px solid #000000; background-color: #fefefe">
+                    <td rowspan="<%=entries%>" style="border: 1px solid #000000; background-color: #fefefe">
                       <img src="/assets/print.png" title="Void Item"
                            onmousedown="window.location='/order_payments/print_receipt?ids=<%= receipt_number%>'">
                     </td>
@@ -407,11 +500,10 @@
   <button class="red" style="float: left;" onmousedown="voidSelected();">Void Entry</button>
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
   <button style="float: right;" onmousedown="window.location='/patients/<%= @patient.id%>/order_entries/new'">Add Transaction</button>
-  <%if  @amount_due > 0 %>
+  <%if  !@unpaid_orders.blank? %>
     <button id="myBtn" style="float: right;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
   <% end %>
 </div>
-
 <script>
     var bill = <%= @amount_due %>;
     var modal = document.getElementById('myModal');
@@ -488,6 +580,7 @@
         document.getElementById("order_payment_mode").value = method;
     }
 
+
     function submitPayment(){
         document.payingForm.submit();
     }
@@ -512,30 +605,66 @@
         return choices;
     }
 
-    function voidPayments()
-    {
-        var choices = [];
-        var transactions = document.getElementsByClassName('custom-checkbox delete');
-
-        for(var o = 0; o < transactions.length; o++){
-            if(transactions[o].checked == true){
-                choices.push(transactions[o].getAttribute('data-id'));
-            }
-        }
-        if(choices.length > 0)
-        {
-            confirmAction('/order_payments/void', 'FORM')
-            document.getElementById("void_ids").value = choices.join(',');
-        }
-
-        return choices;
-    }
+    function voidPayments() {
+      var choices = [];
+      var transactions = document.getElementsByClassName('custom-checkbox delete');
+  
+      for(var o = 0; o < transactions.length; o++){
+          if(transactions[o].checked == true){
+              choices.push(transactions[o].getAttribute('data-id'));
+          }
+      }
+      console.log("Selected IDs: ", choices); // Print the choices array to console
+  
+      if(choices.length > 0) {
+          // Log the IDs before sending
+          console.log("Sending void_ids: ", choices.join(','));
+          
+          confirmAction('/order_payments/void', 'FORM');
+          document.getElementById("void_ids").value = choices.join(',');
+      }
+  
+      return choices;
+  }
+  
 
     function voidSelected()
     {
         (active == 'summary' ? voidEntries() : voidPayments())
 
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var snackbar = document.getElementById("snackbar");
+      if (snackbar.textContent.trim() !== "") {
+        snackbar.classList.add("show");
+        setTimeout(function () {
+          snackbar.classList.remove("show");
+        }, 3000);
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      document.addEventListener("change", function (event) {
+        if (event.target.classList.contains("custom-checkbox")) {
+          toggleButtonVisibility();
+        }
+      });
+
+      function toggleButtonVisibility() {
+        const anyChecked = document.querySelectorAll(".custom-checkbox:checked").length > 0;
+        const button = document.getElementById("myBtn");
+        
+        if (button) {
+          button.style.display = anyChecked ? "block" : "none";
+        }
+      }
+
+      // Run on page load to set initial state
+      toggleButtonVisibility();
+    });
+
+
     
     initializeCollapsible();
 </script>

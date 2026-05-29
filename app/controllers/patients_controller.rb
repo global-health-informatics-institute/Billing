@@ -1,55 +1,20 @@
 class PatientsController < ApplicationController
+  skip_before_action :verify_authenticity_token, only: [:confirm_demographics]
+
   def create
     raise params.inspect
   end
 
   def confirm_demographics
-
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
-
-    json_params = view_context.patient_json(params[:person],params["CURRENT AREA OR T/A"],params["identifier"],true)
-
-    @json = JSON.parse(json_params)
-
-    if !@settings.blank? && @use_dde
-      #DDE available
-
-      @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] # rescue {}
-
-      if secure?
-        url = "https://#{(@settings["dde_username"])}:#{(@settings["dde_password"])}@#{(@settings["dde_server"])}/ajax_process_data"
-      else
-        url = "http://#{(@settings["dde_username"])}:#{(@settings["dde_password"])}@#{(@settings["dde_server"])}/ajax_process_data"
-      end
-
-      @results = RestClient.post(url, {"person" => json_params})
-
-    else
-      #No dde setting therefore create locally
-
-      @results = Person.joins(:names).where(person_name: {given_name: @json["names"]["given_name"],
-                                                          family_name: @json["names"]["family_name"]},
-                                            gender: @json["names"]["gender"])
-
-
-      if @results.blank?
-        matching_people = @results.collect{| person |
-          person.person_id
-        }
-
-        # raise matching_people.to_yaml
-
-        people_like = Person.joins(:names =>[:person_name_code]).where(person_name_code: {given_name_code: @json["names"]["given_name"].soundex, family_name_code: @json["names"]["family_name"].soundex}, gender: @json["names"]["gender"]).where.not(person_id: matching_people).order("person_name.given_name ASC, person_name_code.family_name_code ASC")
-        @results = @results + people_like
-      end
-    end
-    render :layout => 'touch'
+    json_params = view_context.patient_json(params[:person], params["CURRENT AREA OR T/A"], params["identifier"], true)
+    params["person"] = json_params
+    process_result
   end
 
   def new
-
-    settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    
+    
+    settings = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
 
     @show_middle_name = (settings["show_middle_name"] == true ? true : false) rescue false
 
@@ -101,10 +66,16 @@ class PatientsController < ApplicationController
   end
 
   def search
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
 
-    @globals = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    @globals = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
 
+    render :layout => 'touch'
+  end
+
+  def scan
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    @globals = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
     render :layout => 'touch'
   end
 
@@ -121,8 +92,20 @@ class PatientsController < ApplicationController
 
     filter = {}
 
-    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] # rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+      settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)
+      if settings.is_a?(FalseClass)
+        settings = {}
+      else
+        settings = settings[Rails.env] if settings
+        settings ||= {}
+      end
+      use_dde_setting = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)
+      if use_dde_setting.is_a?(FalseClass)
+        use_dde = false
+      else
+        use_dde = use_dde_setting['create_from_dde'] if use_dde_setting
+        use_dde ||= false
+      end
     if !settings.blank? && use_dde
       search_hash = {
         "names" => {
@@ -179,9 +162,31 @@ class PatientsController < ApplicationController
 
     # pagesize = ((pagesize) * 2) - result.length
 
-    Person.all.joins(:names).where("given_name = ? AND family_name = ? AND gender = ?", params["given_name"], params["family_name"], params["gender"]).limit(pagesize).offset(offset).each do |person|
+    candidate_scope = Person.all.joins(:names).where(voided: 0)
+    candidate_scope = candidate_scope.where(gender: params["gender"]) if params["gender"].present?
 
-      patient = person.patient # rescue nil
+    input_birthdate = parse_search_birthdate(params["birthdate"])
+    candidate_scope = candidate_scope.where(birthdate: input_birthdate) if input_birthdate.present?
+
+    requested_district = normalize_match_string(params["district"])
+    requested_ta = normalize_match_string(params["traditional_authority"] || params["ta"])
+    requested_village = normalize_match_string(params["village"])
+    requested_national_id = normalize_identifier(params["national_id"])
+    requested_phone = normalize_phone(params["phone_number"] || params["cell_phone_number"] || params["home_phone_number"])
+
+    if requested_district.present?
+      candidate_scope = candidate_scope.joins(:addresses).where("LOWER(COALESCE(person_address.address2, person_address.state_province, '')) = ?", requested_district)
+    end
+
+    if requested_ta.present?
+      candidate_scope = candidate_scope.joins(:addresses).where("LOWER(COALESCE(person_address.county_district, person_address.township_division, '')) = ?", requested_ta)
+    end
+
+    local_candidates = candidate_scope.limit(200).offset(offset).to_a
+
+    local_candidates.each do |person|
+      patient = person.patient rescue nil
+      next if patient.blank?
 
       national_id = (patient.patient_identifiers.find_by_identifier_type(PatientIdentifierType.find_by_name("National id").id).identifier rescue nil)
 
@@ -232,6 +237,27 @@ class PatientsController < ApplicationController
       person["application"] = "#{name_of_app}"
       person["site_code"] = "#{facility_code}"
 
+      match = classify_duplicate_match(
+        input: {
+          given_name: params["given_name"],
+          family_name: params["family_name"],
+          gender: params["gender"],
+          birthdate: input_birthdate,
+          district: requested_district,
+          ta: requested_ta,
+          village: requested_village,
+          national_id: requested_national_id,
+          phone: requested_phone
+        },
+        candidate: person
+      )
+
+      next if match[:category] == "no_match"
+
+      person["match_category"] = match[:category]
+      person["match_score"] = match[:score]
+      person["match_reasons"] = match[:reasons]
+
       result << person
 
       # TODO: Need to find a way to limit in a better way the number of records returned without skipping any as some will never be seen with the current approach
@@ -240,12 +266,114 @@ class PatientsController < ApplicationController
 
     end if pagesize > 0 and result.length < 8
 
-    render :text => result.to_json
+    ranked = result.sort_by do |entry|
+      category_rank = entry["match_category"] == "likely_match" ? 0 : 1
+      [category_rank, -(entry["match_score"] || 0)]
+    end
+
+    render json: ranked
 
   end
 
+  def parse_search_birthdate(value)
+    return nil if value.blank?
+
+    Date.strptime(value.to_s, "%d/%m/%Y")
+  rescue ArgumentError
+    nil
+  end
+
+  def normalize_match_string(value)
+    value.to_s.downcase.gsub(/[^a-z0-9]/, "")
+  end
+
+  def normalize_identifier(value)
+    value.to_s.upcase.gsub(/[^A-Z0-9]/, "")
+  end
+
+  def normalize_phone(value)
+    value.to_s.gsub(/\D/, "")
+  end
+
+  def classify_duplicate_match(input:, candidate:)
+    score = 0
+    reasons = []
+
+    input_given = normalize_match_string(input[:given_name])
+    input_family = normalize_match_string(input[:family_name])
+    candidate_given = normalize_match_string(candidate.dig("names", "given_name"))
+    candidate_family = normalize_match_string(candidate.dig("names", "family_name"))
+
+    if input_given.present? && input_family.present? && input_given == candidate_given && input_family == candidate_family
+      score += 5
+      reasons << "exact_name"
+    elsif (input_given.present? && candidate_given.start_with?(input_given[0])) && (input_family.present? && candidate_family.start_with?(input_family[0]))
+      score += 2
+      reasons << "partial_name"
+    end
+
+    if input[:birthdate].present?
+      candidate_birthdate = begin
+        Date.parse(candidate["birthdate"].to_s)
+      rescue ArgumentError
+        nil
+      end
+      if candidate_birthdate.present? && candidate_birthdate == input[:birthdate]
+        score += 3
+        reasons << "birthdate"
+      end
+    end
+
+    if input[:gender].present? && input[:gender].to_s.strip.casecmp(candidate["gender"].to_s.strip).zero?
+      score += 2
+      reasons << "gender"
+    end
+
+    candidate_addresses = candidate["addresses"] || {}
+    candidate_district = normalize_match_string(candidate_addresses["home_district"].presence || candidate_addresses["current_district"])
+    candidate_ta = normalize_match_string(candidate_addresses["home_ta"].presence || candidate_addresses["current_ta"])
+    candidate_village = normalize_match_string(candidate_addresses["home_village"].presence || candidate_addresses["current_village"])
+
+    if input[:district].present? && input[:district] == candidate_district
+      score += 2
+      reasons << "district"
+    end
+    if input[:ta].present? && input[:ta] == candidate_ta
+      score += 2
+      reasons << "traditional_authority"
+    end
+    if input[:village].present? && input[:village] == candidate_village
+      score += 1
+      reasons << "village"
+    end
+
+    candidate_national_id = normalize_identifier(candidate["national_id"])
+    if input[:national_id].present? && input[:national_id] == candidate_national_id
+      score += 10
+      reasons << "national_id"
+    end
+
+    candidate_phone = normalize_phone(candidate.dig("person_attributes", "cell_phone_number")).
+      presence || normalize_phone(candidate.dig("person_attributes", "home_phone_number")).
+      presence || normalize_phone(candidate.dig("person_attributes", "office_phone_number"))
+    if input[:phone].present? && candidate_phone.present? && input[:phone] == candidate_phone
+      score += 8
+      reasons << "phone"
+    end
+
+    category = if (reasons.include?("exact_name") && reasons.include?("birthdate") && (reasons.include?("district") || reasons.include?("traditional_authority") || reasons.include?("village"))) || score >= 11
+                 "likely_match"
+               elsif score >= 6
+                 "possible_match"
+               else
+                 "no_match"
+               end
+
+    { category: category, score: score, reasons: reasons }
+  end
+
   def patient_demographics
-    settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
+    settings = YAML.load_file("#{Rails.root}/config/globals.yml", aliases: true)[Rails.env] rescue {}
 
     @show_middle_name = (settings["show_middle_name"] == true ? true : false) rescue false
 
@@ -285,8 +413,8 @@ class PatientsController < ApplicationController
 
   def update
 
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     person = Person.find(params[:person_id])
     patient = person.patient rescue nil
@@ -431,16 +559,17 @@ class PatientsController < ApplicationController
 
       case params[:update_field]
       when 'given_name'
-        person.names.first.update_attributes("given_name" => params[:person][:names]["given_name"])
+        # raise params.inspect
+        person.names.first.update("given_name" => params[:person][:names]["given_name"])
         print_barcode = true
       when 'middle_name'
-        person.names.first.update_attributes("middle_name" => params[:person][:names]["middle_name"])
+        person.names.first.update("middle_name" => params[:person][:names]["middle_name"])
         print_barcode = true
       when 'family_name'
-        person.names.first.update_attributes("family_name" => params[:person][:names]["family_name"])
+        person.names.first.update("family_name" => params[:person][:names]["family_name"])
         print_barcode = true
       when 'maiden_name'
-        person.names.first.update_attributes("family_name2" => params[:person][:names]["maiden_name"])
+        person.names.first.update("family_name2" => params[:person][:names]["maiden_name"])
         print_barcode = true
       when 'gender'
         person.gender = params["gender"]
@@ -478,24 +607,25 @@ class PatientsController < ApplicationController
         person.save
         print_barcode = true
 
-      when 'state_province'
-        #current residence
-
-        address = PersonAddress.where(person_id: person.id).first_or_initialize
-        address.state_province = params[:person][:addresses][:state_province]
-        address.township_division = params[:person][:addresses][:township_division]
-        address.city_village = params[:person][:addresses][:city_village]
-        address.address1 = params[:person][:addresses][:address1]
-        address.save
-        print_barcode = true
+      # when 'state_province'
+      #   #current residence
+      #
+      #   address = PersonAddress.where(person_id: person.id).first_or_initialize
+      #   address.state_province = params[:person][:addresses][:state_province]
+      #   address.township_division = params[:person][:addresses][:township_division]
+      #   address.city_village = params[:person][:addresses][:city_village]
+      #   address.address1 = params[:person][:addresses][:address1]
+      #   address.save
+      #   print_barcode = true
 
       when 'address2'
         #home district
         address = PersonAddress.where(person_id: person.id).first_or_initialize
         address.address2 = params[:person][:addresses][:address2]
         address.county_district = params[:person][:addresses][:county_district]
-        address.neighborhood_cell = params[:person][:addresses][:neighborhood_cell]
+        address.city_village = params[:person][:addresses][:city_village]
         address.save
+        print_barcode = true
 
       when 'cell_phone_number'
         attrib_type = PersonAttributeType.find_by_name("Cell Phone Number").id
@@ -548,18 +678,11 @@ class PatientsController < ApplicationController
   def show
 
     @patient = Patient.find(params[:id])
+    unpaid_orders = OrderEntry.where(patient_id: @patient.id).where("amount_paid < full_price")
+    past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
+                            .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 
-    range = Date.current.beginning_of_day..Date.current.end_of_day
-
-    unpaid_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity,:amount_paid,
-                                      :full_price).where('patient_id = ? AND amount_paid < full_price', @patient.id)
-    past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,
-                                    :order_date).where("patient_id = ? and order_date < ?",
-                                                       @patient.id, Date.current.beginning_of_day)
-
-    today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND payment_stamp BETWEEN ? AND ?",
-                                                           @patient.id,range.first, range.last)
-
+    today_payments = Receipt.select(:receipt_number).where(patient_id: @patient.id, created_at: Date.today.beginning_of_day..Date.today.end_of_day)
 
     @unpaid_orders, @total, @amount_due = view_context.unpaid_records(unpaid_orders)
     @history = view_context.past_records(past_orders)
@@ -568,10 +691,23 @@ class PatientsController < ApplicationController
 
   end
 
+  def confirm_and_proceed
+    patient = Patient.find(params[:id])
+    destination = "/order_entries/new?patient_id=#{patient.id}"
+    source = params[:source].to_s
+
+    # Only manual-entry confirmations should print at this step.
+    if source == "manual"
+      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", destination) and return
+    end
+
+    redirect_to destination and return
+  end
+
   def patient_by_id
 
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    @use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     params[:id] = params[:id].strip.gsub(/\s/, "").gsub(/\-/, "") rescue params[:id]
 
@@ -690,7 +826,7 @@ class PatientsController < ApplicationController
         patient = PatientIdentifier.find_by_identifier(@json["national_id"]).patient rescue nil
 
         if patient.blank?
-          redirect_to "/patients/patient_not_found/#{params[:id]}" and return
+          redirect_to "/patients/search?not_found=1&identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
         else
           @results = []
           @results << local_patient.to_json
@@ -701,9 +837,11 @@ class PatientsController < ApplicationController
     else
       if local_patient.blank? || local_patient["patient_id"].blank?
         #if dde doesn't exist and patient is not available locally
-        redirect_to "/patients/patient_not_found/#{params[:id]}" and return
+        redirect_to "/patients/search?not_found=1&identifier=#{ERB::Util.url_encode(params[:id].to_s)}" and return
       else
-        redirect_to "/patients/#{local_patient['patient_id']}" and return
+        source_value = params[:source].to_s
+        source = %w[manual scan].include?(source_value) ? "?source=#{source_value}" : ""
+        redirect_to "/patients/patient_demographics/#{local_patient['patient_id']}#{source}" and return
       end
     end
 
@@ -712,13 +850,17 @@ class PatientsController < ApplicationController
 
   def process_result
 
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
-    json = JSON.parse(params["person"]) rescue {}
+     use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
+     json = JSON.parse(params["person"]) rescue {}
 
-    if (json["patient"]["identifiers"].class.to_s.downcase == "hash" rescue false)
+     # Validate required fields
+     if json.blank? || json["names"].blank? || json["gender"].blank? || json["birthdate"].blank? || json["addresses"].blank?
+       redirect_to search_patients_path, alert: "Incomplete patient data. Please search and select a patient." and return
+     end
+
+     if (json["patient"]["identifiers"].class.to_s.downcase == "hash" rescue false)
 
       tmp = json["patient"]["identifiers"]
-
       json["patient"]["identifiers"] = []
 
       (tmp || []).each do |key, value|
@@ -728,6 +870,8 @@ class PatientsController < ApplicationController
       end
 
     end
+
+    new_patient_created = false
 
     if use_dde
       patient_id = DDE.search_and_or_create(json.to_json, current_location) # rescue nil
@@ -769,7 +913,7 @@ class PatientsController < ApplicationController
         (json["person_attributes"] || []).each do |attribute, value|
 
           next if value.blank?
-
+          # raise attribute.inspect
           new_person.person_attributes.create(:person_attribute_type_id => PersonAttributeType.find_by_name(attribute).person_attribute_type_id,
                                               :value => value)
 
@@ -778,6 +922,7 @@ class PatientsController < ApplicationController
         patient = Patient.new
         patient.patient_id = new_person.person_id
         patient.save
+        new_patient_created = true
 
         (json["patient"]["identifiers"] || []).each{|identifier|
           identifier_type = PatientIdentifierType.find_by_name("National ID")
@@ -787,15 +932,15 @@ class PatientsController < ApplicationController
         if patient.patient_identifiers.blank?
           health_center_id = Location.current_health_center.location_id
           national_id_version = "1"
-          national_id_prefix = "P#{national_id_version}#{health_center_id.to_s.rjust(3,"0")}"
-
+          # national_id_prefix = "PT#{national_id_version}#{health_center_id.to_s.rjust(3,"0")}"
+          national_id_prefix = "PT"
           identifier_type = PatientIdentifierType.find_by_name("National ID")
-          last_national_id = PatientIdentifier.where("identifier_type = ? AND left(identifier,5)= ?", identifier_type.id, national_id_prefix).order("identifier desc").first
+          last_national_id = PatientIdentifier.where("identifier_type = ? AND left(identifier,2)= ?", identifier_type.id, national_id_prefix).order("identifier desc").first
           last_national_id_number = last_national_id.identifier rescue "0"
 
-          next_number = (last_national_id_number[5..-2].to_i+1).to_s.rjust(7,"0")
+          next_number = (last_national_id_number[2..6].to_i+1).to_s.rjust(5,"0")
           new_national_id_no_check_digit = "#{national_id_prefix}#{next_number}"
-          check_digit = PatientIdentifier.calculate_checkdigit(new_national_id_no_check_digit[1..-1])
+          check_digit = PatientIdentifier.calculate_checkdigit(new_national_id_no_check_digit[2..-1])
           new_national_id = "#{new_national_id_no_check_digit}#{check_digit}"
           patient_identifier = PatientIdentifier.new
           patient_identifier.type = identifier_type
@@ -809,11 +954,12 @@ class PatientsController < ApplicationController
 
     end
 
-    #if print barcode
-    print_and_redirect("/patients/print_national_id?patient_id=#{patient_id}", "/patients/#{patient.id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
+    # Print immediately for newly created patients.
+    should_print = (json["print_barcode"] rescue false) || new_patient_created
+    print_and_redirect("/patients/print_national_id?patient_id=#{patient_id}", "/patients/patient_demographics/#{patient.id}?source=new") and return if !patient.blank? && should_print
 
 
-    redirect_to "/patients/#{patient.id}" and return if !patient.blank?
+    redirect_to "/patients/patient_demographics/#{patient.id}" and return if !patient.blank?
 
     flash["error"] = "Sorry! Something went wrong. Failed to process properly!"
 
@@ -823,8 +969,8 @@ class PatientsController < ApplicationController
 
   def ajax_process_data
 
-    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     person = params[:person] rescue {}
     result = []
@@ -924,8 +1070,8 @@ class PatientsController < ApplicationController
 
     @results = []
 
-    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] rescue {}
+    use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
 
     if (!settings.blank? && use_dde)
       target = params[:target]
@@ -948,12 +1094,6 @@ class PatientsController < ApplicationController
     render :json => @results
   end
 
-  def patient_not_found
-    @id = params[:id]
-
-    redirect_to "/" and return if !params[:create].blank? and params[:create] == "false"
-  end
-
   def print_national_id
     @patient = Patient.find(params[:patient_id])
     print_string = Misc.patient_national_id_label(@patient)
@@ -968,8 +1108,28 @@ class PatientsController < ApplicationController
     districts = districts.map do |d|
       "<li value=\"#{d.name}\">#{d.name}</li>"
     end
-    render :text => districts.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => districts.join('') + "<li value='Other'>Other</li>" and return
   end
+
+
+  # def district
+  #   @districts = District.all.collect{|x| [x.district_id, x.name]}
+  #   raise @districts.inspect
+  #   region = Region.find_by_name(params[:filter_value])
+  
+  #   if region
+  #     # Query for districts based on the search_string and region_id
+  #     districts = District.where("name LIKE ? AND region_id = ?", " #{params[:search_string]}%", region.id).order('name')
+  
+  #     # Return an array of district names
+  #     district_names = districts.pluck(:name)  # Get an array of district names
+  #     district_names << 'Other'  # Add 'Other' as a suggestion
+  #     render json: district_names  # Respond with the array as JSON
+  #   else
+  #     render json: ['Other']  # If no region is found, return only 'Other'
+  #   end
+  # end
+  
 
   # List traditional authority containing the string given in params[:value]
   def traditional_authority
@@ -980,7 +1140,7 @@ class PatientsController < ApplicationController
     traditional_authorities = traditional_authorities.map do |t_a|
       "<li value=\"#{t_a.name}\">#{t_a.name}</li>"
     end
-    render :text => traditional_authorities.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => traditional_authorities.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Villages containing the string given in params[:value]
@@ -992,7 +1152,7 @@ class PatientsController < ApplicationController
     villages = villages.map do |v|
       "<li value=\"#{v.name}\">#{v.name}</li>"
     end
-    render :text => villages.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => villages.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Landmark containing the string given in params[:value]
@@ -1002,7 +1162,7 @@ class PatientsController < ApplicationController
     landmarks = landmarks.map do |v|
       "<li value='#{v}'>#{v}</li>"
     end
-    render :text => landmarks.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => landmarks.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Countries containing the string given in params[:value]
@@ -1013,7 +1173,7 @@ class PatientsController < ApplicationController
     countries = countries.map do |v|
       "<li value=\"#{v.name}\">#{v.name}</li>"
     end
-    render :text => countries.join('') + "<li value='Other'>Other</li>" and return
+    render plain: countries.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Nationalities containing the string given in params[:value]
@@ -1024,7 +1184,7 @@ class PatientsController < ApplicationController
     nationalities = nationalities.map do |v|
       "<li value=\"#{v.name}\">#{v.name}</li>"
     end
-    render :text => nationalities.join('') + "<li value='Other'>Other</li>" and return
+    render plain: nationalities.join('') + "<li value='Other'>Other</li>" and return
   end
 
   def family_names
@@ -1049,20 +1209,11 @@ class PatientsController < ApplicationController
   end
 
   def secure?
-    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env]
+    @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env]
     secure = @settings["secure_connection"] rescue false
   end
 
-  def patient_not_found
-    if request.post?
-      if params[:create] == "true"
-        redirect_to "/patients/new?identifier=#{params[:id]}" and return
-      else
-        redirect_to "/" and return
-      end
-    else
-      @id = params[:id]
-      render :layout => 'touch'
-    end
+  def update_attributes
+    raise params.inspect
   end
 end

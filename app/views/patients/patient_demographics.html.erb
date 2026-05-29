@@ -1,508 +1,384 @@
-<html>
-<head>
-  <style type="text/css">
+<% patient = @person.patient %>
+<% name = @person.names.first %>
+<% current_address = @person.addresses.last %>
+<% dob_text = begin
+  day = (@person.birthdate_estimated.to_s == '1' ? '?' : (@person.birthdate.to_date.strftime('%d') rescue '?'))
+  month = ((@person.birthdate_estimated.to_s == '1' and (@person.birthdate.to_date.strftime('%d') rescue '0').to_s.strip == '10') ? '?' : (@person.birthdate.to_date.strftime('%b') rescue '?'))
+  year = (@person.birthdate.to_date.strftime('%Y') rescue '?')
+  "#{day}/#{month}/#{year}"
+rescue
+  ''
+end %>
+<% gender_text = (@person.gender.to_s.downcase == 'm' ? 'Male' : (@person.gender.to_s.downcase == 'f' ? 'Female' : '')) %>
+<%
+  session_user = current_user
+  session_location = current_location
+  session_role_record = session_user&.user_roles&.first
+  session_role_value = session_role_record&.role
+  session_role_name = if session_role_value.respond_to?(:name)
+                        session_role_value.name
+                      else
+                        session_role_value.to_s
+                      end
+%>
 
-    body {
-      -webkit-touch-callout: none; /* iOS Safari */
-      -webkit-user-select: none;   /* Chrome/Safari/Opera */
-      -khtml-user-select: none;    /* Konqueror */
-      -moz-user-select: none;      /* Firefox */
-      -ms-user-select: none;       /* Internet Explorer/Edge */
-      user-select: none;
-    }
-    table {
-      vertical-align: center;
-      width: 98%;
-      -webkit-touch-callout: none; /* iOS Safari */
-      -webkit-user-select: none;   /* Chrome/Safari/Opera */
-      -khtml-user-select: none;    /* Konqueror */
-      -moz-user-select: none;      /* Firefox */
-      -ms-user-select: none;       /* Internet Explorer/Edge */
-      user-select: none;
-      /*border-style: solid;
-      border-width: 1px;
-      border-radius: 0px 20px 20px 0px;*/
-    }
+<style type="text/css">
+  :root {
+    --font-base: "Century Gothic", "Trebuchet MS", Arial, sans-serif;
+    --fs-title: 28px;
+    --fs-meta: 20px;
+    --fs-banner-name: 36px;
+    --fs-banner-sub: 20px;
+    --fs-section: 24px;
+    --fs-label: 18px;
+    --fs-value: 20px;
+    --fs-button: 18px;
+  }
 
-    .title {
-      font-size: 25px;
-      text-align: left;
-      border-style: dotted;
-      border-color: #ccc;
-      border-width: 1px 1px 0px 0px;
-      text-align: right;
-      padding-right: 1.2emF;
-      border-right: 1px solid #999;
-    }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #d7d7d9;
+    font-family: var(--font-base);
+    font-size: 16px;
+    line-height: 1.35;
+    color: #0f1524;
+  }
 
-    .title-top {
-      font-size: 25px;
-      text-align: left;
-      border-style: dotted;
-      border-color: #ccc;
-      border-width: 0px 1px 0px 0px;
-      text-align: right;
-      padding-right: 20px;
-      border-right: 1px solid #999;
-    }
+  .confirm-shell {
+    min-height: 100vh;
+    border: 1px solid var(--ui-color-border);
+    box-sizing: border-box;
+    padding-bottom: 120px;
+  }
 
-    .data {
-      font-size: 25px;
-      text-align: left;
-      border-style: dotted;
-      border-color: #ccc;
-      border-width: 1px 0px 0px 0px;
-      padding-left: 20px;
-    }
+  .confirm-top {
+    display: grid;
+    grid-template-columns: 1fr 190px;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 2px solid var(--ui-color-border);
+  }
 
-    .data-top {
-      font-size: 25px;
-      text-align: left;
-      border-style: dotted;
-      border-color: #ccc;
-      border-width: 0px 0px 0px 0px;
-      padding-left: 20px;
-    }
+  .confirm-top-main {
+    border: 2px solid var(--ui-color-border);
+    background: #f5f5f6;
+    padding: 12px 18px;
+  }
 
-    .button {
-      padding: 10px;
-      border: 3px outset #ccc;
-      background-color: #eee;
-      border-radius: 0px;
-      width: 80px;
-      height: 40px;
+  .confirm-top-title {
+    font-size: var(--fs-title);
+    color: #1c2869;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.25;
+    letter-spacing: 0.2px;
+  }
+
+  .confirm-meta {
+    font-size: var(--fs-meta);
+    color: #22324a;
+    line-height: 1.75;
+    display: grid;
+    grid-template-columns: 100px 1fr 60px 1fr;
+    column-gap: 30px;
+    row-gap: 4px;
+  }
+
+  .confirm-meta > div:nth-child(odd) {
+    font-weight: 700;
+    color: #2b3d5e;
+    padding-right: 20px;
+  }
+
+  .confirm-meta > div:nth-child(even) {
+    font-weight: 600;
+    color: #101828;
+  }
+
+  .confirm-brand {
+    border: 2px solid var(--ui-color-border);
+    background: #f5f5f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #0f1524;
+    text-align: center;
+  }
+
+  .confirm-brand strong {
+    font-size: 1.5em;
+    color: #0f1524;
+    margin: 0;
+  }
+  .confirm-brand span {
+    margin: 6px 0 0;
+    font-size: 1.05em;
+    color: #2f3f58;
+  }
+
+  .confirm-body {
+    padding: 16px 20px;
+    min-height: calc(74vh - 70px);
+  }
+
+  .patient-banner {
+    background: linear-gradient(#4e67bb, #3b53a9);
+    color: #fff;
+    border: 2px solid var(--ui-color-border);
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .patient-name {
+    font-size: var(--fs-banner-name);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .patient-sub {
+    margin-top: 8px;
+    font-size: var(--fs-banner-sub);
+    color: #dde4ff;
+  }
+
+  .details-card {
+    border: 2px solid var(--ui-color-border);
+    background: #efeff0;
+    padding: 34px 40px;
+    margin-bottom: 60px;
+    min-height: calc(100vh - 540px);
+    display: grid;
+    gap: 24px;
+  }
+
+  .section-title {
+    font-size: var(--fs-section);
+    font-weight: 700;
+    color: #111;
+    margin: 0 0 16px;
+    border-bottom: 2px solid var(--ui-color-border);
+    padding-bottom: 12px;
+  }
+
+  .rows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-content: start;
+  }
+
+  .row {
+    border-bottom: 1px solid #c9ccd3;
+    padding: 22px 0;
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
+  }
+
+  .label {
+    color: #3f4f6e;
+    font-size: var(--fs-label);
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+
+  .value {
+    color: #0f1524;
+    font-size: var(--fs-value);
+    font-weight: 600;
+  }
+
+  .confirm-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(#343438, #202024);
+    border-top: 1px solid #3f4046;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn {
+    border: 1px solid #243071;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: 700;
+    padding: 12px 24px;
+    font-size: var(--fs-button);
+    background: linear-gradient(#5e78d1, #30489c);
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn.cancel {
+    border-color: #6f0808;
+    background: linear-gradient(#df2642, #ad0018);
+  }
+
+  .btn.warning {
+    border-color: #7c5800;
+    background: linear-gradient(#dfb14a, #b27a00);
+  }
+
+  .btn.success {
+    border-color: #0b6f2f;
+    background: linear-gradient(#29b45f, #04853c);
+  }
+
+  .right-actions { display: flex; gap: 8px; }
+
+  @media (max-width: 1100px) {
+    :root {
+      --fs-title: 24px;
+      --fs-meta: 18px;
+      --fs-banner-name: 30px;
+      --fs-banner-sub: 17px;
+      --fs-section: 19px;
+      --fs-label: 15px;
+      --fs-value: 17px;
+      --fs-button: 15px;
+    }
+    .confirm-top {
+      grid-template-columns: 1fr;
+    }
+    .confirm-brand {
+      min-height: 110px;
+    }
+    .rows {
+      grid-template-columns: 1fr;
+    }
+    .row {
+      grid-template-columns: 160px 1fr;
+    }
+  }
+
+  @media (max-width: 700px) {
+    :root {
+      --fs-title: 22px;
+      --fs-meta: 17px;
+      --fs-banner-name: 27px;
+      --fs-banner-sub: 16px;
+      --fs-section: 18px;
+      --fs-label: 14px;
+      --fs-value: 16px;
+      --fs-button: 15px;
+    }
+    .confirm-shell {
+      padding-bottom: 138px;
+    }
+    .confirm-body {
+      padding: 12px;
+    }
+    .row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 10px 0;
+    }
+    .label, .value {
+      line-height: 1.25;
+    }
+    .confirm-actions {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .right-actions {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .btn {
+      width: 100%;
       text-align: center;
-      vertical-align: middle;
-      cursor: pointer;
-      float: right;
-      margin-right: 5px;
-      border-width: 1px 1px 1px 0px;
+      box-sizing: border-box;
     }
+  }
+  
+</style>
 
-    .top-corner {
-      border-radius: 0px 20px 0px 0px !important;
-    }
-
-    .bottom-corner {
-      border-radius: 0px 0px 20px 0px !important;
-    }
-
-    .button:hover {
-      border: 1px solid #999;
-      border-width: 1px 1px 1px 0px;
-      background-color: #eee;
-    }
-
-    .container {
-      height: 92%;
-      background-color: white;
-      margin: 0px 20px 20px 20px;
-      overflow: auto;
-      -moz-border-radius: 10px;
-      padding-top: 2%;
-      text-align: center;
-    }
-
-    td {
-      padding: 5px;
-    }
-
-    .therest {
-      font-size: 0.6em;
-      font-weight: normal;
-    }
-
-    .button_blue {
-      border: 1px solid #7eb9d0;
-      -webkit-border-radius: 3px;
-      -moz-border-radius: 3px;
-      border-radius: 3px;
-      font-size: 28px;
-      font-family: arial, helvetica, sans-serif;
-      padding: 10px 10px 10px 10px;
-      text-decoration: none;
-      display: inline-block;
-      text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.3);
-      font-weight: bold;
-      color: #FFFFFF;
-      background-color: #a7cfdf;
-      background-image: -webkit-gradient(linear, left top, left bottom, from(#a7cfdf), to(#23538a));
-      background-image: -webkit-linear-gradient(top, #a7cfdf, #23538a);
-      background-image: -moz-linear-gradient(top, #a7cfdf, #23538a);
-      background-image: -ms-linear-gradient(top, #a7cfdf, #23538a);
-      background-image: -o-linear-gradient(top, #a7cfdf, #23538a);
-      background-image: linear-gradient(to bottom, #a7cfdf, #23538a);
-      filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#a7cfdf, endColorstr=#23538a);
-    }
-
-    .button_blue:hover {
-      border: 1px solid #5ca6c4;
-      background-color: #82bbd1;
-      background-image: -webkit-gradient(linear, left top, left bottom, from(#82bbd1), to(#193b61));
-      background-image: -webkit-linear-gradient(top, #82bbd1, #193b61);
-      background-image: -moz-linear-gradient(top, #82bbd1, #193b61);
-      background-image: -ms-linear-gradient(top, #82bbd1, #193b61);
-      background-image: -o-linear-gradient(top, #82bbd1, #193b61);
-      background-image: linear-gradient(to bottom, #82bbd1, #193b61);
-      filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#82bbd1, endColorstr=#193b61);
-    }
-
-    .button:active {
-      background-color: #ffc579 !important;
-      background-image: -webkit-gradient(linear, left top, left bottom, from(#ffc579), to(#fb9d23)) !important;
-      background-image: -webkit-linear-gradient(top, #ffc579, #fb9d23) !important;
-      background-image: -moz-linear-gradient(top, #ffc579, #fb9d23) !important;
-      background-image: -ms-linear-gradient(top, #ffc579, #fb9d23) !important;
-      background-image: -o-linear-gradient(top, #ffc579, #fb9d23) !important;
-      background-image: linear-gradient(to bottom, #ffc579, #fb9d23);
-      filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#ffc579, endColorstr=#fb9d23) !important;
-    }
-
-    .button_green {
-      border: 1px solid #34740e;
-      -webkit-border-radius: 3px;
-      -moz-border-radius: 3px;
-      border-radius: 3px;
-      font-size: 28px;
-      font-family: arial, helvetica, sans-serif;
-      padding: 10px 10px 10px 10px;
-      text-decoration: none;
-      display: inline-block;
-      text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.3);
-      font-weight: bold;
-      color: #FFFFFF;
-      background-color: #4ba614;
-      background-image: -webkit-gradient(linear, left top, left bottom, from(#4ba614), to(#008c00));
-      background-image: -webkit-linear-gradient(top, #4ba614, #008c00);
-      background-image: -moz-linear-gradient(top, #4ba614, #008c00);
-      background-image: -ms-linear-gradient(top, #4ba614, #008c00);
-      background-image: -o-linear-gradient(top, #4ba614, #008c00);
-      background-image: linear-gradient(to bottom, #4ba614, #008c00);
-      filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#4ba614, endColorstr=#008c00);
-    }
-
-    .button_green:hover {
-      border: 1px solid #224b09;
-      background-color: #36780f;
-      background-image: -webkit-gradient(linear, left top, left bottom, from(#36780f), to(#005900));
-      background-image: -webkit-linear-gradient(top, #36780f, #005900);
-      background-image: -moz-linear-gradient(top, #36780f, #005900);
-      background-image: -ms-linear-gradient(top, #36780f, #005900);
-      background-image: -o-linear-gradient(top, #36780f, #005900);
-      background-image: linear-gradient(to bottom, #36780f, #005900);
-      filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#36780f, endColorstr=#005900);
-    }
-
-    body {
-      overflow: hidden;
-      margin: 0px;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    }
-
-    ::-webkit-scrollbar {
-      height: 3vh;
-      width: 7vw;
-      background: #C0C0C0;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #404040;
-      -webkit-border-radius: 2ex;
-      height: 3vh;
-
-    }
-
-    ::-webkit-scrollbar-button {
-      height: 3vh;
-
-    }
-
-    ::-webkit-scrollbar-corner {
-      background: #000;
-    }
-
-
-  </style>
-
-</head>
-<body onload="resize()" onresize="resize()">
-
-<div id="details" style="height: 100%;overflow:auto;display:block; width: 100%; background-color: white; border: 1px solid #000; vertical-align: top;">
-
-  <div style="height: 70px; width: 100%; background-color: #415772; text-align: center; vertical-align: middle; font-size: 2em; color: #9aa0a7; padding-top: 10px;">
-    Edit Demographics
-    for <%= "#{(@person.names.first.given_name rescue nil)} #{(@person.names.first.family_name rescue nil)}" %>
+<div class="confirm-shell">
+  <div class="confirm-top">
+    <div class="confirm-top-main">
+      <div class="confirm-top-title">Confirm Patient Details</div>
+      <div class="confirm-meta">
+        <div>User</div><div><%= session_user&.name.presence || '-' %></div>
+        <div>Location</div><div><%= session_location&.name.presence || '-' %></div>
+        <div>Role</div><div><%= session_role_name.presence || '-' %></div>
+      </div>
+    </div>
+    <div class="confirm-brand">
+      <strong>eBilling</strong>
+      <span><%= Date.today.strftime('%d %b %Y') %></span>
+    </div>
   </div>
 
-  <div id="main" style="width: 98%; height: 80%; margin: auto; margin-top: 10px; border: 1px solid #415772; overflow-y: auto;overflow-x: hidden; text-align: center; padding-top: 8px;">
-
-    <div style="display: inline-block; width: 49%; margin: 1px; border: 0px dotted #415772; height: 80px;">
-
+  <div class="confirm-body">
+    <div class="patient-banner">
+      <div>
+        <div class="patient-name"><%= [name&.family_name, name&.given_name].compact.join(', ') %></div>
+        <div class="patient-sub">
+          Patient ID: <%= patient&.national_id || '-' %>
+        </div>
+      </div>
     </div>
 
+    <div class="details-card">
+      <div class="section-title">Patient Demographics</div>
+      <div class="rows">
+        <div>
+          <div class="row">
+            <div class="label">First Name</div>
+            <div class="value"><%= name&.given_name || '' %></div>
+          </div>
+          <div class="row">
+            <div class="label">Date of Birth</div>
+            <div class="value"><%= dob_text %></div>
+          </div>
+          <div class="row">
+            <div class="label">Home District</div>
+            <div class="value"><%= current_address&.address2 || '' %></div>
+          </div>
+          <div class="row">
+            <div class="label">Home Village</div>
+            <div class="value"><%= current_address&.city_village || '' %></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="row">
+            <div class="label">Last Name</div>
+            <div class="value"><%= name&.family_name || '' %></div>
+          </div>
+          <div class="row">
+            <div class="label">Gender</div>
+            <div class="value"><%= gender_text %></div>
+          </div>
+          <div class="row">
+            <div class="label">Home T/A</div>
+            <div class="value"><%= current_address&.county_district || '' %></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <div class="confirm-actions">
+    <a class="btn cancel" href="/">Cancel</a>
+    <div class="right-actions">
+      <a class="btn warning" href="/patients/<%= patient.patient_id %>/edit?field=address2">Update Location</a>
+      <% source_value = params[:source].to_s %>
+      <% safe_source = %w[manual scan].include?(source_value) ? source_value : "" %>
+      <a class="btn success" href="/patients/<%= patient.id %>/confirm_and_proceed?source=<%= safe_source %>">Confirm & Add Transaction</a>
+    </div>
+  </div>
 </div>
-
-<div id="footer" class="footer">
-  <button class="button button_green" style="float: right; margin-right: 20px; height: 70px; width: 150px; border-radius: 8px; margin-top: 10px;" onclick="window.location = '/patients/<%= @person.patient.patient_id rescue nil %>'">
-    Finish
-  </button>
-</div>
-
-<script type="text/javascript">
-    tt_cancel_destination = "/patients/show?id=<%= @person.patient.patient_id%>";
-
-    function __$(id) {
-        return document.getElementById(id);
-    }
-
-    function resize() {
-
-        if (__$("main")) {
-
-            __$("main").style.height = (window.innerHeight - 200) + "px";
-
-            __$("main").style.width = (window.innerWidth - 20) + "px";
-
-        }
-
-    }
-
-    function loadLinks() {
-
-        var links = [
-            {
-                "label": "F<span class='therest'>IRST NAME</span>",
-                "field": "given_name",
-                "value": "<%= @person.names.first.given_name rescue "&nbsp;" %>"
-            },
-            {
-                "label": "L<span class='therest'>AST NAME</span>",
-                "field": "family_name",
-                "value": "<%= @person.names.first.family_name rescue "&nbsp;" %>"
-            }
-            <% if @show_middle_name %>
-            ,
-            {
-                "label": "M<span class='therest'>IDDLE NAME</span>",
-                "field": "middle_name",
-                "value": "<%= @person.names.first.middle_name rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-            <% if @show_maiden_name and (@person.gender rescue "&nbsp;").to_s.downcase == "f" %>
-            ,
-            {
-                "label": "M<span class='therest'>AIDEN NAME</span>",
-                "field": "maiden_name",
-                "value": "<%= @person.names.first.family_name2 rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-            ,
-            {
-                "label": "D<span class='therest'>ATE OF BIRTH</span>",
-                "field": "birthdate",
-                "value": "<%= (@person.birthdate_estimated.to_s == '1' ? '?' : (@person.birthdate.to_date.strftime("%d") rescue "?")) %>/" +
-                "<%= ((@person.birthdate_estimated.to_s == '1' and (@person.birthdate.to_date.strftime("%d") rescue 0).to_s.strip == '10') ? '?' :
-                        (@person.birthdate.to_date.strftime("%b") rescue "?")) %>/<%= @person.birthdate.to_date.strftime("%Y") rescue "?" %>"
-            },
-            {
-                "label": "G<span class='therest'>ENDER</span>",
-                "field": "gender",
-                "value": "<%= ((@person.gender rescue "&nbsp;").to_s.length > 0 ? ((@person.gender rescue nil).to_s.downcase == "m" ? "Male" : "Female") : "") %>"
-            }
-
-            <% if @show_nationality or @show_region_of_origin %>
-            ,
-            {
-                "label": "N<span class='therest'>ATIONALITY</span>",
-                "field": "citizenship",
-                "value": "<%= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Citizenship").id).value rescue "&nbsp;" %>"
-            },
-            {
-                "label": "H<span class='therest'>OME DISTRICT</span>",
-                "field": "address2",
-                "value": "<%= @person.addresses.last.address2 rescue "&nbsp;" %>"
-            },
-            {
-                "label": "H<span class='therest'>OME T/A</span>",
-                "field": "address2",
-                "value": "<%= @person.addresses.last.county_district rescue "&nbsp;" %>"
-            },
-            {
-                "label": "H<span class='therest'>OME VILLAGE</span>",
-                "field": "address2",
-                "value": "<%= @person.addresses.last.neighborhood_cell rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-            <% if @show_current_district %>
-            ,
-            {
-                "label": "C<span class='therest'>OUNTRY OF RESIDENCE</span>",
-                "field": "state_province",
-                "value": "<%= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Country of Residence").id).value rescue "" %>"
-            },
-            {
-                "label": "C<span class='therest'>URRENT DISTRICT</span>",
-                "field": "state_province",
-                "value": "<%= @person.addresses.last.state_province rescue "&nbsp;" %>"
-            },
-            {
-                "label": "C<span class='therest'>URRENT AREA OR T/A</span>",
-                "field": "state_province",
-                "value": "<%= @person.addresses.last.township_division rescue "&nbsp;" %>"
-            },
-            {
-                "label": "C<span class='therest'>URRENT VILLAGE</span>",
-                "field": "state_province",
-                "value": "<%= @person.addresses.last.city_village rescue "&nbsp;" %>"
-            },
-            {
-                "label": "C<span class='therest'>URRENT RESIDENCE</span>",
-                "field": "state_province",
-                "value": "<%= @person.addresses.last.address1 rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-            <% if @show_cell_phone_number %>
-            ,
-            {
-                "label": "C<span class='therest'>ELL PHONE NUMBER</span>",
-                "field": "cell_phone_number",
-                "value": "<%= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Cell Phone Number").id).value rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-            <% if @show_office_phone_number %>
-            ,
-            {
-                "label": "O<span class='therest'>FFICE PHONE NUMBER</span>",
-                "field": "office_phone_number",
-                "value": "<%= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Office Phone Number").id).value rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-            <% if @show_home_phone_number %>
-            ,
-            {
-                "label": "H<span class='therest'>OME PHONE NUMBER</span>",
-                "field": "home_phone_number",
-                "value": "<%= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Home Phone Number").id).value rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-            <% if @show_occupation %>
-            ,
-            {
-                "label": "O<span class='therest'>CCUPATION</span>",
-                "field": "occupation",
-                "value": "<%= @person.person_attributes.find_by_person_attribute_type_id(PersonAttributeType.find_by_name("Occupation").id).value rescue "&nbsp;" %>"
-            }
-            <% end %>
-
-
-        ];
-
-        if (__$("main")) {
-
-            __$("main").innerHTML = "";
-
-            var div = document.createElement("div");
-            div.style.display = "inline-block";
-            div.style.width = "98%";
-            div.style.margin = "1px";
-            //div.style.border = "1px dotted #415772";
-            div.style.height = "80px";
-            div.style.verticalAlign = "middle";
-
-            __$("main").appendChild(div);
-
-            var tbl = document.createElement("div");
-            tbl.style.display = "table";
-            tbl.style.width = "100%";
-            tbl.style.height = "100%";
-
-            div.appendChild(tbl);
-
-            var row = "";
-
-            for (var i = 0; i < links.length; i++) {
-
-                // <div style="display: inline-block; width: 49%; margin: 1px; border: 1px dotted #000; height: 80px;">
-
-                if (i % 2 == 0)
-                {
-                    row = document.createElement("div");
-                    row.style.display = "table-row";
-
-                    tbl.appendChild(row);
-                }
-
-
-                var cell0 = document.createElement("div");
-                cell0.style.display = "table-cell";
-                cell0.style.width = "120px";
-                cell0.style.border = "1px dotted #415772";
-                cell0.style.textAlign = "right";
-                cell0.innerHTML = links[i]["label"];
-                cell0.style.padding = "10px";
-                cell0.style.fontSize = "24px";
-                cell0.style.verticalAlign = "middle";
-
-                row.appendChild(cell0);
-                var cell1 = document.createElement("div");
-                cell1.style.display = "table-cell";
-                cell1.style.textAlign = "left";
-                cell1.innerHTML = links[i]["value"] + "&nbsp;";
-                cell1.style.padding = "10px";
-                cell1.style.fontSize = "1.2em";
-                cell1.style.border= "1px dotted #415772";
-                cell1.style.verticalAlign = "middle";
-
-                row.appendChild(cell1);
-
-                var cell2 = document.createElement("div");
-                cell2.style.display = "table-cell";
-                cell2.style.width = "60px";
-                cell2.style.textAlign = "right";
-                cell2.style.padding = "5px";
-                cell2.style.fontSize = "1.2em";
-                cell2.style.verticalAlign = "middle";
-                cell2.style.border= "1px dotted #415772";
-
-                row.appendChild(cell2);
-
-                var pencil = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAaCAYAAABGiCfwAAAFEUlEQVRIic3V+U/TBxjH8S9Mo3H7YWbOLM6Z6dREzeaRZXG/7HQHS1h2uUUlHgzEC1LAYwWmFRURRAVEKWyAqMghYhGwyFELyFFaWm6kw3IoAtWh9G7B937YL/thCcj4YZ8/4HnleZ7keQRhCvIUFtvsT5TYR9qxPr04FTX/NTYbCxkbzbK36MyG1N9pSpJCjwFGndIphXDy3piVrJ76BvPFn7dRscmLgcgoGiKjGL3XDc4pAgcYeHHY5copUWnMipsFFIYFU7Lxe9oOBNOZcAbl6UTGDD0w5gjJJvuFSUMSCe6MjJ2qrFKQWZyHrKSUalkRZeFhKHw38jBsP/eiomg6dZpnhi4cjIVOTkJwczKy5VxWsDk1PYby4jK0Wi2tbToe6+9yLVhM1Q5/Wg4E0RYuoT4hHpxm8yQg3KwYN5y7Gjz4qWgGosOeaGuq0NTr6Bp8QOMfHVTlFZAjDkcVvJP6oABqJYfBauJ5JTcLI97J+aGD68Wv4imeydajy1F2ZDNkNtHc2oNMlset4gLaW9vQpSdwS3yAmoiTYLFjMpnmThiyYxQlFwSbt0a8xQ+S2WyMmEXglRUEpH3IjYbLFBUUoiqrRqttRNXZjkpTTW1+ISONnWAbLdXr9TPGZSQSibuVkaAr1RKz76k5bD49m+0JKwktWEJA5gL8Ly0hNO0jpBkhtDa30drcjaZRR1ZlBVU1DeCi1A6LxoUUCsU0K0bR5eoj5l2JK/BNmkNQxnIi5d8Rlr+WkOvvIspcyJ7U+exLXkt+rZQ63W2UlXLK1WpsjtEUnjB7/MEpmAam8BvqaPPei6vxS30Tcf7HxNVsIrr8C07keRMm+4zgwrfxuTKPb45OxzNwBqJj6yiruQZ22zn6+2eNDxmYaYeoguYYJDfWEJi5lMjir0lT7+Z81RbiK7w4U+rJyZL17M/+AK+41/jqV4GfwmZyKf8AOIkFpk9gR7hbx4yBio7U4YQSHyLkHpy940VG4y/kNktIq/NHWuNDbPkWIuVfsi1+Ed+Gv4TX0dlcKA41uXCIs7MneDHssE7bnTd8sW47CUpvUtRByLoiuNERRXbdEdJrxKTUByCt34V/ymq2xr6Cb/R8shTHTS7YNyHk7/nhZrR0Fco1EjI1InJajlHUE8ftgTiKO08ga4jmelME6boAJEXr2Jm0BN+Y15HVHjU5YcfEIUEQsFjmPRwqNjfpw9HcT0EzeJU7AxmU9SZQpo+nXJ9IXlsop5Xr8Et+g93nF1DSEo8NW9hzQYIgCDiNosGueIa7TvBw4Br3BmWo+q6iuHeZyt4MyrvPIr3zI4EZcxGnLeNmUwwOLCHPD0lwx6JTPdbthcYYHPdzGXqQi/6RHK1RjrL/Aun1/oRkvc/ey6tQNktxYAkXwO35MYdjGQNybBo/aEyCPhlPe3Po+7MIjTGX3I6DHC/6hHCZB0XdiWZchILEfXJd8eh4T0c0ZsMZ6C3FdV+Oq/MS9J6nt+sQvyk2EF3iR1WfzAzGQ8DkHiI41wz03NXv8/PE1icDYw7P7kbi1IXhbAqhv+0gqvZIdA/l5hHXk2gMzJwUJAiC4GIo33vzJkQ+QVxPO0OL6hiPa7wZUYtxtqdi7a5wPB0yPLJYTXHDw8MvTxoSBEGoVZcPr1y1nD3bg3hn6WJiY3YwqC2gR1tMq/q2o766Mr+sTPn5f0L+GW+fbXh4eKBr0GIwdDbcbTaI6+o6Fkql6vFv3P8xfwEMm+ridcKfkQAAAABJRU5ErkJggg==";
-
-                var btn = document.createElement("div");
-                btn.className = "button button_blue";
-                btn.setAttribute("tag", links[i]["field"]);
-                btn.innerHTML = "<img src='" + pencil + "' alt='Edit'/>";
-                btn.style.borderRadius = "8px";
-                btn.style.verticalAlign = "middle";
-                btn.style.width = "50px"
-                btn.onclick = function () {
-
-                    window.location = "/patients/<%= @person.patient.patient_id %>/edit?field=" + this.getAttribute("tag");
-
-                }
-
-                cell2.appendChild(btn);
-
-            }
-
-        }
-
-    }
-
-    loadLinks();
-
-</script>
-</body>
-</html>
-
-
-

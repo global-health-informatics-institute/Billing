@@ -27,7 +27,7 @@ module ZebraPrinter #:nodoc:
       @gap = gap || '026'
       @orientation = orientation || 'T'
       @number_of_labels = number_of_labels || nil
-      @left_margin = 30
+      @left_margin = 50
       @right_margin = 25
       @top_margin = 30
       @bottom_margin = 26
@@ -265,7 +265,7 @@ module ZebraPrinter #:nodoc:
 
     def draw_table(data, column_properties = nil)
       #function to print tabular data
-      cols = data.first.length
+      cols = data.first.length rescue nil
       column_properties = Array.new(cols){|i| [@content_width/cols, "left"]} if column_properties.blank?
 
       (data || []).each do |row|

@@ -1,45 +1,128 @@
 <% title "Billing - Main" %>
 <style type="text/css">
+  #header {
+    font-size: 16px;
+  }
 
+  #header .header-cell {
+    border: 1.5px solid var(--ui-color-border);
+    box-shadow: none;
+    background: #f5f5f6;
+  }
+
+  .confirm-top {
+    display: grid;
+    grid-template-columns: 1fr 15vw;
+    gap: 8px;
+    height: 15vh;
+  }
+
+  .confirm-top-main {
+    border: 2px solid var(--ui-color-border);
+    background: #efeff0;
+    padding: 10px 14px;
+  }
+
+  .confirm-top-title {
+    font-size: 1.45em;
+    color: #1c2869;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .confirm-scan-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .confirm-scan-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1em;
+    font-weight: 700;
+    color: #0f1524;
+  }
+
+  .confirm-scan-input {
+    width: 100%;
+    max-width: 520px;
+    font-size: 1.1em;
+    padding: 6px 8px;
+    border: 1.5px solid #9fa6b2;
+    background: #fff;
+    color: #0f1524;
+    box-sizing: border-box;
+  }
+
+  .confirm-meta {
+    font-size: 1.08em;
+    color: #22324a;
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: 95px 1fr 95px 1fr;
+    column-gap: 12px;
+    row-gap: 3px;
+  }
+
+  .confirm-meta > div:nth-child(odd) {
+    font-weight: 700;
+    color: #2b3d5e;
+  }
+
+  .confirm-meta > div:nth-child(even) {
+    font-weight: 600;
+    color: #101828;
+  }
+
+  .confirm-brand {
+    border: 2px solid var(--ui-color-border);
+    background: #f5f5f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #0f1524;
+    text-align: center;
+  }
+
+  #header .confirm-brand strong {
+    margin: 0;
+    font-size: 1.5em;
+    color: #0f1524;
+  }
+
+  #header .confirm-brand span {
+    margin: 6px 0 0;
+    font-size: 1.05em;
+    color: #2f3f58;
+  }
 </style>
 <div id="header" style="height: 15vh; width:98vw;margin-top:1vh;margin-left: auto;margin-right: auto;">
-  <div style="display: table-row">
-    <div class="header-cell" style="display: table-cell; width:85vw;vertical-align: middle;">
-      <table style="width: 100%;">
-        <tr>
-          <td style="width: 30%;" >
-            <div style="display: table-row">
-              <div style="display: table-cell;vertical-align: top;">
-                <strong>Scan Patient Barcode</strong>
-              </div>
-              <div style="display: table-cell;float: right;">
-                <img style="display: block;height: 30px;" src="/assets/barcode.jpg">
-              </div>
-            </div>
-          </td>
-          <td style="border: 0em !important;">
-            <input type="text" id="barcode" class="scanner" style="width: 70%;" autofocus>
-          </td>
-        </tr>
-      </table>
-      <div style="display: table;width: 98%;margin-left: auto;margin-right: auto;">
-        <div style="display: table-row; ">
-          <div class="header-content-cell">Facility</div>
-          <div class="header-content-cell"><%= facility_name %></div>
-          <div class="header-content-cell">User</div>
-          <div class="header-content-cell"><%= current_user.name %></div>
-        </div>
-        <div style="display: table-row; ">
-          <div class="header-content-cell">Location</div>
-          <div class="header-content-cell"><%= current_location.name.titleize %></div>
-          <div class="header-content-cell">Role</div>
-          <div class="header-content-cell"><%= current_user.role %></div>
-        </div>
+  <div class="confirm-top">
+    <div class="confirm-top-main">
+      <div class="confirm-top-title">Scan Patient Barcode</div>
+      <div class="confirm-scan-row">
+        <label class="confirm-scan-label" for="barcode">
+          <img style="display: block;height: 28px;" src="/assets/barcode.jpg" alt="barcode icon">
+          <span>Barcode</span>
+        </label>
+        <input type="text" id="barcode" class="scanner confirm-scan-input" autofocus>
+      </div>
+      <div class="confirm-meta">
+        <div>Facility</div><div><%= facility_name %></div>
+        <div>User</div><div><%= current_user.name %></div>
+        <div>Location</div><div><%= current_location.name.titleize %></div>
+        <div>Role</div><div><%= current_user.role %></div>
       </div>
     </div>
-    <div class="header-cell" style="float: right;width:15vw;text-align: center;height: 15vh;vertical-align: middle">
-      <h2>eBilling</h2>
-      <p><%= Date.current.strftime('%d %b %Y') %></p>
+    <div class="confirm-brand">
+      <strong>eBilling</strong>
+      <span><%= Date.current.strftime('%d %b %Y') %></span>
     </div>
   </div>
 </div>
@@ -92,32 +175,46 @@
       <div style="display: table-row;">
         <div style="display: table-cell">
           <div class = "link-button" onmousedown="window.location='/main/report_select?report_type=daily_cash_summary'">
-            Daily Cash Summary
+            <p>Daily Cash Summary</p>
           </div>
         </div>
         <div style="display: table-cell">
           <div class = "link-button" onmousedown="window.location='/main/report_select?report_type=cashier_summary'">
-            Cashier Summary
+            <p>Cashier Summary</p>
           </div>
         </div>
         <div style="display: table-cell">
-          <div class = "link-button"
-               onmousedown="window.location='/main/report_select?report_type=income_summary'">
-            Income Summary
+          <div class = "link-button" onmousedown="window.location='/main/report_select?report_type=income_summary'">
+            <p>Income Summary</p>
           </div>
         </div>
       </div>
       <div style="display: table-row;">
         <div style="display: table-cell">
-          &nbsp;
-        </div>
-        <div style="display: table-cell">
           <div class = "link-button" onmousedown="window.location='/main/report_select?report_type=census'">
-            Census Report
+            <p>Census Report</p>
           </div>
         </div>
         <div style="display: table-cell">
-          &nbsp;
+          <div class = "link-button" onmousedown="window.location='/main/report_select?report_type=cashier_listing'">
+            <p>Cashier Listing</p>
+          </div>
+        </div>
+        <div style="display: table-cell">
+          <div class = "link-button" onmousedown="window.location='/main/report_select?report_type=income_listing'">
+            <p>Income Listing</p>
+          </div>
+        </div>
+      </div>
+      <div style="display: table-row;">
+        <div style="display: table-cell">
+        </div>
+        <div style="display: table-cell">
+          <div class = "link-button" onmousedown="window.location='/main/report_select?report_type=void_listing'">
+            <p>Void Payments</p>
+          </div>
+        </div>
+        <div style="display: table-cell">
         </div>
       </div>
     </div>
@@ -198,18 +295,25 @@
   <button class="green" style="float: right;" onmousedown="window.location='/patients/search'">Find or Register Patient</button>
 </div>
 
+
+
 <script type="text/javascript">
     var timerHand;
+    var lastLength = 0;  // Track the last length of the barcode input
 
     function checkBarcode()
     {
-        var barcodeTxt = document.getElementById("barcode");
-        if (barcodeTxt.value.trim().match(/[A-Z0-9]+\$/)) {
-            barcodeTxt.value = barcodeTxt.value.trim().replace(/\$/, "").replace(/\-/,"")
-            window.location = "/patients/patient_by_id/"+barcodeTxt.value.trim();
-        }
-        else
-        {
+        var barcode = document.getElementById("barcode").value.trim().replace(/\$/, "").replace(/\-/,"");
+        var currentLength = barcode.length;
+
+        if (currentLength === lastLength) {
+            if (currentLength >= 8) {
+                window.location = "/patients/patient_by_id/" + barcode;
+            } else {
+                initializeListener();
+            }
+        } else {
+            lastLength = currentLength;  // Update the length to the current one
             initializeListener();
         }
     }
@@ -217,11 +321,10 @@
     function initializeListener()
     {
         document.getElementById("barcode").focus();
-        timerHand = setTimeout(function () {
-            checkBarcode();
-        }, 3000);
-
+        clearTimeout(timerHand);  // Clear any existing timeout
+        timerHand = setTimeout(checkBarcode, 1500);  // Set a new timeout to check the barcode
     }
 
-    setTimeout(initializeListener(), 3000);
+    // Start the initialization process
+    setTimeout(initializeListener, 3000);
 </script>

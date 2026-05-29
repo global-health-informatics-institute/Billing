@@ -190,13 +190,13 @@
           </button>
 
           <button id="btnAdd" class='button_blue' style='float: right;' onclick="ajaxProcessRequest('create')" >
-              New Person
+              New Patient
           </button-->
 
       <% elsif !params[:person].blank? %>
 
           <!--button id="btnAdd" class='button_blue' style='float: right; margin-right: 20px;' onclick="ajaxProcessRequest('create')" >
-              New Person
+              New Patient
           </button-->
 
       <% end %>
@@ -363,15 +363,37 @@
 
                     var gender = {M: "Male", F: "Female"};
 
+                    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
                     for(var i = 0; i < people.length; i++){
                         var obj = JSON.parse(people[i]);
+                        var birthdate = "-";
+                        if (obj.birthdate) {
+                            var dt = new Date(obj.birthdate);
+                            if (!isNaN(dt.getTime())) {
+                                birthdate = (obj.birthdate_estimated ? "~" : "") + dt.getDate() + "/" + months[dt.getMonth()] + "/" + dt.getFullYear();
+                            } else {
+                                birthdate = obj.birthdate;
+                            }
+                        }
+                        var fullName = ((obj["names"]["given_name"] || "") + " " + (obj["names"]["family_name"] || "")).replace(/\s+/g, " ").trim();
+                        var patientId = (typeof(obj["patient_id"]) != "undefined" && obj["patient_id"] != null && String(obj["patient_id"]).length > 0) ? obj["patient_id"] : "-";
+                        var district = (obj.addresses && (obj.addresses.home_district || obj.addresses.current_district)) ? (obj.addresses.home_district || obj.addresses.current_district) : "-";
+                        var ta = (obj.addresses && (obj.addresses.home_ta || obj.addresses.current_ta)) ? (obj.addresses.home_ta || obj.addresses.current_ta) : "-";
+                        var village = (obj.addresses && (obj.addresses.home_village || obj.addresses.current_village)) ? (obj.addresses.home_village || obj.addresses.current_village) : "-";
 
                         var li = document.createElement("li");
                         li.id = i;
                         li.style.cursor = "pointer";
                         li.style.backgroundColor = (i % 2 == 0 ? "#eee" : "");
                         li.style.border = (i % 2 > 0 ? "1px solid #eee" : "");
-                        li.innerHTML = obj["names"]["given_name"] + " " + obj["names"]["family_name"] + " (" + gender[obj["gender"]] + " - " + obj["_id"] + ")" + (obj.local != undefined ? " <i style='color: blue;'>[Local]</i>" : "");
+                        li.innerHTML =
+                          "<b>Full Name:</b> " + fullName + " (" + (gender[obj["gender"]] || "-") + ")" +
+                          " | <b>Patient ID:</b> " + patientId +
+                          " | <b>DOB:</b> " + birthdate +
+                          " | <b>National ID:</b> " + (obj["_id"] || "-") +
+                          "<br /><b>Location:</b> District " + district + ", T/A " + ta + ", Village " + village +
+                          (obj.local != undefined ? " <i style='color: blue;'>[Local]</i>" : "");
 
                         li.onclick = function(){
                             for(var j = 0; j < __$("options").children.length; j++){
@@ -467,12 +489,24 @@
                     ],
                     [
                         {
+                            field:"Patient ID",
+                            value: obj.patient_id
+                        },
+                        {
                             field:"National ID",
                             value: obj._id
-                        },
+                        }
+                    ],
+                    [
                         {
                             field:"Other Identifiers",
                             value: []
+                        },
+                        {
+                            field:"Location Summary",
+                            value: "District: " + (obj.addresses.home_district || obj.addresses.current_district || "") + "<br />" +
+                                   "Home T/A: " + (obj.addresses.home_ta || obj.addresses.current_ta || "") + "<br />" +
+                                   "Village: " + (obj.addresses.home_village || obj.addresses.current_village || "")
                         }
                     ],
                     [

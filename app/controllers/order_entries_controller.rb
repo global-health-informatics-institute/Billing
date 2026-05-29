@@ -1,16 +1,39 @@
 class OrderEntriesController < ApplicationController
+  require 'date'
   def show
 
   end
 
-  def new
-    @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.top_ten_services + ['Others'])]}.flatten(1)]
+  def calculate_age(dob)
+    require 'date'
+    today = Date.today
+    dob = dob.is_a?(Date) ? dob : Date.parse(dob.to_s)
 
+    return (today - dob).to_i
+  end
+
+
+  def new
+    patient = Patient.find(params[:patient_id])
+    dob = Person.select(:birthdate).where(person_id: patient.id).collect{|x| x.birthdate}.first
+    gender = Person.select(:gender).where(person_id: patient.id).collect{|x| x.gender}.first
+    age = calculate_age(dob)
+    puts "age is : #{age}"
+    if age < 1825
+      @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.child)]}.flatten(1)]
+    elsif age >= 5 && gender == 'M'
+      @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.male)]}.flatten(1)]
+    else
+      @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.female)]}.flatten(1)]
+    end
+    # @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.top_ten_services)]}.flatten(1)]
+    # @categories = Service.select(:name, :service_type_id).collect{|x| [x.name,x.id]}
+    # raise @categories.inspect
     render :layout => 'touch'
   end
 
   def create
-
+    # raise params.inspect
     patient = Patient.find(params[:order_entry][:patient_id])
     (params[:order_entry][:categories] || []).each do |category|
 
@@ -22,7 +45,8 @@ class OrderEntriesController < ApplicationController
                           :location =>params[:order_entry][:location],
                           :service_point =>params[:order_entry][:location_name],
                           :cashier => params[:creator])
-      end
+  end
+
 =begin
 
       if %w[admission consultation].include?(category.downcase)
@@ -96,7 +120,8 @@ class OrderEntriesController < ApplicationController
   end
 
   def void
-    entries = OrderEntry.where(order_entry_id: params[:void_ids].split(','))
+    # entries = TestJoin.where(order_entry_id: params[:void_ids].split(','))
+    entries = OrderEntry.find(params[:void_ids].split(','))
     (entries || []).each do |entry|
       entry.void(params[:void_reason], current_user.id)
     end

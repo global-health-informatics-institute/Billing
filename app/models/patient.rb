@@ -14,12 +14,15 @@ class Patient < ActiveRecord::Base
   has_many :person_attributes,-> { where "voided = 0" }, :class_name => 'PersonAttribute', :foreign_key => :person_id
   has_many :patient_accounts,-> { where "active = true" }, :foreign_key => :patient_id
   has_many :deposits,-> { where "voided = false" }, :foreign_key => :patient_id
+  has_many :villages
 
   #Accessor methods. These methods are used to access values of various attributes
   def full_name
     names = self.names.first
     return (names.given_name || '') + " " + (names.family_name || '')
   end
+  
+  
 
   def sex
     self.person.gender == 'F' ? 'Female' : 'Male'
@@ -30,7 +33,7 @@ class Patient < ActiveRecord::Base
   end
 
   def current_district
-    self.person.addresses.first.state_province rescue ""
+    self.person.addresses.first.address2 rescue ""
   end
 
   def current_residence

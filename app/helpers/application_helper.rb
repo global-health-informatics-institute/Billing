@@ -13,11 +13,11 @@ module ApplicationHelper
   end
 
   def facility_code
-    YAML.load_file("#{Rails.root}/config/application.yml")['facility_code']
+    YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['facility_code']
   end
 
   def facility_name
-    YAML.load_file("#{Rails.root}/config/application.yml")['facility_name']
+    YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['facility_name']
   end
 
   def show_intro_text
