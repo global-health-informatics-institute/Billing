@@ -99,41 +99,41 @@ class ApplicationController < ActionController::Base
           <p>Please contact support</p>
           <p>Something went wrong. We are working on it.</p>
           <div class="error-message">#{error_message}</div>
-          <%= link_to ' to Home', root_path, class: 'btn btn-primary', style: 'margin-top: 20px;' %>
+          <%= link_to 'Back to Home', root_path, class: 'btn btn-primary', style: 'margin-top: 20px;' %>
       </body>
       </html>
     HTML
   end
 
   def render_600(exception = nil)
-     error_message = exception ? exception.message : "Unknown error"
+    error_message = exception ? exception.message : "Unknown error"
 
-     # Log full error details for debugging
-     logger.error("ERROR: #{error_message}")
-     logger.error(exception.backtrace.join("\n")) if exception
+    # Log full error details for debugging
+    logger.error("ERROR: #{error_message}")
+    logger.error(exception.backtrace.join("\n")) if exception
 
-     # Render a simple 600 page with user-friendly error message
-     render html: <<-HTML.html_safe, status: 600
-       <!DOCTYPE html>
-       <html>
-       <head>
-           <title>600 - Error</title>
-           <style>
-               body {
-                   text-align: center;
-                   font-family: Arial, sans-serif;
-                   background-color: #f8d7da;
-                   color: #721c24;
-                   display: flex;
-                   flex-direction: column;
-                   justify-content: center;
-                   align-items: center;
-                   height: 100vh;
-                   margin: 0;
-               }
-               h1 {
-                   font-size: 100px;
-                   margin-bottom: 20px;
+    # Render a simple 600 page with user-friendly error message
+    render html: <<-HTML.html_safe, status: 600
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>600 - Error</title>
+          <style>
+              body {
+                  text-align: center;
+                  font-family: Arial, sans-serif;
+                  background-color: #f8d7da;
+                  color: #721c24;
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: center;
+                  align-items: center;
+                  height: 100vh;
+                  margin: 0;
+              }
+              h1 {
+                  font-size: 100px;
+                  margin-bottom: 20px;
                }
                p {
                    font-size: 24px;
@@ -159,5 +159,4 @@ class ApplicationController < ActionController::Base
        </html>
      HTML
    end
->>>>>>> af2b461... removed home page btn on 600 err
 end
