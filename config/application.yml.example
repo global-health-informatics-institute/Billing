@@ -1,0 +1,17 @@
+development:
+  facility_name: "Your Facility Name"
+  facility_code: "YOUR_CODE"
+  adult_age: 13
+  create_from_dde: false
+
+test:
+  facility_name: "Test Facility"
+  facility_code: "TEST"
+  adult_age: 13
+  create_from_dde: false
+
+production:
+  facility_name: "Your Facility Name"
+  facility_code: "YOUR_CODE"
+  adult_age: 13
+  create_from_dde: false
