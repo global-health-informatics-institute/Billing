@@ -1,10 +1,12 @@
 class MainController < ApplicationController
   def index
-    range = DateTime.now.beginning_of_day..DateTime.now.end_of_day
-    @collected = OrderPayment.select("COALESCE(sum(amount),0) as amount").where(created_at: range).first.amount rescue 0
-    @billed = OrderEntry.select("COALESCE(sum(full_price),0) as amount").where(order_date: range).first.amount rescue 0
-    @registrations = Patient.select("COALESCE(count(*),0) as number").where(date_created: range).first.number rescue 0
-    @cash_payments = Receipt.select("COALESCE(count(*),0) as number").where(payment_stamp: range, payment_mode: "CASH").first.number rescue 0
+    range_start = Time.zone.now.beginning_of_day
+    range_end = Time.zone.now.end_of_day
+    
+    @collected = OrderPayment.where(created_at: range_start..range_end).sum(:amount).to_f
+    @billed = OrderEntry.where(order_date: range_start..range_end).sum(:full_price).to_f
+    @registrations = Patient.where(date_created: range_start..range_end).count
+    @cash_payments = Receipt.where(payment_stamp: range_start..range_end, payment_mode: "CASH").count
     @pending = @billed - @collected
   end
   def report_select
