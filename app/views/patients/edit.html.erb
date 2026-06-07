@@ -56,6 +56,10 @@
     display: none;
   }
 
+  .tt_controls_closest_landmark .keyboard {
+    display: none;
+  }
+
   .tt_controls_current_region .keyboard {
     display: none;
   }
@@ -370,16 +374,25 @@
                             :tt_onLoad => "$('nextButton').style.display = 'none'; set_ajaxURL_for_suggestions('/patients/traditional_authority?filter_value=' ,document.getElementById('address2').value);"
                            } %>
 
-        <%= text_field_tag "person[addresses][city_village]", params[:city_village],
-                           {
-                               :field_type => 'alpha',
-                               :helpText => "Home Village",
-                               :tt_requireNextClick => true,
-                               :tt_pageStyleClass => "azButton",
-                               # :condition => "__$('nationality').value == 'Malawian'",
-                               :ajaxURL => '/patients/village?search_string=',
-                               :allowFreeText => false,
-                               :tt_onLoad => "$('nextButton').style.display = 'block'; set_ajaxURL_for_suggestions('/patients/village?filter_value=' ,document.getElementById('person_addresses_county_district').value);"} %>
+<%= text_field_tag "person[addresses][city_village]", params[:city_village],
+                            {
+                                :field_type => 'alpha',
+                                :helpText => "Home Village",
+                                :tt_requireNextClick => true,
+                                :tt_pageStyleClass => "azButton",
+                                # :condition => "__$('nationality').value == 'Malawian'",
+                                :ajaxURL => '/patients/village?search_string=',
+                                :allowFreeText => false,
+                                :tt_onLoad => "$('nextButton').style.display = 'block'; set_ajaxURL_for_suggestions('/patients/village?filter_value=' ,document.getElementById('person_addresses_county_district').value);"} %>
+
+        <%= text_field_tag "person[addresses][address1]", params[:address1],
+                           {:id => 'address1',
+                            :helpText => 'Closest Landmark or Plot Number<br />' +
+                                '<div style="font-size:0.7em;font-style:italic; margin-left: 40px;">' +
+                                '(Please do not enter words like: near, close to, infront of, behind)</div>',
+                            :allowFreeText => true, :ajaxURL => '',
+                            :tt_pageStyleClass => "azButton",
+                            :tt_onLoad => "$('nextButton').style.display = 'block'; set_ajaxURL_for_suggestions('/patients/landmark?filter_value=' ,document.getElementById('person_addresses_city_village').value);"} %>
 
     <% when 'cell_phone_number' %>
         <%= text_field_tag "person[attributes][cell_phone_number]", nil, :field_type => 'number', :helpText => 'Cell Phone Number', :allowFreeText => "true", :validationRule => "^0\\d{9}$|Unknown|Not Available", :validationMessage => "Not a valid phone number" %>
@@ -415,6 +428,7 @@
 
     <%= hidden_field_tag("person_id", (params[:id] || params[:patient_id])) %>
     <%= hidden_field_tag("update_field", @field) %>
+    <%= hidden_field_tag("return_url", params[:return_url]) %>
 
 <% end %>
 

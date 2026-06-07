@@ -1,6 +1,40 @@
 <html>
 <head>
   <style type="text/css">
+    .snackbar {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: green;
+      color: #ffffff;
+      text-align: center;
+      border-radius: 5px;
+      padding: 22px;
+      position: fixed;
+      z-index: 1000;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 26px;
+    }
+
+    .highlighted {
+      background-color: #ffff99 !important;
+    }
+
+    .snackbar.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 1.5s 2.5s;
+    }
+
+    @keyframes fadein {
+      from { bottom: 0; opacity: 0; }
+      to { bottom: 30px; opacity: 1; }
+    }
+
+    @keyframes fadeout {
+      from { bottom: 30px; opacity: 1; }
+      to { bottom: 0; opacity: 0; }
+    }
 
     body {
       -webkit-touch-callout: none; /* iOS Safari */
@@ -227,6 +261,7 @@
 </head>
 <body onload="resize()" onresize="resize()">
 
+<div id="snackbar" class="snackbar"><%= flash[:notice] || (params[:printed] == 'true' ? 'Location updated. Label printed.' : nil) %></div>
 <div id="details" style="height: 100%;overflow:auto;display:block; width: 100%; background-color: white; border: 1px solid #000; vertical-align: top;">
 
   <div style="height: 70px; width: 100%; background-color: #415772; text-align: center; vertical-align: middle; font-size: 2em; color: #9aa0a7; padding-top: 10px;">
@@ -304,10 +339,11 @@
             {
                 "label": "D<span class='therest'>ATE OF BIRTH</span>",
                 "field": "birthdate",
-                "value": "<%= (@person.birthdate_estimated.to_s == '1' ? '?' : (@person.birthdate.to_date.strftime("%d") rescue "?")) %>/" +
-                "<%= ((@person.birthdate_estimated.to_s == '1' and (@person.birthdate.to_date.strftime("%d") rescue 0).to_s.strip == '10') ? '?' :
-                        (@person.birthdate.to_date.strftime("%b") rescue "?")) %>/<%= @person.birthdate.to_date.strftime("%Y") rescue "?" %>"
-            },
+"value": "<%= (@person.birthdate_estimated.to_s == '1' ? '?' : (@person.birthdate.to_date.strftime("%d") rescue "?")) %>/" +
+                 "<%= ((@person.birthdate_estimated.to_s == '1' and (@person.birthdate.to_date.strftime("%d") rescue 0).to_s.strip == '10') ? '?' :
+                         (@person.birthdate.to_date.strftime("%b") rescue "?")) %>/<%= @person.birthdate.to_date.strftime("%Y") rescue "?" %>",
+                 "highlight": true
+             },
             {
                 "label": "G<span class='therest'>ENDER</span>",
                 "field": "gender",
@@ -461,6 +497,9 @@
                 cell1.style.fontSize = "1.2em";
                 cell1.style.border= "1px dotted #415772";
                 cell1.style.verticalAlign = "middle";
+                if (links[i]["highlight"]) {
+                  cell1.style.backgroundColor = "#ffff99";
+                }
 
                 row.appendChild(cell1);
 
@@ -498,10 +537,20 @@
 
     }
 
-    loadLinks();
+loadLinks();
 
-</script>
-</body>
+     document.addEventListener("DOMContentLoaded", function () {
+       var snackbar = document.getElementById("snackbar");
+       if (snackbar && snackbar.textContent.trim() !== "") {
+         snackbar.classList.add("show");
+         setTimeout(function () {
+           snackbar.classList.remove("show");
+         }, 3000);
+       }
+     });
+
+   </script>
+ </body>
 </html>
 
 

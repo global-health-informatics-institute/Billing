@@ -86,7 +86,12 @@
     <script>
         setTimeout(redirect, 1000);
         function redirect(){
-            document.location = '<%= @redirect_url %>'
+            var redirectUrl = '<%= @redirect_url %>';
+            if (redirectUrl.indexOf('?') > -1) {
+                document.location = redirectUrl + '&printed=true';
+            } else {
+                document.location = redirectUrl + '?printed=true';
+            }
         }
     </script>
 <%else%>
