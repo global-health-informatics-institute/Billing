@@ -38,8 +38,48 @@
     border-top: 30px solid #ef8544;
   }
 
+.highlighted {
+    background-color: #ffff99 !important;
+  }
+
+.listing li:hover {
+     background-color: #BBDEFB !important;
+   }
+
+   .snackbar {
+     visibility: hidden;
+     min-width: 250px;
+     background-color: green;
+     color: #ffffff;
+     text-align: center;
+     border-radius: 5px;
+     padding: 22px;
+     position: fixed;
+     z-index: 1000;
+     top: 30px;
+     left: 50%;
+     transform: translateX(-50%);
+     font-size: 26px;
+   }
+
+   .snackbar.show {
+     visibility: visible;
+     animation: fadein 0.5s, fadeout 1.5s 2.5s;
+   }
+
+   @keyframes fadein {
+     from { top: 0; opacity: 0; }
+     to { top: 30px; opacity: 1; }
+   }
+
+   @keyframes fadeout {
+     from { top: 30px; opacity: 1; }
+     to { top: 0; opacity: 0; }
+   }
+
 </style>
 
+<div id="snackbar" class="snackbar"><%= flash[:notice] || flash[:alert] || (params[:printed] == 'true' ? 'Location updated. Label printed.' : nil) %></div>
 
 <div class="table" style="width: 100%; height: 100%; border-spacing: 5px;">
   <div class="row">
@@ -84,13 +124,13 @@
             <div class="cell">
               &nbsp;
             </div>
-            <!--/div>
+<!--/div>
 
             <div class="row"-->
             <div class="cell bold label_cell">
               Birthdate:
             </div>
-            <div class="cell  input_cell">
+            <div class="cell  input_cell highlighted">
               &nbsp;<%= ((@json["birthdate_estimated"] rescue false) ? "~" : "") %><%= @json["birthdate"] rescue nil %>
             </div>
           </div>
@@ -197,10 +237,10 @@
             <!--/div>
 
             <div class="row"-->
-            <div class="cell bold label_cell">
+<div class="cell bold label_cell">
               Birthdate:
             </div>
-            <div class="cell  input_cell">
+            <div class="cell  input_cell highlighted">
               &nbsp;<%= ((@json["birthdate_estimated"] rescue false) ? "~" : "") %><%= @json["birthdate"] rescue nil %>
             </div>
           </div>
@@ -337,6 +377,8 @@
     Cancel
   </button>
 
+  
+
   <% if @results.length > 0 && @results != '[]'%>
 
       <button id="btnSelect" class='button_green' style='float: right; margin-right: 20px;'>
@@ -395,9 +437,39 @@
 
 <script type="text/javascript">
     <!--
-
+ 
     var json = JSON.stringify(<%= raw @json.to_json %>);
     var people = [];
+    var capturedBirthdate = "<%= @json['birthdate'] rescue '' %>";
+    var sortedPeople = [];
+    
+    function compareBirthdates(birthdate1, birthdate2) {
+        var score = 0;
+        birthdate1 = (birthdate1 || "").toString();
+        birthdate2 = (birthdate2 || "").toString();
+        
+        for (var i = 0; i < Math.min(birthdate1.length, birthdate2.length); i++) {
+            if (birthdate1[i] === birthdate2[i]) {
+                score += 1;
+            }
+        }
+        return score;
+    }
+    
+    function highlightBirthdate(birthdate1, birthdate2) {
+        birthdate1 = (birthdate1 || "").toString();
+        birthdate2 = (birthdate2 || "").toString();
+        var result = '<span style="font-weight: bold;">DOB:</span> ';
+        
+        for (var i = 0; i < birthdate2.length; i++) {
+            if (birthdate1[i] === birthdate2[i]) {
+                result += '<span style="color: green; font-weight: bold;">' + birthdate2[i] + '</span>';
+            } else {
+                result += '<span style="color: red;">' + birthdate2[i] + '</span>';
+            }
+        }
+        return result;
+    }
 
     function ajaxProcessRequest(target) {
         var url = "/patients/process_confirmation";
@@ -530,15 +602,25 @@
 
                 var gender = {M: "Male", F: "Female"};
 
-                for (var i = 0; i < people.length; i++) {
-                    var obj = JSON.parse(people[i]);
+                sortedPeople = people.slice().sort(function(a, b) {
+                    var scoreA = compareBirthdates(capturedBirthdate, JSON.parse(a)["birthdate"]);
+                    var scoreB = compareBirthdates(capturedBirthdate, JSON.parse(b)["birthdate"]);
+                    return scoreB - scoreA;
+                });
+
+                for (var i = 0; i < sortedPeople.length; i++) {
+                    var obj = JSON.parse(sortedPeople[i]);
 
                     var li = document.createElement("li");
                     li.id = i;
                     li.style.cursor = "pointer";
                     li.style.backgroundColor = (i % 2 == 0 ? "#eee" : "");
                     li.style.border = (i % 2 > 0 ? "1px solid #eee" : "");
-                    li.innerHTML = obj["names"]["given_name"] + " " + obj["names"]["family_name"] + " (" + gender[obj["gender"]] + " - " + obj["_id"] + ")";
+                    
+                    var matchScore = compareBirthdates(capturedBirthdate, (obj["birthdate_estimated"] ? "~" : "") + obj["birthdate"]);
+                    var matchPercent = capturedBirthdate.length > 0 ? Math.round((matchScore / capturedBirthdate.length) * 100) : 0;
+                    
+                    li.innerHTML = obj["names"]["given_name"] + " " + obj["names"]["family_name"] + " (" + gender[obj["gender"]] + " - " + obj["_id"] + ") <span style='float: right; background: " + (matchPercent >= 50 ? "#4CAF50" : "#f44336") + "; color: white; padding: 2px 8px; border-radius: 3px; font-size: 14px;'>" + matchPercent + "% Match</span><br/>" + highlightBirthdate(capturedBirthdate, (obj["birthdate_estimated"] ? "~" : "") + obj["birthdate"]);
 
                     li.onclick = function () {
                         for (var j = 0; j < __$("options").children.length; j++) {
@@ -560,11 +642,15 @@
         }
     }
 
-    function loadData(pos) {
-        if (__$("matched")) {
-            __$("matched").innerHTML = "";
+function loadData(pos) {
+         if (__$("matched")) {
+             __$("matched").innerHTML = "";
 
-            var obj = JSON.parse(people[parseInt(pos)]);
+             var originalIndex = sortedPeople[pos];
+             var obj = JSON.parse(originalIndex);
+             
+             var matchScore = compareBirthdates(capturedBirthdate, (obj.birthdate_estimated ? "~" : "") + obj.birthdate);
+             var matchPercent = capturedBirthdate.length > 0 ? Math.round((matchScore / capturedBirthdate.length) * 100) : 0;
 
             if (__$("btnSelect")) {
                 __$("btnSelect").className = "button_green";
@@ -574,13 +660,12 @@
 
                    // showSpinner();
 
-                    window.location = "/patients/" + JSON.parse(people[parseInt(this.getAttribute("pos"))])['patient_id'];
+                    window.location = "/patients/" + JSON.parse(sortedPeople[parseInt(this.getAttribute('pos'))])['patient_id'];
                 }
             }
 
             if (__$("btnUpdate")) {
 
-                var obj = JSON.parse(people[pos]);
 
                 if (obj["_id"] != null) {
 
@@ -591,9 +676,9 @@
 
                      //   showSpinner();
 
-                        var obj = JSON.parse(people[parseInt(this.getAttribute("pos"))]);
+                        var clickedObj = JSON.parse(sortedPeople[parseInt(this.getAttribute("pos"))]);
 
-                        json["national_id"] = obj["_id"];
+                        json["national_id"] = clickedObj["_id"];
 
                         ajaxProcessRequest("update");
                     }
@@ -619,17 +704,35 @@
                     },
                     {
                         field: "Birthdate",
-                        value: (obj.birthdate_estimated ? "~" : "") + obj.birthdate
+                        value: highlightBirthdate(capturedBirthdate, (obj.birthdate_estimated ? "~" : "") + obj.birthdate),
+                        highlight: true
                     }
                 ],
                 [
                     {
+                        field: "Match Score",
+                        value: matchPercent + "%",
+                        highlight: matchPercent >= 50
+                    },
+                    {
                         field: "National ID",
                         value: obj._id
-                    },
+                    }
+                ],
+                [
                     {
                         field: "Other Identifiers",
                         value: []
+                    }
+                ],
+                [
+                    {
+                        field: "Country of Residence",
+                        value: obj.person_attributes.country_of_residence
+                    },
+                    {
+                        field: "Nationality",
+                        value: obj.person_attributes.citizenship
                     }
                 ],
                 [
@@ -662,7 +765,7 @@
             ];
 
             for (var e = 0; e < obj.patient.identifiers.length; e++) {
-                rows[2][1]["value"].push(Object.keys(obj.patient.identifiers[e]) + ": " + obj.patient.identifiers[e][Object.keys(obj.patient.identifiers[e])] + "<br />");
+                rows[3][1]["value"].push(Object.keys(obj.patient.identifiers[e]) + ": " + obj.patient.identifiers[e][Object.keys(obj.patient.identifiers[e])] + "<br />");
             }
 
             var table = document.createElement("div");
@@ -703,7 +806,7 @@
                 row.appendChild(cell4);
 
                 var cell5 = document.createElement("div");
-                cell5.className = "cell input_cell" + (rows[i][1].classes != undefined ? " " + rows[i][1].classes : "");
+                cell5.className = "cell input_cell" + (rows[i][1].classes != undefined ? " " + rows[i][1].classes : "") + (rows[i][1].highlight ? " highlighted" : "");
                 cell5.innerHTML = rows[i][1].value;
 
                 row.appendChild(cell5);
@@ -713,4 +816,18 @@
 
     ajaxRequest(1);
     //-->
-</script>
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var snackbar = document.getElementById("snackbar");
+      if (snackbar && snackbar.textContent.trim() !== "") {
+        snackbar.classList.add("show");
+        setTimeout(function () {
+          snackbar.classList.remove("show");
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>

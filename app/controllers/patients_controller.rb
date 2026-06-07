@@ -10,6 +10,38 @@ class PatientsController < ApplicationController
     @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
     @use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
 
+    # Handle GET request for redirect after location update
+    if params[:patient_id].present? && request.get?
+      @patient = Patient.find(params[:patient_id]) rescue nil
+      if @patient
+        @json = {
+          "names" => {
+            "given_name" => @patient.person.names.first.given_name,
+            "family_name" => @patient.person.names.first.family_name,
+            "gender" => @patient.gender
+          },
+          "gender" => @patient.gender,
+          "birthdate" => @patient.person.birthdate,
+          "birthdate_estimated" => @patient.person.birthdate_estimated,
+          "national_id" => @patient.national_id,
+          "patient_id" => @patient.patient_id,
+          "addresses" => {
+            "current_residence" => @patient.person.addresses.last.address1,
+            "current_village" => @patient.person.addresses.last.city_village,
+            "current_ta" => @patient.person.addresses.last.township_division,
+            "current_district" => @patient.person.addresses.last.state_province,
+            "home_village" => @patient.person.addresses.last.neighborhood_cell,
+            "home_ta" => @patient.person.addresses.last.county_district,
+            "home_district" => @patient.person.addresses.last.address2
+          }
+        }
+        @results = []
+        render :layout => 'touch' and return
+      else
+        redirect_to root_path, alert: 'Patient not found' and return
+      end
+    end
+
     json_params = view_context.patient_json(params[:person],params["CURRENT AREA OR T/A"],params["identifier"],true)
 
     @json = JSON.parse(json_params)
@@ -47,6 +79,33 @@ class PatientsController < ApplicationController
       end
     end
     render :layout => 'touch'
+  end
+
+  # POST /patients/:id/update_location
+  # Sets current session location and reprints the patient's label
+  def update_location
+    patient = Patient.find(params[:id]) rescue nil
+
+    new_location = params[:location_id].presence || params[:location].presence || session[:location]
+
+    if new_location.blank?
+      redirect_to patient_path(patient), alert: 'No location provided' and return
+    end
+
+    # update session and Location.current_location
+    session[:location] = new_location.to_i
+    begin
+      Location.current_location = Location.find(session[:location]) rescue nil
+    rescue
+      # ignore
+    end
+
+    # Reprint patient label (uses existing helper in application_controller)
+    if patient
+      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", "/patients/#{patient.id}") and return
+    else
+      redirect_to root_path, alert: 'Patient not found' and return
+    end
   end
 
   def new
@@ -426,7 +485,7 @@ class PatientsController < ApplicationController
 
       patient = Patient.find(patient_id) rescue nil
 
-      print_and_redirect("/patients/national_id_label?patient_id=#{patient_id}", "/patients/patient_demographics/id=#{patient_id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
+      print_and_redirect("/patients/national_id_label?patient_id=#{patient_id}", "/patients/#{patient_id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
 
     else
 
@@ -500,6 +559,7 @@ class PatientsController < ApplicationController
         address.county_district = params[:person][:addresses][:county_district]
         address.city_village = params[:person][:addresses][:city_village]
         address.save
+        print_barcode = true
 
       when 'cell_phone_number'
         attrib_type = PersonAttributeType.find_by_name("Cell Phone Number").id
@@ -537,11 +597,20 @@ class PatientsController < ApplicationController
 
       end
 
-      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", "/patients/patient_demographics/#{patient.id}") and return if print_barcode
+      redirect_path = if params[:return_url] == "confirm_demographics"
+        "/patients/confirm_demographics/#{patient.id}?printed=true"
+      elsif params[:return_url] == "history"
+        "/patients/#{patient.id}?printed=true"
+      else
+        "/patients/#{patient.id}"
+      end
+      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", redirect_path) and return if print_barcode
 
     end
 
-    redirect_to "/patients/patient_demographics/#{patient.id}" and return if !patient.id.blank?
+    redirect_to "/patients/confirm_demographics/#{patient.id}?printed=true" and return if !patient.id.blank? && params[:return_url] == "confirm_demographics"
+
+    redirect_to "/patients/#{patient.id}?printed=true" and return if !patient.id.blank? && params[:return_url] == "history"
 
     flash["error"] = "Sorry! Something went wrong. Failed to process properly!"
 
