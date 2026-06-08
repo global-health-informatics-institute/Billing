@@ -314,7 +314,8 @@
                     __$("btnUpdate").removeAttribute("onclick");
                 }
 
-                if(people.length <= 0 || people.length < <%= (CONFIG["pagesize"].to_i rescue 10) %>){
+                <% pagesize_default = (defined?(CONFIG) && CONFIG["pagesize"]) ? CONFIG["pagesize"].to_i : 10 %>
+                if(people.length <= 0 || people.length < <%= pagesize_default %>){
                     if(__$("btnRight")){
                         __$("btnRight").className = "button_gray";
                         __$("btnRight").removeAttribute("onclick");
