@@ -253,7 +253,7 @@
         </tr>
       </tfoot>
     </table>
-    <div id="snackbar" class="snackbar"><%= flash[:notice] || flash[:alert] || (params[:printed] == 'true' ? 'Location updated. Label printed.' : nil) %></div>
+    <div id="snackbar" class="snackbar"><%= flash[:notice] || flash[:alert] || (params[:printed] == 'true' ? params[:print_message] || 'Label printed.' : nil) %></div>
   </div>
   <div id="todayTab" class="tab-content invisible" >
     <table class="dashboard-main" border="2">
