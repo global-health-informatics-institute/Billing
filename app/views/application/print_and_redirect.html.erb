@@ -1,34 +1,32 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Printing...</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding-top: 30px; }
-    .message { font-size: 18px; margin-bottom: 20px; }
-  </style>
-</head>
-<body>
-  <div class="message"><%= @message %></div>
-  <script>
-    (function(){
-      try {
-        // Open print URL in a new window/tab so printing can proceed
-        var printWindow = window.open("<%= @print_url %>", "_blank");
-      } catch(e) {
-        console.error(e);
-      }
+<style>
+  body{
+    font-family: "Nimbus Sans L", "Arial Narrow", sans-serif;
+  }
+</style>
 
-      // After a short delay redirect back to the app
-      setTimeout(function(){
-        var redirectUrl = "<%= @redirect_url %>";
-        if (redirectUrl === "__HISTORY_BACK__") {
-          window.history.go(-2);
-        } else {
-          window.location = redirectUrl;
+<% if not @show_next_button %>
+    <body>
+    <br/><br/><br/>
+    <center><h1><%=h @message %></h1></center>
+    <iframe src="<%= @print_url %>" style='display:none'></iframe>
+    </body>
+    <script>
+        setTimeout(redirect, 1000);
+        function redirect(){
+            var redirectUrl = '<%= @redirect_url %>';
+            var printMessage = '<%= @print_message || 'Label printed' %>';
+            if (redirectUrl.indexOf('?') > -1) {
+                document.location = redirectUrl + '&printed=true&print_message=' + encodeURIComponent(printMessage);
+            } else {
+                document.location = redirectUrl + '?printed=true&print_message=' + encodeURIComponent(printMessage);
+            }
         }
-      }, 1200);
-    })();
-  </script>
-</body>
+    </script>
+<%else%>
+    <body onload="setAttributes();">
+    <%=@message%>
+    <iframe src="/" style='display:none'></iframe>
+    </body>
+<%end%>
 </html>
