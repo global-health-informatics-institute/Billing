@@ -4,12 +4,12 @@ class ApplicationController < ActionController::Base
   helper_method :current_user, :current_location
   rescue_from StandardError, with: :render_500
 
-  def print_and_redirect(print_url, redirect_url, message = "Printing label ...", show_next_button = false, patient_id = nil)
-    #Function handles redirects when printing labels
+  def print_and_redirect(print_url, redirect_url, message = "Printing label ...", show_next_button = false, patient_id = nil, print_message = nil)
     @print_url = print_url
     @redirect_url = redirect_url
     @message = message
     @show_next_button = show_next_button
+    @print_message = print_message
     render template: 'application/print_and_redirect', layout: false
   end
 
