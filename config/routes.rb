@@ -54,6 +54,7 @@ get 'landmark'
       get 'confirm_demographics(/:patient_id)', action: :confirm_demographics, as: 'confirm_demographics_for_patient'
       post 'process_result'
       post 'ajax_process_data'
+      post 'process_confirmation'
       get 'patient_not_found(/:id)', action: :patient_not_found
       post 'patient_not_found(/:id)', action: :patient_not_found
       get 'print_national_id'
