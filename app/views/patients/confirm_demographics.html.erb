@@ -1,3 +1,4 @@
+<% has_results = @results.respond_to?(:length) && @results.length > 0 %>
 <style>
   #btnHelp {
     right: 25px !important;
@@ -327,7 +328,7 @@
     </div>
     <div class="cell" style="width: 50%; border-radius: 1px; border: 1px solid #666; overflow: hidden;">
 
-      <% if !@results.blank? and @results.length == 0 %>
+      <% if !has_results %>
 
           <div id="selections" style="width: 100%; border: none; padding: 10px; ">
             <div style="width: 100%; height: 100%; font-size: 36px; text-align: center; padding-top: 60px;">
@@ -379,7 +380,7 @@
 
   
 
-  <% if @results.length > 0 && @results != '[]'%>
+  <% if has_results %>
 
       <button id="btnSelect" class='button_green' style='float: right; margin-right: 20px;'>
         Select Person
@@ -397,7 +398,7 @@
         Back
       </button>
 
-  <% elsif !params[:person].blank? %>
+  <% elsif !params[:person].blank? || !params[:patient].blank? || !params[:patient_id].blank? %>
 
       <button id="btnAdd" class='button_blue' style='float: right; margin-right: 20px;' onclick=" ajaxProcessRequest('create')">
         New Person
@@ -408,7 +409,7 @@
 
   <% end %>
 
-  <% if @results.length > 0 %>
+  <% if has_results %>
 
       <!--button id="btnRight" class='button_blue' style='float: right;'>
         &rarr;
@@ -476,7 +477,7 @@
 
         var httpRequest = new XMLHttpRequest();
         httpRequest.onreadystatechange = function () {
-            handleAjaxProcessRequest(httpRequest);
+            handleAjaxProcessRequest(httpRequest, target);
         };
         try {
             httpRequest.open("POST", url, true);
@@ -486,7 +487,7 @@
         }
     }
 
-    function handleAjaxProcessRequest(aXMLHttpRequest) {
+    function handleAjaxProcessRequest(aXMLHttpRequest, target) {
 
         if (!aXMLHttpRequest) return;
 
@@ -494,6 +495,21 @@
             aXMLHttpRequest.status == 304)) {
 
             var result = aXMLHttpRequest.responseText;
+
+            try {
+                var parsedResult = JSON.parse(result);
+
+                if (typeof parsedResult == "string") {
+                    parsedResult = JSON.parse(parsedResult);
+                }
+
+                if (target == "create") {
+                    parsedResult["print_barcode"] = true;
+                }
+
+                result = JSON.stringify(parsedResult);
+            } catch (e) {
+            }
 
             submitForm = document.createElement("FORM");
             submitForm.setAttribute("type","hidden");
@@ -814,7 +830,9 @@ function loadData(pos) {
         }
     }
 
+    <% if has_results %>
     ajaxRequest(1);
+    <% end %>
     //-->
   </script>
 
