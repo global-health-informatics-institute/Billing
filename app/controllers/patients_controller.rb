@@ -1,5 +1,5 @@
 class PatientsController < ApplicationController
-  skip_before_action :verify_authenticity_token, only: [:confirm_demographics]
+  skip_before_action :verify_authenticity_token, only: [:confirm_demographics, :process_confirmation]
 
   def create
     raise params.inspect
@@ -77,7 +77,14 @@ class PatientsController < ApplicationController
         people_like = Person.joins(:names =>[:person_name_code]).where(person_name_code: {given_name_code: @json["names"]["given_name"].soundex, family_name_code: @json["names"]["family_name"].soundex}, gender: @json["names"]["gender"]).where.not(person_id: matching_people).order("person_name.given_name ASC, person_name_code.family_name_code ASC")
         @results = @results + people_like
       end
+
+      @results = view_context.patient_list(@results)
     end
+
+    raw_results = @results.respond_to?(:body) ? @results.body : @results
+    parsed_results = raw_results.is_a?(String) ? (JSON.parse(raw_results) rescue raw_results) : raw_results
+    @results = parsed_results.is_a?(Array) ? parsed_results : []
+
     render :layout => 'touch'
   end
 
@@ -1082,7 +1089,7 @@ class PatientsController < ApplicationController
   # Landmark containing the string given in params[:value]
   def landmark
 
-    landmarks = ["", "Market", "School", "Police", "Church", "Borehole", "Graveyard"]
+    landmarks = ["Market", "School", "Police", "Church", "Borehole", "Graveyard"]
     landmarks = landmarks.map do |v|
       "<li value='#{v}'>#{v}</li>"
     end
