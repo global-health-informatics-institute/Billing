@@ -190,8 +190,8 @@ class PatientsController < ApplicationController
 
     filter = {}
 
-    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] # rescue {}
-    use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+    settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml", aliases: true)[Rails.env] # rescue {}
+    use_dde = YAML.load_file("#{Rails.root}/config/application.yml", aliases: true)['create_from_dde'] rescue false
     if !settings.blank? && use_dde
       search_hash = {
         "names" => {
@@ -819,7 +819,7 @@ class PatientsController < ApplicationController
         names_params = names_params.reject{|key,value| key.match(/maiden_name/) }
         address_params = {
           :state_province => json['addresses']['current_district'],
-          :township_division => (json['addresses']['current_residence'].blank? ? json['addresses']['current_ta'] : json['addresses']['current_residence']),
+          :township_division => json['addresses']['current_ta'],
           :city_village => json['addresses']['current_village'],
           :address1 => json['addresses']['landmark'],
           :address2 =>json['addresses']['home_district'],
