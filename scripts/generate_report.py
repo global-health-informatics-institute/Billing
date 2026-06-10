@@ -626,7 +626,7 @@ Wandikweza Health Center - Automated Reporting System
         self.add_section_header(doc, '4. Visit Frequency Analysis')
         frequency_data = self.get_returning_frequency()
         self.add_table_from_data(doc, frequency_data, 'Frequency of Returning Patients')
-        self.add_key_explanation(doc, 'Shows how many patients visited a specific number of times. For example, if 133 patients visited 2 times, it means 133 patients made exactly 2 visits during the reporting period.')
+        self.add_key_explanation(doc, '"Number Of Visits" = how many times a patient came during the reporting period. "Number Of Patients" = how many patients came exactly that many times. Example: a row showing 2 visits / 133 patients means 133 different patients each came exactly twice. Only patients with 2 or more visits are included — single-visit patients are not shown here.')
         print(f"Visit frequency analysis")
         
         # Section 5: Gender Distribution
@@ -648,7 +648,7 @@ Wandikweza Health Center - Automated Reporting System
         self.add_metric(doc, 'Duplicate Groups', duplicate_groups_count)
         self.add_metric(doc, 'Extra Duplicate Records', total_duplicate_records)
         self.add_metric(doc, 'Patients In Duplicate Groups', total_patients_in_duplicates)
-        self.add_key_explanation(doc, 'Duplicate Groups: Number of unique patients who appear more than once in the system. Extra Duplicate Records: Number of repeated records beyond the first for each duplicated patient. Patients In Duplicate Groups: Total records linked to patients with duplicates, including the first record.')
+        self.add_key_explanation(doc, 'How to read this section: "Duplicate Groups" = number of real patients who have been registered more than once (e.g. 10 groups means 10 patients have duplicates). "Extra Duplicate Records" = the number of extra/redundant registrations that should be removed (e.g. if one patient was registered 3 times, that counts as 2 extra records). "Patients In Duplicate Groups" = total registrations belonging to those patients, including the original (e.g. 10 groups with 2 records each = 20). Ideally all three values should be 0.')
         print(f"Duplicate patient analysis")
         
         # Section 7: Financial Analysis
