@@ -407,6 +407,7 @@ class ReportGenerator:
 
     def _format_table_value(self, value):
         """Format values for readable table output."""
+        from decimal import Decimal
         if value is None:
             return ''
         if isinstance(value, bool):
@@ -419,6 +420,10 @@ class ReportGenerator:
             return f'{value:,}'
         if isinstance(value, float):
             if value.is_integer():
+                return f'{int(value):,}'
+            return f'{value:,.2f}'
+        if isinstance(value, Decimal):
+            if value == value.to_integral_value():
                 return f'{int(value):,}'
             return f'{value:,.2f}'
         return str(value)
@@ -485,7 +490,7 @@ class ReportGenerator:
         """Add a key metric to the document"""
         p = doc.add_paragraph()
         p.add_run(f'{label}: ').bold = True
-        p.add_run(str(value))
+        p.add_run(self._format_table_value(value))
         p.paragraph_format.space_after = Pt(4)
     
     def add_key_explanation(self, doc, text):
