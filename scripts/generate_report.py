@@ -644,20 +644,8 @@ Wandikweza Health Center - Automated Reporting System
         self.add_key_explanation(doc, 'Gender distribution across three age groups: Under 5 (children), 5-13 (school age), and Adults (14+). Helps identify service utilization patterns by gender and age.')
         print(f"Gender distribution analysis")
         
-        # Section 6: Duplicate Patient Analysis
-        self.add_section_header(doc, '6. Duplicate Patient Analysis')
-        duplicate_groups = self.get_duplicate_group_counts()
-        duplicate_groups_count = len(duplicate_groups) if duplicate_groups else 0
-        total_duplicate_records = sum(row['duplicate_count'] - 1 for row in duplicate_groups) if duplicate_groups else 0
-        total_patients_in_duplicates = sum(row['duplicate_count'] for row in duplicate_groups) if duplicate_groups else 0
-        self.add_metric(doc, 'Duplicate Groups', duplicate_groups_count)
-        self.add_metric(doc, 'Extra Duplicate Records', total_duplicate_records)
-        self.add_metric(doc, 'Patients In Duplicate Groups', total_patients_in_duplicates)
-        self.add_key_explanation(doc, 'How to read this section: "Duplicate Groups" = number of real patients who have been registered more than once (e.g. 10 groups means 10 patients have duplicates). "Extra Duplicate Records" = the number of extra/redundant registrations that should be removed (e.g. if one patient was registered 3 times, that counts as 2 extra records). "Patients In Duplicate Groups" = total registrations belonging to those patients, including the original (e.g. 10 groups with 2 records each = 20). Ideally all three values should be 0.')
-        print(f"Duplicate patient analysis")
-        
-        # Section 7: Financial Analysis
-        self.add_section_header(doc, '7. Financial Analysis')
+        # Section 6: Financial Analysis
+        self.add_section_header(doc, '6. Financial Analysis')
         money_collected = self.get_total_money_collected()
         self.add_table_from_data(doc, money_collected, 'Total Money Collected by Cashier')
         
@@ -672,8 +660,8 @@ Wandikweza Health Center - Automated Reporting System
         self.add_key_explanation(doc, 'Shows total patients, those who only paid, those who never paid, and those who had both paying and non-paying visits during the reporting period.')
         print(f"Paying vs non-paying breakdown")
         
-        # Section 8: Daily Trends
-        self.add_section_header(doc, '8. Daily Trends')
+        # Section 7: Daily Trends
+        self.add_section_header(doc, '7. Daily Trends')
         daily_revenue = self.get_daily_revenue_trend()
         self.add_table_from_data(doc, daily_revenue, 'Daily Revenue Trend')
         self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting period.')
