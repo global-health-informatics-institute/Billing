@@ -803,8 +803,20 @@ Wandikweza Health Center - Automated Reporting System
         self.add_key_explanation(doc, '"Number of Visits" = how many times a patient came during the reporting period. "Number of Patients" = how many patients came exactly that many times.')
         print(f"Visit frequency analysis")
         
-        # Section 5: Financial Analysis
-        self.add_section_header(doc, '5. Financial Analysis')
+        # Section 5: Duplicate Patient Analysis
+        self.add_section_header(doc, '5. Duplicate Patient Analysis')
+        duplicate_groups = self.get_duplicate_group_counts()
+        duplicate_groups_count = len(duplicate_groups) if duplicate_groups else 0
+        total_duplicate_records = sum(row['duplicate_count'] - 1 for row in duplicate_groups) if duplicate_groups else 0
+        total_patients_in_duplicates = sum(row['duplicate_count'] for row in duplicate_groups) if duplicate_groups else 0
+        self.add_metric(doc, 'Duplicate Groups', duplicate_groups_count)
+        self.add_metric(doc, 'Extra Duplicate Records', total_duplicate_records)
+        self.add_metric(doc, 'Patients In Duplicate Groups', total_patients_in_duplicates)
+        self.add_key_explanation(doc, '"Duplicate Groups" = number of real patients registered more than once (e.g. 10 groups means 10 patients have duplicates). "Extra Duplicate Records" = redundant registrations that should be removed (e.g. registered 3 times = 2 extra records). "Patients In Duplicate Groups" = total registrations belonging to those patients, including the original. Ideally all three values should be 0.')
+        print(f"Duplicate patient analysis")
+
+        # Section 6: Financial Analysis
+        self.add_section_header(doc, '6. Financial Analysis')
         money_collected = self.get_total_money_collected()
         self.add_table_from_data(doc, money_collected, 'Total Money Collected by Cashier')
         
