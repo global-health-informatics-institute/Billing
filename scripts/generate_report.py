@@ -106,9 +106,8 @@ class ReportGenerator:
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) < 5 THEN 'under_five'
-                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) BETWEEN 5 AND 12 THEN 'under_thirteen'
-                ELSE 'adult'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) < 13 THEN 'Under 13'
+                ELSE 'Adult'
             END AS age_category,
             per.gender AS gender,
             COUNT(DISTINCT r.patient_id) AS returning_patient_count
@@ -194,8 +193,7 @@ class ReportGenerator:
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) < 5 THEN 'Under 5'
-                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 5 AND 13 THEN '5-13'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) < 13 THEN 'Under 13'
                 ELSE 'Adults'
             END AS age_group,
             p.gender,
@@ -213,8 +211,7 @@ class ReportGenerator:
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) < 5 THEN 'Under 5'
-                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) BETWEEN 5 AND 13 THEN '5-13'
+                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) < 13 THEN 'Under 13'
                 ELSE 'Adults'
             END AS age_group,
             person.gender,
@@ -476,16 +473,62 @@ class ReportGenerator:
             )
         
         # Add data rows
-        for row_data in data:
+        for row_idx, row_data in enumerate(data):
             row_cells = table.add_row().cells
+            is_total_row = str(list(row_data.values())[0]).strip().lower() == 'total'
             for i, header in enumerate(headers):
                 value = row_data[header]
                 formatted_value = self._format_table_value(value)
                 alignment = self._align_table_column(header, value)
-                self._set_cell_text(row_cells[i], formatted_value, size=10, align=alignment)
+                self._set_cell_text(row_cells[i], formatted_value, bold=is_total_row, size=10, align=alignment)
         
         doc.add_paragraph()  # Add spacing
     
+    def pivot_age_gender_table(self, data, age_col, gender_col, value_col, age_order=None):
+        """
+        Pivot raw age+gender rows into Age Category | Male | Female | Total format.
+        age_order: optional list of age labels defining row order.
+        """
+        counts = {}
+        for row in (data or []):
+            age = row[age_col]
+            gender = str(row[gender_col]).upper()
+            val = int(row[value_col] or 0)
+            if age not in counts:
+                counts[age] = {'M': 0, 'F': 0}
+            if gender in ('M', 'MALE'):
+                counts[age]['M'] += val
+            elif gender in ('F', 'FEMALE'):
+                counts[age]['F'] += val
+
+        if age_order:
+            ordered_ages = [a for a in age_order if a in counts]
+            # append any ages in data not covered by age_order
+            ordered_ages += [a for a in counts if a not in age_order]
+        else:
+            ordered_ages = sorted(counts.keys())
+
+        pivoted = []
+        total_m = total_f = 0
+        for age in ordered_ages:
+            m = counts[age]['M']
+            f = counts[age]['F']
+            total_m += m
+            total_f += f
+            pivoted.append({
+                'Age Category': age,
+                'Male': m,
+                'Female': f,
+                'Total': m + f,
+            })
+        pivoted.append({
+            'Age Category': 'Total',
+            'Male': total_m,
+            'Female': total_f,
+            'Total': total_m + total_f,
+        })
+        return pivoted
+
     def add_metric(self, doc, label, value):
         """Add a key metric to the document"""
         p = doc.add_paragraph()
@@ -605,10 +648,6 @@ Wandikweza Health Center - Automated Reporting System
         self.add_metric(doc, 'Total Patients Registered in Report Period', total_registered)
         print(f"Total registered patients in report period: {total_registered}")
 
-        total_registered_system = self.get_total_registered_patients_system()
-        self.add_metric(doc, 'Total Patients Registered in System', total_registered_system)
-        print(f"Total registered patients in system: {total_registered_system}")
-        
         # Section 2: Returning Patients
         self.add_section_header(doc, '2. Returning Patients Analysis')
         returning_count = self.get_returning_patients_count()
@@ -616,14 +655,22 @@ Wandikweza Health Center - Automated Reporting System
         print(f"Returning patients: {returning_count}")
         
         returning_dist = self.get_returning_patients_distribution()
-        self.add_table_from_data(doc, returning_dist, 'Distribution by Age and Gender')
-        self.add_key_explanation(doc, 'Returning patients are those who made more than one visit during the reporting period. Age categories: Under Five (<5 years), Under Thirteen (5-12 years), and Adult (13+ years).')
+        pivoted_returning = self.pivot_age_gender_table(
+            returning_dist, 'age_category', 'gender', 'returning_patient_count',
+            age_order=['Under 13', 'Adult']
+        )
+        self.add_table_from_data(doc, pivoted_returning, 'Distribution by Age and Gender')
+        self.add_key_explanation(doc, 'Returning patients are those who made more than one visit during the reporting period. Under 13: patients below age 13. Adult: patients aged 13 and above.')
         print(f"Returning patients distribution")
         
         # Section 3: Age Group Analysis
         self.add_section_header(doc, '3. Age Group Analysis')
         adolescence_data = self.get_registered_patients_adolescence()
-        self.add_table_from_data(doc, adolescence_data, 'Registered Patients by Adolescence Groups')
+        pivoted_adolescence = self.pivot_age_gender_table(
+            adolescence_data, 'age_group', 'gender', 'total_patients',
+            age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', 'Other']
+        )
+        self.add_table_from_data(doc, pivoted_adolescence, 'Registered Patients by Adolescence Groups')
         self.add_key_explanation(doc, 'Patients are grouped by age ranges: Under 5, 5-9, 10-14, 15-19, 20-24, and Other (25+). This helps identify which age groups are most served by the facility.')
         print(f"Adolescence age group analysis")
         
@@ -637,11 +684,19 @@ Wandikweza Health Center - Automated Reporting System
         # Section 5: Gender Distribution
         self.add_section_header(doc, '5. Gender Distribution')
         gender_registered = self.get_gender_distribution_registered()
-        self.add_table_from_data(doc, gender_registered, 'Registered Patients by Gender and Age Group')
+        pivoted_gender_reg = self.pivot_age_gender_table(
+            gender_registered, 'age_group', 'gender', 'total_patients',
+            age_order=['Under 13', 'Adults']
+        )
+        self.add_table_from_data(doc, pivoted_gender_reg, 'Registered Patients by Gender and Age Group')
         
         gender_returning = self.get_gender_distribution_returning()
-        self.add_table_from_data(doc, gender_returning, 'Returning Patients by Gender and Age Group')
-        self.add_key_explanation(doc, 'Gender distribution across three age groups: Under 5 (children), 5-13 (school age), and Adults (14+). Helps identify service utilization patterns by gender and age.')
+        pivoted_gender_ret = self.pivot_age_gender_table(
+            gender_returning, 'age_group', 'gender', 'total',
+            age_order=['Under 13', 'Adults']
+        )
+        self.add_table_from_data(doc, pivoted_gender_ret, 'Returning Patients by Gender and Age Group')
+        self.add_key_explanation(doc, 'Gender distribution across two age groups: Under 13 (children) and Adults (13+). Helps identify service utilization patterns by gender and age.')
         print(f"Gender distribution analysis")
         
         # Section 6: Financial Analysis
