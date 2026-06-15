@@ -106,8 +106,9 @@ class ReportGenerator:
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) < 13 THEN 'Under 13'
-                ELSE 'Adult'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) < 5 THEN 'Under 5'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) BETWEEN 5 AND 13 THEN '5-13'
+                ELSE 'Adults'
             END AS age_category,
             per.gender AS gender,
             COUNT(DISTINCT r.patient_id) AS returning_patient_count
@@ -137,7 +138,7 @@ class ReportGenerator:
                 WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 10 AND 14 THEN '10-14'
                 WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 15 AND 19 THEN '15-19'
                 WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 20 AND 24 THEN '20-24'
-                ELSE 'Other'
+                ELSE '25+'
             END AS age_group,
             p.gender,
             COUNT(p.person_id) AS total_patients
@@ -150,7 +151,7 @@ class ReportGenerator:
         return self.execute_query(query, (self.start_date, self.end_date))
     
     def get_returning_frequency(self):
-        """Query 5: Frequency of returning patients"""
+        """Query 5: Frequency of patient visits"""
         query = """
         SELECT 
             visit_count AS number_of_visits,
@@ -162,8 +163,7 @@ class ReportGenerator:
             FROM receipts
             WHERE payment_stamp BETWEEN %s AND %s
             GROUP BY patient_id
-            HAVING COUNT(*) > 1
-        ) AS returning_patient_visits
+        ) AS patient_visits
         GROUP BY visit_count
         ORDER BY visit_count
         """
@@ -193,7 +193,8 @@ class ReportGenerator:
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) < 13 THEN 'Under 13'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) < 5 THEN 'Under 5'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 5 AND 13 THEN '5-13'
                 ELSE 'Adults'
             END AS age_group,
             p.gender,
@@ -201,10 +202,11 @@ class ReportGenerator:
         FROM patient pat
         JOIN person p ON pat.patient_id = p.person_id
         WHERE p.voided = 0
+          AND pat.date_created BETWEEN %s AND %s
         GROUP BY age_group, p.gender
         ORDER BY age_group, p.gender
         """
-        return self.execute_query(query)
+        return self.execute_query(query, (self.start_date, self.end_date))
 
     def get_gender_distribution_returning(self):
         """Query 7: Gender distribution of returning patients by age group"""
@@ -502,7 +504,7 @@ class ReportGenerator:
                 counts[age]['F'] += val
 
         if age_order:
-            ordered_ages = [a for a in age_order if a in counts]
+            ordered_ages = age_order[:]
             # append any ages in data not covered by age_order
             ordered_ages += [a for a in counts if a not in age_order]
         else:
@@ -511,8 +513,8 @@ class ReportGenerator:
         pivoted = []
         total_m = total_f = 0
         for age in ordered_ages:
-            m = counts[age]['M']
-            f = counts[age]['F']
+            m = counts.get(age, {'M': 0, 'F': 0})['M']
+            f = counts.get(age, {'M': 0, 'F': 0})['F']
             total_m += m
             total_f += f
             pivoted.append({
@@ -528,6 +530,64 @@ class ReportGenerator:
             'Total': total_m + total_f,
         })
         return pivoted
+
+    def add_side_by_side_registration(self, doc, metrics, gender_data):
+        """
+        Render Section 1: metrics stacked, then gender table directly below, no title.
+        """
+        from docx.oxml.ns import nsdecls
+        from docx.oxml import parse_xml
+
+        # Metrics
+        for label, value in metrics:
+            p = doc.add_paragraph()
+            p.paragraph_format.space_after = Pt(4)
+            run_label = p.add_run(f'{label}: ')
+            run_label.bold = True
+            run_label.font.name = 'Arial'
+            run_label.font.size = Pt(10)
+            run_val = p.add_run(str(value))
+            run_val.font.name = 'Arial'
+            run_val.font.size = Pt(10)
+
+        # Gender table — with title, left-aligned
+        if gender_data:
+            title_p = doc.add_paragraph()
+            title_p.paragraph_format.space_before = Pt(6)
+            title_p.paragraph_format.space_after = Pt(4)
+            title_run = title_p.add_run('Registered Patients by Gender and Age Group')
+            title_run.bold = True
+            title_run.font.name = 'Arial'
+            title_run.font.size = Pt(11)
+            title_run.font.color.rgb = RGBColor(31, 78, 121)
+            headers = list(gender_data[0].keys())
+            table = doc.add_table(rows=1, cols=len(headers))
+            table.style = 'Light Grid Accent 1'
+            table.alignment = WD_TABLE_ALIGNMENT.LEFT
+            table.autofit = True
+
+            for i, header in enumerate(headers):
+                label = str(header).replace('_', ' ').title()
+                cell = table.rows[0].cells[i]
+                shading = parse_xml(r'<w:shd {} w:fill="1F4E79"/>'.format(nsdecls('w')))
+                cell._element.get_or_add_tcPr().append(shading)
+                self._set_cell_text(cell, label, bold=True,
+                                    color=RGBColor(255, 255, 255), size=10,
+                                    align=WD_ALIGN_PARAGRAPH.CENTER)
+
+            for row_data in gender_data:
+                row_cells = table.add_row().cells
+                is_total = str(list(row_data.values())[0]).strip().lower() == 'total'
+                for i, header in enumerate(headers):
+                    value = row_data[header]
+                    self._set_cell_text(row_cells[i],
+                                        self._format_table_value(value),
+                                        bold=is_total, size=10,
+                                        align=self._align_table_column(header, value))
+
+        doc.add_paragraph()
+
+        doc.add_paragraph()
 
     def add_metric(self, doc, label, value):
         """Add a key metric to the document"""
@@ -645,8 +705,16 @@ Wandikweza Health Center - Automated Reporting System
         # Section 1: Patient Registration Statistics
         self.add_section_header(doc, '1. Patient Registration Statistics')
         total_registered = self.get_total_registered_patients()
-        self.add_metric(doc, 'Total Patients Registered in Report Period', total_registered)
         print(f"Total registered patients in report period: {total_registered}")
+
+        gender_registered = self.get_gender_distribution_registered()
+        pivoted_gender_reg = self.pivot_age_gender_table(
+            gender_registered, 'age_group', 'gender', 'total_patients',
+            age_order=['Under 5', '5-13', 'Adults']
+        )
+        self.add_side_by_side_registration(doc, [
+            ('Total Patients Registered in Report Period', f'{total_registered:,}'),
+        ], pivoted_gender_reg)
 
         # Section 2: Returning Patients
         self.add_section_header(doc, '2. Returning Patients Analysis')
@@ -657,10 +725,10 @@ Wandikweza Health Center - Automated Reporting System
         returning_dist = self.get_returning_patients_distribution()
         pivoted_returning = self.pivot_age_gender_table(
             returning_dist, 'age_category', 'gender', 'returning_patient_count',
-            age_order=['Under 13', 'Adult']
+            age_order=['Under 5', '5-13', 'Adults']
         )
         self.add_table_from_data(doc, pivoted_returning, 'Distribution by Age and Gender')
-        self.add_key_explanation(doc, 'Returning patients are those who made more than one visit during the reporting period. Under 13: patients below age 13. Adult: patients aged 13 and above.')
+        self.add_key_explanation(doc, 'Returning patients are those who made more than one visit during the reporting period. Under 5: below age 5. 5-13: ages 5 to 13. Adults: 14 and above.')
         print(f"Returning patients distribution")
         
         # Section 3: Age Group Analysis
@@ -668,39 +736,75 @@ Wandikweza Health Center - Automated Reporting System
         adolescence_data = self.get_registered_patients_adolescence()
         pivoted_adolescence = self.pivot_age_gender_table(
             adolescence_data, 'age_group', 'gender', 'total_patients',
-            age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', 'Other']
+            age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', '25+']
         )
         self.add_table_from_data(doc, pivoted_adolescence, 'Registered Patients by Adolescence Groups')
-        self.add_key_explanation(doc, 'Patients are grouped by age ranges: Under 5, 5-9, 10-14, 15-19, 20-24, and Other (25+). This helps identify which age groups are most served by the facility.')
+        self.add_key_explanation(doc, 'Patients are grouped by age ranges: Under 5, 5-9, 10-14, 15-19, 20-24, and 25+. This helps identify which age groups are most served by the facility.')
         print(f"Adolescence age group analysis")
         
         # Section 4: Visit Frequency
         self.add_section_header(doc, '4. Visit Frequency Analysis')
         frequency_data = self.get_returning_frequency()
-        self.add_table_from_data(doc, frequency_data, 'Frequency of Returning Patients')
-        self.add_key_explanation(doc, '"Number Of Visits" = how many times a patient came during the reporting period. "Number Of Patients" = how many patients came exactly that many times. Example: a row showing 2 visits / 133 patients means 133 different patients each came exactly twice. Only patients with 2 or more visits are included — single-visit patients are not shown here.')
+        visit_words = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten+']
+
+        # Build a lookup from visit count -> patient count
+        freq_lookup = {}
+        max_visit = 0
+        for row in (frequency_data or []):
+            n = int(row['number_of_visits'])
+            count = int(row['number_of_patients'])
+            if n <= 10:
+                freq_lookup[n] = freq_lookup.get(n, 0) + count
+            else:
+                freq_lookup[11] = freq_lookup.get(11, 0) + count  # bucket 10+
+            max_visit = max(max_visit, n)
+
+        # Build rows 1 through 10, then 10+ if applicable — no gaps
+        frequency_display = []
+        for n in range(1, 11):
+            label = visit_words[n - 1] + ' Visit' + ('' if n == 1 else 's')
+            frequency_display.append({
+                'Number of Visits': label,
+                'Number of Patients': freq_lookup.get(n, 0),
+            })
+        if max_visit > 10:
+            frequency_display.append({
+                'Number of Visits': '10+ Visits',
+                'Number of Patients': freq_lookup.get(11, 0),
+            })
+
+        # Table title
+        doc.add_heading('Frequency of Returning Patients', level=2)
+
+        # Render table with left-aligned visit label column
+        if frequency_display:
+            headers = list(frequency_display[0].keys())
+            table = doc.add_table(rows=1, cols=len(headers))
+            table.style = 'Light Grid Accent 1'
+            table.alignment = WD_TABLE_ALIGNMENT.LEFT
+            table.autofit = True
+            from docx.oxml.ns import nsdecls
+            from docx.oxml import parse_xml
+            for i, header in enumerate(headers):
+                cell = table.rows[0].cells[i]
+                shading = parse_xml(r'<w:shd {} w:fill="1F4E79"/>'.format(nsdecls('w')))
+                cell._element.get_or_add_tcPr().append(shading)
+                self._set_cell_text(cell, header, bold=True,
+                                    color=RGBColor(255, 255, 255), size=10,
+                                    align=WD_ALIGN_PARAGRAPH.CENTER)
+            for row_data in frequency_display:
+                row_cells = table.add_row().cells
+                self._set_cell_text(row_cells[0], row_data['Number of Visits'],
+                                    size=10, align=WD_ALIGN_PARAGRAPH.LEFT)
+                self._set_cell_text(row_cells[1], self._format_table_value(row_data['Number of Patients']),
+                                    size=10, align=WD_ALIGN_PARAGRAPH.RIGHT)
+            doc.add_paragraph()
+
+        self.add_key_explanation(doc, '"Number of Visits" = how many times a patient came during the reporting period. "Number of Patients" = how many patients came exactly that many times.')
         print(f"Visit frequency analysis")
         
-        # Section 5: Gender Distribution
-        self.add_section_header(doc, '5. Gender Distribution')
-        gender_registered = self.get_gender_distribution_registered()
-        pivoted_gender_reg = self.pivot_age_gender_table(
-            gender_registered, 'age_group', 'gender', 'total_patients',
-            age_order=['Under 13', 'Adults']
-        )
-        self.add_table_from_data(doc, pivoted_gender_reg, 'Registered Patients by Gender and Age Group')
-        
-        gender_returning = self.get_gender_distribution_returning()
-        pivoted_gender_ret = self.pivot_age_gender_table(
-            gender_returning, 'age_group', 'gender', 'total',
-            age_order=['Under 13', 'Adults']
-        )
-        self.add_table_from_data(doc, pivoted_gender_ret, 'Returning Patients by Gender and Age Group')
-        self.add_key_explanation(doc, 'Gender distribution across two age groups: Under 13 (children) and Adults (13+). Helps identify service utilization patterns by gender and age.')
-        print(f"Gender distribution analysis")
-        
-        # Section 6: Financial Analysis
-        self.add_section_header(doc, '6. Financial Analysis')
+        # Section 5: Financial Analysis
+        self.add_section_header(doc, '5. Financial Analysis')
         money_collected = self.get_total_money_collected()
         self.add_table_from_data(doc, money_collected, 'Total Money Collected by Cashier')
         
