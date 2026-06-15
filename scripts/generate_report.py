@@ -738,7 +738,7 @@ Wandikweza Health Center - Automated Reporting System
             adolescence_data, 'age_group', 'gender', 'total_patients',
             age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', '25+']
         )
-        self.add_table_from_data(doc, pivoted_adolescence, 'Registered Patients by Adolescence Groups')
+        self.add_table_from_data(doc, pivoted_adolescence, 'Patient Age distribution')
         self.add_key_explanation(doc, 'Patients are grouped by age ranges: Under 5, 5-9, 10-14, 15-19, 20-24, and 25+. This helps identify which age groups are most served by the facility.')
         print(f"Adolescence age group analysis")
         
