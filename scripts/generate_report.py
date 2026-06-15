@@ -7,6 +7,7 @@ Generates reports from live database
 import configparser
 import mysql.connector
 from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 import os
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -54,6 +55,88 @@ class ReportGenerator:
             print(f"Database connection failed: {err}")
             return False
     
+    def get_previous_period(self):
+        """Derive the previous month's date range from the configured period."""
+        start = datetime.strptime(self.start_date, '%Y-%m-%d').date()
+        end   = datetime.strptime(self.end_date,   '%Y-%m-%d').date()
+        prev_start = start - relativedelta(months=1)
+        prev_end   = end   - relativedelta(months=1)
+        return str(prev_start), str(prev_end)
+
+    def get_comparison_data(self, prev_start, prev_end):
+        """Fetch the same key metrics for the previous period."""
+        def _query(sql, params):
+            result = self.execute_query(sql, params)
+            return result
+
+        # Registrations
+        reg = _query(
+            "SELECT COUNT(patient_id) AS v FROM patient WHERE date_created BETWEEN %s AND %s",
+            (prev_start, prev_end)
+        )
+        prev_registered = reg[0]['v'] if reg else 0
+
+        # Returning patients
+        ret = _query("""
+            SELECT COUNT(*) AS v FROM (
+                SELECT patient_id FROM receipts
+                WHERE payment_stamp BETWEEN %s AND %s
+                GROUP BY patient_id HAVING COUNT(*) > 1
+            ) AS t
+        """, (prev_start, prev_end))
+        prev_returning = ret[0]['v'] if ret else 0
+
+        # Revenue
+        rev = _query("""
+            SELECT COALESCE(SUM(full_price), 0) AS v FROM order_entries
+            WHERE cashier IN ('8','9') AND created_at BETWEEN %s AND %s
+        """, (prev_start, prev_end))
+        prev_revenue = float(rev[0]['v']) if rev else 0.0
+
+        # Paying / non-paying
+        pay = _query("""
+            SELECT
+                COUNT(*) AS total_patients,
+                SUM(CASE WHEN paying_orders > 0 AND non_paying_orders = 0 THEN 1 ELSE 0 END) AS exclusively_paying,
+                SUM(CASE WHEN non_paying_orders > 0 AND paying_orders = 0 THEN 1 ELSE 0 END) AS exclusively_non_paying
+            FROM (
+                SELECT patient_id,
+                    SUM(CASE WHEN full_price >= 1000 THEN 1 ELSE 0 END) AS paying_orders,
+                    SUM(CASE WHEN full_price = 0    THEN 1 ELSE 0 END) AS non_paying_orders
+                FROM order_entries
+                WHERE order_date BETWEEN %s AND %s
+                GROUP BY patient_id
+            ) AS t
+        """, (prev_start, prev_end))
+        prev_paying    = pay[0]['exclusively_paying']     if pay else 0
+        prev_non_paying = pay[0]['exclusively_non_paying'] if pay else 0
+        prev_total     = pay[0]['total_patients']          if pay else 0
+
+        # Duplicates
+        dup = _query("""
+            SELECT COUNT(*) AS duplicate_count
+            FROM patient p
+            JOIN person per ON p.patient_id = per.person_id
+            JOIN person_name pn ON per.person_id = pn.person_id
+            WHERE pn.voided = 0 AND per.voided = 0 AND pn.preferred = 1
+            GROUP BY pn.given_name, pn.family_name, per.gender, per.birthdate
+            HAVING COUNT(*) > 1
+        """, None)
+        prev_dup_groups  = len(dup) if dup else 0
+        prev_dup_records = sum(r['duplicate_count'] - 1 for r in dup) if dup else 0
+
+        return {
+            'period':       f'{prev_start} to {prev_end}',
+            'registered':   prev_registered,
+            'returning':    prev_returning,
+            'revenue':      prev_revenue,
+            'paying':       prev_paying,
+            'non_paying':   prev_non_paying,
+            'total_patients': prev_total,
+            'dup_groups':   prev_dup_groups,
+            'dup_records':  prev_dup_records,
+        }
+
     def execute_query(self, query, params=None):
         """Execute a query and return results"""
         try:
@@ -380,6 +463,209 @@ class ReportGenerator:
         
         return doc
     
+    def add_executive_summary(self, doc, total_registered, returning_count,
+                               total_revenue, duplicate_groups_count,
+                               total_duplicate_records, paying_breakdown,
+                               gender_data, daily_visits, prev):
+        """Narrative executive summary answering: what happened, what's notable, what action to take."""
+
+        def _sub_heading(text):
+            h = doc.add_heading(text, level=2)
+            h.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            if h.runs:
+                h.runs[0].font.name = 'Arial'
+                h.runs[0].font.bold = True
+                h.runs[0].font.size = Pt(12)
+                h.runs[0].font.color.rgb = RGBColor(31, 78, 121)
+
+        def _para(text, bold_phrases=None):
+            """Add a paragraph, optionally bolding specific phrases."""
+            p = doc.add_paragraph()
+            p.paragraph_format.space_after = Pt(6)
+            if not bold_phrases:
+                r = p.add_run(text)
+                r.font.name = 'Arial'
+                r.font.size = Pt(10)
+            else:
+                # Split text around bold phrases and render accordingly
+                remaining = text
+                for phrase in bold_phrases:
+                    idx = remaining.find(phrase)
+                    if idx == -1:
+                        continue
+                    before = remaining[:idx]
+                    if before:
+                        r = p.add_run(before)
+                        r.font.name = 'Arial'
+                        r.font.size = Pt(10)
+                    br = p.add_run(phrase)
+                    br.bold = True
+                    br.font.name = 'Arial'
+                    br.font.size = Pt(10)
+                    remaining = remaining[idx + len(phrase):]
+                if remaining:
+                    r = p.add_run(remaining)
+                    r.font.name = 'Arial'
+                    r.font.size = Pt(10)
+
+        def _bullet(text, bold_prefix=None):
+            p = doc.add_paragraph(style='List Bullet')
+            p.paragraph_format.space_after = Pt(3)
+            if bold_prefix:
+                br = p.add_run(bold_prefix)
+                br.bold = True
+                br.font.name = 'Arial'
+                br.font.size = Pt(10)
+                r = p.add_run(text)
+                r.font.name = 'Arial'
+                r.font.size = Pt(10)
+            else:
+                r = p.add_run(text)
+                r.font.name = 'Arial'
+                r.font.size = Pt(10)
+
+        # --- Computed values ---
+        exclusively_paying   = paying_breakdown[0]['exclusively_paying']   if paying_breakdown else 0
+        exclusively_non_paying = paying_breakdown[0]['exclusively_non_paying'] if paying_breakdown else 0
+        total_patients       = paying_breakdown[0]['total_patients']        if paying_breakdown else 0
+        pay_pct = (exclusively_paying / total_patients * 100) if total_patients else 0
+
+        # Gender/age breakdown from registered pivot
+        adults_total = next((r['Total'] for r in gender_data if r.get('Age Category') == 'Adults'), 0)
+        under5_total = next((r['Total'] for r in gender_data if r.get('Age Category') == 'Under 5'), 0)
+        mid_total    = next((r['Total'] for r in gender_data if r.get('Age Category') == '5-13'), 0)
+        female_total = sum(r.get('Female', 0) for r in gender_data if r.get('Age Category') != 'Total')
+        reg_total_check = sum(r.get('Total', 0) for r in gender_data if r.get('Age Category') != 'Total')
+        adult_pct  = (adults_total / reg_total_check * 100) if reg_total_check else 0
+        under14_pct = ((under5_total + mid_total) / reg_total_check * 100) if reg_total_check else 0
+        female_pct = (female_total / reg_total_check * 100) if reg_total_check else 0
+
+        # Peak attendance day from daily visits
+        peak_day = None
+        if daily_visits:
+            peak_row = max(daily_visits, key=lambda r: int(r.get('total_visits') or 0))
+            peak_day = f"{peak_row.get('day_name', '')} {peak_row.get('date', '')}"
+            peak_visits = int(peak_row.get('total_visits') or 0)
+
+        returning_pct = (returning_count / total_registered * 100) if total_registered else 0
+        revenue_millions = total_revenue / 1_000_000
+
+        # --- Section title ---
+        title = doc.add_heading('Executive Summary', level=1)
+        title.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        if title.runs:
+            title.runs[0].font.name = 'Arial'
+            title.runs[0].font.bold = True
+            title.runs[0].font.size = Pt(14)
+            title.runs[0].font.color.rgb = RGBColor(31, 78, 121)
+
+        # --- Overview ---
+        _sub_heading('Overview')
+        _para(
+            f'During the reporting period ({self.start_date} to {self.end_date}), the facility registered '
+            f'{total_registered:,} new patients and recorded {returning_count:,} returning patients, '
+            f'resulting in {total_patients:,} unique patients served. Revenue collected amounted to '
+            f'MWK {revenue_millions:,.2f} million, with {pay_pct:.1f}% of patients having paid transactions.',
+            bold_phrases=[f'{total_registered:,} new patients', f'{returning_count:,} returning patients',
+                          f'MWK {revenue_millions:,.2f} million']
+        )
+
+        # --- Key Highlights with Month-to-Month Comparison ---
+        _sub_heading('Key Highlights')
+
+        def _delta(current, previous, is_currency=False):
+            if previous == 0:
+                return ''
+            diff = current - previous
+            pct  = abs(diff / previous * 100)
+            arrow = '▲' if diff > 0 else ('▼' if diff < 0 else '—')
+            if diff == 0:
+                return ' (no change vs previous period)'
+            if is_currency:
+                return f' ({arrow} MWK {abs(diff):,.0f}, {pct:.1f}% vs previous period)'
+            return f' ({arrow} {abs(int(diff)):,}, {pct:.1f}% vs previous period)'
+
+        _bullet(f'{total_registered:,} patients{_delta(total_registered, prev["registered"])}',
+                bold_prefix='Total new registrations: ')
+        _bullet(f'{returning_count:,} patients{_delta(returning_count, prev["returning"])}',
+                bold_prefix='Returning patients: ')
+        _bullet(f'MWK {total_revenue:,.0f}{_delta(total_revenue, prev["revenue"], is_currency=True)}',
+                bold_prefix='Total revenue collected: ')
+        _bullet(f'{exclusively_paying:,}{_delta(exclusively_paying, prev["paying"])}',
+                bold_prefix='Paying patients: ')
+        _bullet(f'{exclusively_non_paying:,}{_delta(exclusively_non_paying, prev["non_paying"])}',
+                bold_prefix='Non-paying patients: ')
+        _bullet(
+            f'{duplicate_groups_count:,} ({total_duplicate_records:,} duplicate records requiring review)'
+            f'{_delta(duplicate_groups_count, prev["dup_groups"])}',
+            bold_prefix='Duplicate patient groups identified: '
+        )
+
+        # --- Patient Demographics ---
+        _sub_heading('Patient Demographics')
+        _para(
+            f'Adult patients (14 years and above) accounted for {adult_pct:.1f}% of registrations, '
+            f'with females representing {female_pct:.1f}% of all registered patients. '
+            f'Children under 14 years accounted for {under14_pct:.1f}% of registrations.',
+            bold_phrases=[f'{adult_pct:.1f}%', f'{female_pct:.1f}%', f'{under14_pct:.1f}%']
+        )
+
+        # --- Service Utilization ---
+        _sub_heading('Service Utilization')
+        peak_sentence = (
+            f' Peak attendance was observed on {peak_day} with {peak_visits:,} visits.'
+            if peak_day else ''
+        )
+        _para(
+            f'Patient attendance remained consistent throughout the reporting period.{peak_sentence} '
+            f'Returning patients represented {returning_pct:.1f}% of all new registrations, '
+            f'indicating continued engagement with facility services.',
+            bold_phrases=[f'{returning_pct:.1f}%']
+        )
+
+        # --- Financial Performance ---
+        _sub_heading('Financial Performance')
+        _para(
+            f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period. '
+            f'Of the {total_patients:,} patients served, {exclusively_non_paying:,} had exclusively '
+            f'non-paying transactions, representing {100 - pay_pct:.1f}% of patients.',
+            bold_phrases=[f'MWK {revenue_millions:,.2f} million']
+        )
+
+        # --- Data Quality ---
+        _sub_heading('Data Quality')
+        if duplicate_groups_count > 0:
+            _para(
+                f'A total of {duplicate_groups_count:,} duplicate patient groups ({total_duplicate_records:,} '
+                f'excess records) were identified. Continued efforts to improve patient search procedures '
+                f'and registration practices are recommended to reduce duplicate records and improve data quality.',
+                bold_phrases=[f'{duplicate_groups_count:,} duplicate patient groups']
+            )
+        else:
+            _para('No duplicate patient records were identified during this period. Data quality is good.')
+
+        # --- Management Considerations ---
+        _sub_heading('Management Considerations')
+        _bullet('Continue monitoring patient growth and returning patient trends.')
+        _bullet('Review causes of duplicate registrations and strengthen patient identification procedures.')
+        _bullet('Investigate factors contributing to high-performing revenue and attendance days to inform service planning.')
+        _bullet('Monitor non-paying patient records to ensure appropriate documentation of exemptions and free services.')
+
+        # --- Overall Assessment ---
+        _sub_heading('Overall Assessment')
+        quality_note = (
+            f'The primary area requiring attention remains patient record quality, particularly the '
+            f'reduction of {duplicate_groups_count:,} duplicate patient groups.'
+            if duplicate_groups_count > 0
+            else 'Patient record quality is excellent with no duplicates identified.'
+        )
+        _para(
+            f'The facility demonstrated strong patient utilization and revenue generation during the '
+            f'reporting period. {quality_note}',
+        )
+
+        doc.add_page_break()
+
     def add_section_header(self, doc, text):
         """Add a formatted section header"""
         heading = doc.add_heading(text, level=1)
@@ -701,24 +987,46 @@ Wandikweza Health Center - Automated Reporting System
         
         # Create document
         doc = self.create_document()
-        
-        # Section 1: Patient Registration Statistics
-        self.add_section_header(doc, '1. Patient Registration Statistics')
-        total_registered = self.get_total_registered_patients()
-        print(f"Total registered patients in report period: {total_registered}")
 
+        # Gather data needed for executive summary (reused later in sections)
+        print("Gathering data for executive summary...")
+        total_registered = self.get_total_registered_patients()
+        returning_count = self.get_returning_patients_count()
+        duplicate_groups = self.get_duplicate_group_counts()
+        duplicate_groups_count = len(duplicate_groups) if duplicate_groups else 0
+        total_duplicate_records = sum(row['duplicate_count'] - 1 for row in duplicate_groups) if duplicate_groups else 0
+        total_patients_in_duplicates = sum(row['duplicate_count'] for row in duplicate_groups) if duplicate_groups else 0
+        money_collected = self.get_total_money_collected()
+        total_revenue = sum(row['Total Collected (MKW)'] for row in money_collected if row['Total Collected (MKW)']) if money_collected else 0
+        paying_breakdown = self.get_paying_vs_nonpaying()
+        daily_visits = self.get_daily_patient_visits()
         gender_registered = self.get_gender_distribution_registered()
         pivoted_gender_reg = self.pivot_age_gender_table(
             gender_registered, 'age_group', 'gender', 'total_patients',
             age_order=['Under 5', '5-13', 'Adults']
         )
+
+        # Previous period comparison
+        prev_start, prev_end = self.get_previous_period()
+        print(f"Fetching comparison data for previous period: {prev_start} to {prev_end}")
+        prev = self.get_comparison_data(prev_start, prev_end)
+
+        # Executive Summary (page 1)
+        self.add_executive_summary(doc, total_registered, returning_count,
+                                   total_revenue, duplicate_groups_count,
+                                   total_duplicate_records, paying_breakdown,
+                                   pivoted_gender_reg, daily_visits, prev)
+
+        # Section 1: Patient Registration Statistics
+        self.add_section_header(doc, '1. Patient Registration Statistics')
+        print(f"Total registered patients in report period: {total_registered}")
+
         self.add_side_by_side_registration(doc, [
             ('Total Patients Registered in Report Period', f'{total_registered:,}'),
         ], pivoted_gender_reg)
 
         # Section 2: Returning Patients
         self.add_section_header(doc, '2. Returning Patients Analysis')
-        returning_count = self.get_returning_patients_count()
         self.add_metric(doc, 'Total Returning Patients', returning_count)
         print(f"Returning patients: {returning_count}")
         
@@ -805,10 +1113,6 @@ Wandikweza Health Center - Automated Reporting System
         
         # Section 5: Duplicate Patient Analysis
         self.add_section_header(doc, '5. Duplicate Patient Analysis')
-        duplicate_groups = self.get_duplicate_group_counts()
-        duplicate_groups_count = len(duplicate_groups) if duplicate_groups else 0
-        total_duplicate_records = sum(row['duplicate_count'] - 1 for row in duplicate_groups) if duplicate_groups else 0
-        total_patients_in_duplicates = sum(row['duplicate_count'] for row in duplicate_groups) if duplicate_groups else 0
         self.add_metric(doc, 'Duplicate Groups', duplicate_groups_count)
         self.add_metric(doc, 'Extra Duplicate Records', total_duplicate_records)
         self.add_metric(doc, 'Patients In Duplicate Groups', total_patients_in_duplicates)
@@ -817,16 +1121,12 @@ Wandikweza Health Center - Automated Reporting System
 
         # Section 6: Financial Analysis
         self.add_section_header(doc, '6. Financial Analysis')
-        money_collected = self.get_total_money_collected()
         self.add_table_from_data(doc, money_collected, 'Total Money Collected by Cashier')
         
-        # Calculate total
         if money_collected:
-            total_revenue = sum(row['Total Collected (MKW)'] for row in money_collected if row['Total Collected (MKW)'])
             self.add_metric(doc, 'Total Revenue (MKW)', f'{total_revenue:,.2f}')
             print(f"Financial analysis - Total: {total_revenue:,.2f}")
         
-        paying_breakdown = self.get_paying_vs_nonpaying()
         self.add_table_from_data(doc, paying_breakdown, 'Paying vs Non-Paying Patients Breakdown')
         self.add_key_explanation(doc, 'Shows total patients, those who only paid, those who never paid, and those who had both paying and non-paying visits during the reporting period.')
         print(f"Paying vs non-paying breakdown")
@@ -837,8 +1137,7 @@ Wandikweza Health Center - Automated Reporting System
         self.add_table_from_data(doc, daily_revenue, 'Daily Revenue Trend')
         self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting period.')
         print(f"Daily revenue trend")
-        
-        daily_visits = self.get_daily_patient_visits()
+
         self.add_table_from_data(doc, daily_visits, 'Daily Patient Visits')
         self.add_key_explanation(doc, 'Daily breakdown of new registrations, returning patients, and total visits. Total visits = new registrations + returning patients for each day.')
         print(f"Daily patient visits")
@@ -923,7 +1222,6 @@ Wandikweza Health Center - Automated Reporting System
             print("Database connection closed")
         
         return True
-
 
 def main():
     """Main entry point"""
