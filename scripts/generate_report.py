@@ -8,6 +8,13 @@ import configparser
 import mysql.connector
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
+import io
+import json
+import urllib.request
+import matplotlib
+matplotlib.use('Agg')  # non-interactive backend, safe for server use
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import os
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -31,13 +38,24 @@ except ImportError:
 
 
 class ReportGenerator:
-    def __init__(self, config_file='config.ini'):
+    def __init__(self, config_file='config.ini', auto_dates=False):
         """Initialize the report generator with configuration"""
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
         self.connection = None
-        self.start_date = self.config.get('report', 'start_date')
-        self.end_date = self.config.get('report', 'end_date')
+
+        if auto_dates:
+            # Automatically use the previous calendar month
+            today = date.today()
+            first_of_this_month = today.replace(day=1)
+            last_month_end = first_of_this_month - relativedelta(days=1)
+            last_month_start = last_month_end.replace(day=1)
+            self.start_date = str(last_month_start)
+            self.end_date   = str(last_month_end)
+            print(f"Auto date mode: reporting period set to {self.start_date} to {self.end_date}")
+        else:
+            self.start_date = self.config.get('report', 'start_date')
+            self.end_date   = self.config.get('report', 'end_date')
         
     def connect_database(self):
         """Establish database connection"""
@@ -489,6 +507,43 @@ class ReportGenerator:
         
         return doc
     
+    def _ollama_narrative(self, prompt, fallback=''):
+        """Call local Ollama to generate narrative text. Returns fallback if unavailable."""
+        try:
+            import re
+            payload = json.dumps({
+                'model': 'llama3.2:3b',
+                'think': False,
+                'messages': [
+                    {
+                        'role': 'system',
+                        'content': (
+                            'You are a professional medical report writer. '
+                            'Write clear, concise, factual paragraphs for hospital management reports. '
+                            'Never use bullet points. Never add headers. Never explain your reasoning. '
+                            'Output only the requested paragraph text.'
+                        )
+                    },
+                    {'role': 'user', 'content': prompt}
+                ],
+                'stream': False,
+                'options': {'temperature': 0.3, 'num_predict': 150}
+            }).encode()
+            req = urllib.request.Request(
+                'http://localhost:11434/api/chat',
+                data=payload,
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                result = json.loads(resp.read())
+                text = result.get('message', {}).get('content', fallback)
+                text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+                return text or fallback
+        except Exception as e:
+            print(f"Ollama unavailable, using fallback text: {e}")
+            return fallback
+
     def add_executive_summary(self, doc, total_registered, total_visits, returning_count,
                                total_revenue, duplicate_groups_count,
                                total_duplicate_records, paying_breakdown,
@@ -585,17 +640,100 @@ class ReportGenerator:
             title.runs[0].font.size = Pt(14)
             title.runs[0].font.color.rgb = RGBColor(31, 78, 121)
 
+        # Build a shared data context string for all prompts
+        top_services_str = ', '.join(
+            f'{r["service"]} ({r["patients"]:,} patients)'
+            for r in (service_data or [])[:3]
+        ) or 'not available'
+        peak_str = f'{peak_day} with {peak_visits:,} visits' if peak_day else 'not available'
+        reg_change = total_registered - prev['registered']
+        rev_change = total_revenue - prev['revenue']
+
+        data_context = f"""
+Reporting period: {self.start_date} to {self.end_date}
+Previous period: {prev['period']}
+New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,})
+Total patient visits: {total_visits:,}
+Returning patients: {returning_count:,} ({returning_pct:.1f}% of new registrations)
+Total revenue: MWK {total_revenue:,.0f} (previous: MWK {prev['revenue']:,.0f}, change: MWK {rev_change:+,.0f})
+Paying patients: {exclusively_paying:,}, Non-paying: {exclusively_non_paying:,}
+Adult patients: {adult_pct:.1f}%, Female patients: {female_pct:.1f}%, Under 14: {under14_pct:.1f}%
+Top services: {top_services_str}
+Peak attendance: {peak_str}
+Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess records)
+"""
+
+        print("Generating AI narrative for executive summary...")
+
+        # Single Ollama call for all narrative sections
+        full_prompt = f"""You are writing narrative paragraphs for a hospital monthly performance report executive summary.
+Write exactly 5 short paragraphs in this order, each 2-3 sentences. Be factual and professional.
+Use ONLY these exact labels on their own line before each paragraph (no other formatting):
+OVERVIEW:
+DEMOGRAPHICS:
+UTILIZATION:
+FINANCIAL:
+QUALITY:
+
+Data:
+Reporting period: {self.start_date} to {self.end_date} (previous: {prev['period']})
+New registrations: {total_registered:,} (prev: {prev['registered']:,}, change: {reg_change:+,})
+Total patient visits: {total_visits:,}
+Returning patients: {returning_count:,} ({returning_pct:.1f}% of new registrations)
+Revenue: MWK {total_revenue:,.0f} (prev: MWK {prev['revenue']:,.0f}, change: MWK {rev_change:+,.0f})
+Paying: {exclusively_paying:,}, Non-paying: {exclusively_non_paying:,}
+Adults: {adult_pct:.1f}%, Females: {female_pct:.1f}%, Under 14: {under14_pct:.1f}%
+Top services: {top_services_str}
+Peak attendance: {peak_str}
+Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess records)
+"""
+        fallbacks = {
+            'OVERVIEW': (
+                f'During the reporting period ({self.start_date} to {self.end_date}), the facility registered '
+                f'{total_registered:,} new patients and recorded {total_visits:,} total patient visits. '
+                f'Of these, {returning_count:,} were returning patients. '
+                f'Revenue collected amounted to MWK {revenue_millions:,.2f} million, '
+                f'with {pay_pct:.1f}% of patients having paid transactions.'
+            ),
+            'DEMOGRAPHICS': (
+                f'Adult patients (14 years and above) accounted for {adult_pct:.1f}% of registrations, '
+                f'with females representing {female_pct:.1f}% of all registered patients. '
+                f'Children under 14 years accounted for {under14_pct:.1f}% of registrations.'
+            ),
+            'UTILIZATION': (
+                f'Patient attendance remained consistent throughout the reporting period. '
+                f'Returning patients represented {returning_pct:.1f}% of all new registrations.'
+            ),
+            'FINANCIAL': (
+                f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period. '
+                f'Of the {total_patients:,} patients served, {exclusively_non_paying:,} had exclusively '
+                f'non-paying transactions, representing {100 - pay_pct:.1f}% of patients.'
+            ),
+            'QUALITY': (
+                f'A total of {duplicate_groups_count:,} duplicate patient groups ({total_duplicate_records:,} '
+                f'excess records) were identified. Efforts to improve patient search and registration practices are recommended.'
+                if duplicate_groups_count > 0
+                else 'No duplicate patient records were identified during this period. Data quality is good.'
+            ),
+        }
+
+        # Parse the single response into sections
+        import re
+        raw = self._ollama_narrative(full_prompt, fallback='')
+        sections = {}
+        if raw:
+            for key in fallbacks:
+                match = re.search(
+                    rf'{key}:\s*(.*?)(?=(?:OVERVIEW|DEMOGRAPHICS|UTILIZATION|FINANCIAL|QUALITY|ASSESSMENT):|$)',
+                    raw, re.DOTALL | re.IGNORECASE
+                )
+                sections[key] = match.group(1).strip() if match else fallbacks[key]
+        else:
+            sections = fallbacks
+
         # --- Overview ---
         _sub_heading('Overview')
-        _para(
-            f'During the reporting period ({self.start_date} to {self.end_date}), the facility registered '
-            f'{total_registered:,} new patients and recorded {total_visits:,} total patient visits. '
-            f'Of these, {returning_count:,} were returning patients. '
-            f'Revenue collected amounted to '
-            f'MWK {revenue_millions:,.2f} million, with {pay_pct:.1f}% of patients having paid transactions.',
-            bold_phrases=[f'{total_registered:,} new patients', f'{total_visits:,} total patient visits',
-                          f'{returning_count:,} were returning patients', f'MWK {revenue_millions:,.2f} million']
-        )
+        _para(sections.get('OVERVIEW', fallbacks['OVERVIEW']))
 
         # --- Key Highlights with Month-to-Month Comparison ---
         _sub_heading('Key Highlights')
@@ -630,58 +768,19 @@ class ReportGenerator:
 
         # --- Patient Demographics ---
         _sub_heading('Patient Demographics')
-        _para(
-            f'Adult patients (14 years and above) accounted for {adult_pct:.1f}% of registrations, '
-            f'with females representing {female_pct:.1f}% of all registered patients. '
-            f'Children under 14 years accounted for {under14_pct:.1f}% of registrations.',
-            bold_phrases=[f'{adult_pct:.1f}%', f'{female_pct:.1f}%', f'{under14_pct:.1f}%']
-        )
+        _para(sections.get('DEMOGRAPHICS', fallbacks['DEMOGRAPHICS']))
 
         # --- Service Utilization ---
         _sub_heading('Service Utilization')
-        peak_sentence = (
-            f' Peak attendance was observed on {peak_day} with {peak_visits:,} visits.'
-            if peak_day else ''
-        )
-        # Top 2 services by patient count
-        service_sentence = ''
-        if service_data:
-            top = service_data[:2]
-            total_svc = sum(r['patients'] for r in service_data)
-            parts = [
-                f'{r["service"]} ({r["patients"]:,} patients, {r["patients"]/total_svc*100:.1f}%)'
-                for r in top
-            ]
-            service_sentence = f' The most utilised services were {" and ".join(parts)}.'
-
-        _para(
-            f'Patient attendance remained consistent throughout the reporting period.{peak_sentence}'
-            f'{service_sentence} '
-            f'Returning patients represented {returning_pct:.1f}% of all new registrations, '
-            f'indicating continued engagement with facility services.',
-            bold_phrases=[f'{returning_pct:.1f}%']
-        )
+        _para(sections.get('UTILIZATION', fallbacks['UTILIZATION']))
 
         # --- Financial Performance ---
         _sub_heading('Financial Performance')
-        _para(
-            f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period. '
-            f'Of the {total_patients:,} patients served, {exclusively_non_paying:,} had exclusively '
-            f'non-paying transactions, representing {100 - pay_pct:.1f}% of patients.',
-            bold_phrases=[f'MWK {revenue_millions:,.2f} million']
-        )
+        _para(sections.get('FINANCIAL', fallbacks['FINANCIAL']))
 
         # --- Data Quality ---
         _sub_heading('Data Quality')
-        if duplicate_groups_count > 0:
-            _para(
-                f'A total of {duplicate_groups_count:,} duplicate patient groups ({total_duplicate_records:,} '
-                f'excess records) were identified. Continued efforts to improve patient search procedures '
-                f'and registration practices are recommended to reduce duplicate records and improve data quality.',
-                bold_phrases=[f'{duplicate_groups_count:,} duplicate patient groups']
-            )
-        else:
-            _para('No duplicate patient records were identified during this period. Data quality is good.')
+        _para(sections.get('QUALITY', fallbacks['QUALITY']))
 
         # --- Management Considerations ---
         # _sub_heading('Management Considerations')
@@ -700,7 +799,7 @@ class ReportGenerator:
         )
         _para(
             f'The facility demonstrated strong patient utilization and revenue generation during the '
-            f'reporting period. {quality_note}',
+            f'reporting period. {quality_note}'
         )
 
         doc.add_page_break()
@@ -921,6 +1020,74 @@ class ReportGenerator:
         p.add_run(self._format_table_value(value))
         p.paragraph_format.space_after = Pt(4)
     
+    def _chart_to_image_stream(self, fig):
+        """Save a matplotlib figure to an in-memory PNG stream."""
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
+    def add_daily_visits_chart(self, doc, daily_visits):
+        """Bar chart: daily new registrations vs returning patients."""
+        if not daily_visits:
+            return
+        dates   = [datetime.strptime(str(r['date']), '%Y-%m-%d') for r in daily_visits]
+        new_reg = [int(r['total_registrations'] or 0) for r in daily_visits]
+        ret_pat = [int(r['total_returning_patients'] or 0) for r in daily_visits]
+
+        fig, ax = plt.subplots(figsize=(10, 3.5))
+        x = range(len(dates))
+        bar_w = 0.45
+        ax.bar([i - bar_w/2 for i in x], new_reg, width=bar_w,
+               label='New Registrations', color='#1F4E79', alpha=0.9)
+        ax.bar([i + bar_w/2 for i in x], ret_pat, width=bar_w,
+               label='Returning Patients', color='#2E75B6', alpha=0.7)
+
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([d.strftime('%d %b') for d in dates],
+                           rotation=45, ha='right', fontsize=7)
+        ax.set_ylabel('Patients', fontsize=9)
+        ax.set_title('Daily Patient Visits', fontsize=11, fontweight='bold', color='#1F4E79')
+        ax.legend(fontsize=8)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.yaxis.grid(True, linestyle='--', alpha=0.5)
+        ax.set_axisbelow(True)
+        fig.tight_layout()
+
+        stream = self._chart_to_image_stream(fig)
+        doc.add_picture(stream, width=Inches(6.5))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    def add_daily_revenue_chart(self, doc, daily_revenue):
+        """Line chart: daily revenue trend."""
+        if not daily_revenue:
+            return
+        dates   = [datetime.strptime(str(r['transaction_date']), '%Y-%m-%d') for r in daily_revenue]
+        revenue = [float(r['Total Collected (MKW)'] or 0) for r in daily_revenue]
+
+        fig, ax = plt.subplots(figsize=(10, 3.5))
+        ax.fill_between(range(len(dates)), revenue, alpha=0.2, color='#1F4E79')
+        ax.plot(range(len(dates)), revenue, color='#1F4E79', linewidth=1.8, marker='o',
+                markersize=3)
+
+        ax.set_xticks(range(len(dates)))
+        ax.set_xticklabels([d.strftime('%d %b') for d in dates],
+                           rotation=45, ha='right', fontsize=7)
+        ax.set_ylabel('MWK', fontsize=9)
+        ax.set_title('Daily Revenue Trend', fontsize=11, fontweight='bold', color='#1F4E79')
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v:,.0f}'))
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.yaxis.grid(True, linestyle='--', alpha=0.5)
+        ax.set_axisbelow(True)
+        fig.tight_layout()
+
+        stream = self._chart_to_image_stream(fig)
+        doc.add_picture(stream, width=Inches(6.5))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
     def add_key_explanation(self, doc, text):
         """Add a KEY explanation box to help interpret the data"""
         p = doc.add_paragraph()
@@ -1212,10 +1379,12 @@ Wandikweza Health Center - Automated Reporting System
         self.add_section_header(doc, '8. Daily Trends')
         daily_revenue = self.get_daily_revenue_trend()
         self.add_table_from_data(doc, daily_revenue, 'Daily Revenue Trend')
+        self.add_daily_revenue_chart(doc, daily_revenue)
         self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting period.')
         print(f"Daily revenue trend")
 
         self.add_table_from_data(doc, daily_visits, 'Daily Patient Visits')
+        self.add_daily_visits_chart(doc, daily_visits)
         self.add_key_explanation(doc, 'Daily breakdown of new registrations, returning patients, and total visits. Total visits = new registrations + returning patients for each day.')
         print(f"Daily patient visits")
         
@@ -1303,15 +1472,16 @@ Wandikweza Health Center - Automated Reporting System
 def main():
     """Main entry point"""
     config_file = 'config.ini'
-    
+    auto_dates = '--auto' in sys.argv
+
     if not os.path.exists(config_file):
         print(f"Configuration file '{config_file}' not found!")
         print("Please create a config.ini file with database and report settings.")
         sys.exit(1)
-    
-    generator = ReportGenerator(config_file)
+
+    generator = ReportGenerator(config_file, auto_dates=auto_dates)
     success = generator.generate_report()
-    
+
     if not success:
         sys.exit(1)
 
