@@ -1047,6 +1047,22 @@ Wandikweza Health Center - Automated Reporting System
                                    pivoted_gender_reg, daily_visits, prev, service_data)
 
         # Section 1: Patient Registration Statistics
+        # Detailed report title
+        detailed_title = doc.add_heading('Detailed Performance Report', level=1)
+        detailed_title.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        if detailed_title.runs:
+            detailed_title.runs[0].font.name = 'Arial'
+            detailed_title.runs[0].font.bold = True
+            detailed_title.runs[0].font.size = Pt(16)
+            detailed_title.runs[0].font.color.rgb = RGBColor(31, 78, 121)
+        sub = doc.add_paragraph()
+        sub_run = sub.add_run(f'Reporting Period: {self.start_date} to {self.end_date}')
+        sub_run.italic = True
+        sub_run.font.name = 'Arial'
+        sub_run.font.size = Pt(10)
+        sub_run.font.color.rgb = RGBColor(90, 90, 90)
+        sub.paragraph_format.space_after = Pt(12)
+
         self.add_section_header(doc, '1. Patient Registration Statistics')
         print(f"Total registered patients in report period: {total_registered}")
 
