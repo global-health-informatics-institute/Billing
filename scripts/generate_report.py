@@ -527,7 +527,7 @@ class ReportGenerator:
                     {'role': 'user', 'content': prompt}
                 ],
                 'stream': False,
-                'options': {'temperature': 0.3, 'num_predict': 150}
+                'options': {'temperature': 0.3, 'num_predict': 400}
             }).encode()
             req = urllib.request.Request(
                 'http://localhost:11434/api/chat',
@@ -558,6 +558,19 @@ class ReportGenerator:
                 h.runs[0].font.bold = True
                 h.runs[0].font.size = Pt(12)
                 h.runs[0].font.color.rgb = RGBColor(31, 78, 121)
+
+        def _trim(text, max_chars=320):
+            """Trim text to the last complete sentence within max_chars."""
+            if len(text) <= max_chars:
+                return text
+            cut = text[:max_chars]
+            # Find the last sentence-ending punctuation within the limit
+            for punct in ('. ', '! ', '? '):
+                idx = cut.rfind(punct)
+                if idx != -1:
+                    return cut[:idx + 1]
+            # No sentence boundary found, hard cut at max_chars
+            return cut.rstrip() + '.'
 
         def _para(text, bold_phrases=None):
             """Add a paragraph, optionally bolding specific phrases."""
@@ -645,6 +658,10 @@ class ReportGenerator:
             f'{r["service"]} ({r["patients"]:,} patients)'
             for r in (service_data or [])[:3]
         ) or 'not available'
+        least_service_str = (
+            f'{service_data[-1]["service"]} ({service_data[-1]["patients"]:,} patients)'
+            if service_data else 'not available'
+        )
         peak_str = f'{peak_day} with {peak_visits:,} visits' if peak_day else 'not available'
         reg_change = total_registered - prev['registered']
         rev_change = total_revenue - prev['revenue']
@@ -684,8 +701,11 @@ Revenue: MWK {total_revenue:,.0f} (prev: MWK {prev['revenue']:,.0f}, change: MWK
 Paying: {exclusively_paying:,}, Non-paying: {exclusively_non_paying:,}
 Adults: {adult_pct:.1f}%, Females: {female_pct:.1f}%, Under 14: {under14_pct:.1f}%
 Top services: {top_services_str}
+Least used service: {least_service_str}
 Peak attendance: {peak_str}
 Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess records)
+
+For UTILIZATION: name the most used service with its patient count, the second most used, and the least used service. Do not include scheduling advice or generic recommendations.
 """
         fallbacks = {
             'OVERVIEW': (
@@ -701,8 +721,11 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
                 f'Children under 14 years accounted for {under14_pct:.1f}% of registrations.'
             ),
             'UTILIZATION': (
-                f'Patient attendance remained consistent throughout the reporting period. '
-                f'Returning patients represented {returning_pct:.1f}% of all new registrations.'
+                f'The most utilised service was {service_data[0]["service"]} with {service_data[0]["patients"]:,} patients, '
+                f'followed by {service_data[1]["service"]} with {service_data[1]["patients"]:,} patients. '
+                f'The least utilised service was {service_data[-1]["service"]} with {service_data[-1]["patients"]:,} patients.'
+                if service_data and len(service_data) >= 2
+                else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting period.'
             ),
             'FINANCIAL': (
                 f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period. '
@@ -733,12 +756,12 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
 
         # --- Overview ---
         _sub_heading('Overview')
-        _para(sections.get('OVERVIEW', fallbacks['OVERVIEW']))
+        _para(_trim(sections.get('OVERVIEW', fallbacks['OVERVIEW'])))
 
         # --- Key Highlights with Month-to-Month Comparison ---
         _sub_heading('Key Highlights')
 
-        def _delta(current, previous, is_currency=False):
+        def _delta(current, previous, is_currency=False, min_base=50):
             if previous == 0:
                 return ''
             diff = current - previous
@@ -748,6 +771,8 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
                 return ' (no change vs previous period)'
             if is_currency:
                 return f' ({arrow} MWK {abs(diff):,.0f}, {pct:.1f}% vs previous period)'
+            if previous < min_base:
+                return f' ({arrow} {abs(int(diff)):,} vs previous period)'
             return f' ({arrow} {abs(int(diff)):,}, {pct:.1f}% vs previous period)'
 
         _bullet(f'{total_registered:,} patients{_delta(total_registered, prev["registered"])}',
@@ -768,19 +793,19 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
 
         # --- Patient Demographics ---
         _sub_heading('Patient Demographics')
-        _para(sections.get('DEMOGRAPHICS', fallbacks['DEMOGRAPHICS']))
+        _para(_trim(sections.get('DEMOGRAPHICS', fallbacks['DEMOGRAPHICS'])))
 
         # --- Service Utilization ---
         _sub_heading('Service Utilization')
-        _para(sections.get('UTILIZATION', fallbacks['UTILIZATION']))
+        _para(_trim(sections.get('UTILIZATION', fallbacks['UTILIZATION'])))
 
         # --- Financial Performance ---
         _sub_heading('Financial Performance')
-        _para(sections.get('FINANCIAL', fallbacks['FINANCIAL']))
+        _para(_trim(sections.get('FINANCIAL', fallbacks['FINANCIAL'])))
 
         # --- Data Quality ---
         _sub_heading('Data Quality')
-        _para(sections.get('QUALITY', fallbacks['QUALITY']))
+        _para(_trim(sections.get('QUALITY', fallbacks['QUALITY'])))
 
         # --- Management Considerations ---
         # _sub_heading('Management Considerations')
@@ -788,19 +813,6 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
         # _bullet('Review causes of duplicate registrations and strengthen patient identification procedures.')
         # _bullet('Investigate factors contributing to high-performing revenue and attendance days to inform service planning.')
         # _bullet('Monitor non-paying patient records to ensure appropriate documentation of exemptions and free services.')
-
-        # --- Overall Assessment ---
-        _sub_heading('Overall Assessment')
-        quality_note = (
-            f'The primary area requiring attention remains patient record quality, particularly the '
-            f'reduction of {duplicate_groups_count:,} duplicate patient groups.'
-            if duplicate_groups_count > 0
-            else 'Patient record quality is excellent with no duplicates identified.'
-        )
-        _para(
-            f'The facility demonstrated strong patient utilization and revenue generation during the '
-            f'reporting period. {quality_note}'
-        )
 
         doc.add_page_break()
 
@@ -1020,6 +1032,36 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
         p.add_run(self._format_table_value(value))
         p.paragraph_format.space_after = Pt(4)
     
+    def add_registration_pie_chart(self, doc, gender_data):
+        """Pie chart: registered patients by age category (Under 5, 5-13, Adults)."""
+        rows = [r for r in (gender_data or []) if r.get('Age Category') != 'Total']
+        if not rows:
+            return
+        labels = [r['Age Category'] for r in rows]
+        sizes  = [r['Total'] for r in rows]
+        if sum(sizes) == 0:
+            return
+
+        colors = ['#1F4E79', '#2E75B6', '#9DC3E6']
+        fig, ax = plt.subplots(figsize=(3, 2))
+        wedges, texts, autotexts = ax.pie(
+            sizes, labels=labels, colors=colors,
+            autopct='%1.1f%%', startangle=90,
+            textprops={'fontsize': 8}
+        )
+        for at in autotexts:
+            at.set_color('white')
+            at.set_fontweight('bold')
+        ax.set_title('Registered Patients by Age Group', fontsize=10,
+                     fontweight='bold', color='#1F4E79', pad=10)
+        fig.tight_layout()
+
+        stream = self._chart_to_image_stream(fig)
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run()
+        run.add_picture(stream, width=Inches(2.5))
+
     def _chart_to_image_stream(self, fig):
         """Save a matplotlib figure to an in-memory PNG stream."""
         buf = io.BytesIO()
@@ -1248,6 +1290,7 @@ Wandikweza Health Center - Automated Reporting System
         self.add_side_by_side_registration(doc, [
             ('Total Patients Registered in Report Period', f'{total_registered:,}'),
         ], pivoted_gender_reg)
+        self.add_registration_pie_chart(doc, pivoted_gender_reg)
 
         # Section 2: Returning Patients
         self.add_section_header(doc, '2. Returning Patients Analysis')
