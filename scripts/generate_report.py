@@ -578,7 +578,7 @@ class ReportGenerator:
                 return ''
             diff = current - previous
             pct  = abs(diff / previous * 100)
-            arrow = '▲' if diff > 0 else ('▼' if diff < 0 else '—')
+            arrow = '↑' if diff > 0 else ('↓' if diff < 0 else '—')
             if diff == 0:
                 return ' (no change vs previous period)'
             if is_currency:
