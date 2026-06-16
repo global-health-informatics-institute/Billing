@@ -559,18 +559,11 @@ class ReportGenerator:
                 h.runs[0].font.size = Pt(12)
                 h.runs[0].font.color.rgb = RGBColor(31, 78, 121)
 
-        def _trim(text, max_chars=320):
-            """Trim text to the last complete sentence within max_chars."""
-            if len(text) <= max_chars:
-                return text
-            cut = text[:max_chars]
-            # Find the last sentence-ending punctuation within the limit
-            for punct in ('. ', '! ', '? '):
-                idx = cut.rfind(punct)
-                if idx != -1:
-                    return cut[:idx + 1]
-            # No sentence boundary found, hard cut at max_chars
-            return cut.rstrip() + '.'
+        def _trim(text, max_sentences=2):
+            """Keep only the first max_sentences complete sentences."""
+            import re
+            sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+            return ' '.join(sentences[:max_sentences])
 
         def _para(text, bold_phrases=None):
             """Add a paragraph, optionally bolding specific phrases."""
@@ -684,7 +677,7 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
 
         # Single Ollama call for all narrative sections
         full_prompt = f"""You are writing narrative paragraphs for a hospital monthly performance report executive summary.
-Write exactly 5 short paragraphs in this order, each 2-3 sentences. Be factual and professional.
+Write exactly 5 paragraphs, each exactly 2 sentences. Never write more than 2 sentences per paragraph. Be factual and professional.
 Use ONLY these exact labels on their own line before each paragraph (no other formatting):
 OVERVIEW:
 DEMOGRAPHICS:
@@ -710,33 +703,30 @@ For UTILIZATION: name the most used service with its patient count, the second m
         fallbacks = {
             'OVERVIEW': (
                 f'During the reporting period ({self.start_date} to {self.end_date}), the facility registered '
-                f'{total_registered:,} new patients and recorded {total_visits:,} total patient visits. '
-                f'Of these, {returning_count:,} were returning patients. '
-                f'Revenue collected amounted to MWK {revenue_millions:,.2f} million, '
-                f'with {pay_pct:.1f}% of patients having paid transactions.'
+                f'{total_registered:,} new patients, recorded {total_visits:,} total visits, and collected MWK {revenue_millions:,.2f} million in revenue. '
+                f'{returning_count:,} patients ({returning_pct:.1f}%) made more than one visit during the period.'
             ),
             'DEMOGRAPHICS': (
-                f'Adult patients (14 years and above) accounted for {adult_pct:.1f}% of registrations, '
-                f'with females representing {female_pct:.1f}% of all registered patients. '
-                f'Children under 14 years accounted for {under14_pct:.1f}% of registrations.'
+                f'Adults accounted for {adult_pct:.1f}% of registrations, with females representing {female_pct:.1f}% of all registered patients. '
+                f'Children under 14 years made up the remaining {under14_pct:.1f}%.'
             ),
             'UTILIZATION': (
-                f'The most utilised service was {service_data[0]["service"]} with {service_data[0]["patients"]:,} patients, '
-                f'followed by {service_data[1]["service"]} with {service_data[1]["patients"]:,} patients. '
-                f'The least utilised service was {service_data[-1]["service"]} with {service_data[-1]["patients"]:,} patients.'
+                f'The most utilised service was {service_data[0]["service"]} ({service_data[0]["patients"]:,} patients), '
+                f'followed by {service_data[1]["service"]} ({service_data[1]["patients"]:,} patients). '
+                f'The least utilised was {service_data[-1]["service"]} with {service_data[-1]["patients"]:,} patients.'
                 if service_data and len(service_data) >= 2
                 else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting period.'
             ),
             'FINANCIAL': (
-                f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period. '
-                f'Of the {total_patients:,} patients served, {exclusively_non_paying:,} had exclusively '
-                f'non-paying transactions, representing {100 - pay_pct:.1f}% of patients.'
+                f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period, '
+                f'{"an increase" if rev_change >= 0 else "a decrease"} of MWK {abs(rev_change):,.0f} from the previous period. '
+                f'{exclusively_paying:,} patients ({pay_pct:.1f}%) had paying transactions.'
             ),
             'QUALITY': (
-                f'A total of {duplicate_groups_count:,} duplicate patient groups ({total_duplicate_records:,} '
-                f'excess records) were identified. Efforts to improve patient search and registration practices are recommended.'
+                f'A total of {duplicate_groups_count:,} duplicate patient groups representing {total_duplicate_records:,} excess records were identified. '
+                f'Staff should search for existing records before registering new patients to reduce this figure.'
                 if duplicate_groups_count > 0
-                else 'No duplicate patient records were identified during this period. Data quality is good.'
+                else 'No duplicate patient records were identified during this period, indicating good data quality.'
             ),
         }
 
@@ -1459,7 +1449,7 @@ Wandikweza Health Center - Automated Reporting System
             age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', '25+']
         )
         self.add_table_from_data(doc, pivoted_adolescence, 'Patient Age distribution')
-        self.add_age_group_chart(doc, pivoted_adolescence)
+        self.add_returning_patients_chart(doc, pivoted_adolescence)
         self.add_key_explanation(doc, 'Patients are grouped by age ranges: Under 5, 5-9, 10-14, 15-19, 20-24, and 25+. This helps identify which age groups are most served by the facility.')
         print(f"Adolescence age group analysis")
         
