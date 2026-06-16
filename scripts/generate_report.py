@@ -797,15 +797,6 @@ For UTILIZATION: name the most used service with its patient count, the second m
         _sub_heading('Data Quality')
         _para(_trim(sections.get('QUALITY', fallbacks['QUALITY'])))
 
-        # --- Management Considerations ---
-        # _sub_heading('Management Considerations')
-        # _bullet('Continue monitoring patient growth and returning patient trends.')
-        # _bullet('Review causes of duplicate registrations and strengthen patient identification procedures.')
-        # _bullet('Investigate factors contributing to high-performing revenue and attendance days to inform service planning.')
-        # _bullet('Monitor non-paying patient records to ensure appropriate documentation of exemptions and free services.')
-
-        doc.add_page_break()
-
     def add_section_header(self, doc, text):
         """Add a formatted section header"""
         heading = doc.add_heading(text, level=1)
