@@ -920,7 +920,7 @@ For UTILIZATION: name the most used service with its patient count, the second m
                 alignment = self._align_table_column(header, value)
                 self._set_cell_text(row_cells[i], formatted_value, bold=is_total_row, size=10, align=alignment)
         
-        doc.add_paragraph()  # Add spacing
+        doc.add_paragraph().paragraph_format.space_after = Pt(2)  # tight spacing after table
     
     def pivot_age_gender_table(self, data, age_col, gender_col, value_col, age_order=None):
         """
@@ -1021,9 +1021,8 @@ For UTILIZATION: name the most used service with its patient count, the second m
                                         bold=is_total, size=10,
                                         align=self._align_table_column(header, value))
 
-        doc.add_paragraph()
-
-        doc.add_paragraph()
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
 
     def add_metric(self, doc, label, value):
         """Add a key metric to the document"""
@@ -1032,6 +1031,140 @@ For UTILIZATION: name the most used service with its patient count, the second m
         p.add_run(self._format_table_value(value))
         p.paragraph_format.space_after = Pt(4)
     
+    def add_age_group_chart(self, doc, pivoted_data):
+        """Stacked bar chart: registered patients by age group, split by gender."""
+        rows = [r for r in (pivoted_data or []) if r.get('Age Category') != 'Total']
+        if not rows:
+            return
+        categories = [r['Age Category'] for r in rows]
+        males   = [r.get('Male', 0) for r in rows]
+        females = [r.get('Female', 0) for r in rows]
+
+        x = range(len(categories))
+        fig, ax = plt.subplots(figsize=(5, 2.8))
+        ax.bar(x, males,   label='Male',   color='#2E86AB', alpha=0.9)
+        ax.bar(x, females, label='Female', color='#E84855', alpha=0.8, bottom=males)
+        ax.set_xticks(list(x))
+        ax.set_xticklabels(categories, fontsize=8)
+        ax.set_ylabel('Patients', fontsize=8)
+        ax.tick_params(axis='y', labelsize=7)
+        ax.legend(fontsize=8, loc='upper left')
+        ax.set_title('Registered Patients by Age Group', fontsize=9,
+                     fontweight='bold', color='#1F4E79', pad=6)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.yaxis.grid(True, linestyle='--', alpha=0.4)
+        ax.set_axisbelow(True)
+        fig.tight_layout()
+
+        stream = self._chart_to_image_stream(fig)
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
+        p.add_run().add_picture(stream, width=Inches(4.0))
+
+    def add_visit_frequency_chart(self, doc, frequency_display):
+        """Horizontal bar chart: number of patients per visit count."""
+        if not frequency_display:
+            return
+        # Only include rows with patients > 0
+        rows = [r for r in frequency_display if r['Number of Patients'] > 0]
+        if not rows:
+            return
+        labels  = [r['Number of Visits'] for r in rows]
+        values  = [r['Number of Patients'] for r in rows]
+
+        fig, ax = plt.subplots(figsize=(5, max(1.5, len(rows) * 0.35)))
+        colors = ['#2E86AB' if i > 0 else '#F4A261' for i in range(len(rows))]
+        bars = ax.barh(labels, values, color=colors, alpha=0.88, height=0.55)
+        ax.bar_label(bars, fmt=lambda v: f'{int(v):,}', padding=4, fontsize=7)
+        ax.set_xlabel('Number of Patients', fontsize=8)
+        ax.tick_params(axis='y', labelsize=8)
+        ax.tick_params(axis='x', labelsize=7)
+        ax.set_title('Visit Frequency Distribution', fontsize=9,
+                     fontweight='bold', color='#1F4E79', pad=6)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.xaxis.grid(True, linestyle='--', alpha=0.4)
+        ax.set_axisbelow(True)
+        ax.invert_yaxis()
+        fig.tight_layout()
+
+        stream = self._chart_to_image_stream(fig)
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
+        p.add_run().add_picture(stream, width=Inches(3.8))
+
+    def add_service_breakdown_chart(self, doc, service_data):
+        """Horizontal bar chart: patients by service area."""
+        if not service_data:
+            return
+        labels = [r['service'] for r in service_data]
+        values = [r['patients'] for r in service_data]
+        total  = sum(values) or 1
+
+        # Color top service differently
+        colors = ['#E84855' if i == 0 else '#2E86AB' for i in range(len(labels))]
+
+        fig, ax = plt.subplots(figsize=(5, max(1.8, len(labels) * 0.45)))
+        bars = ax.barh(labels, values, color=colors, alpha=0.88, height=0.55)
+        ax.bar_label(bars,
+                     labels=[f'{v:,}  ({v/total*100:.1f}%)' for v in values],
+                     padding=4, fontsize=7)
+        ax.set_xlabel('Patients', fontsize=8)
+        ax.tick_params(axis='y', labelsize=8)
+        ax.tick_params(axis='x', labelsize=7)
+        ax.set_title('Patients by Service Area', fontsize=9,
+                     fontweight='bold', color='#1F4E79', pad=6)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.xaxis.grid(True, linestyle='--', alpha=0.4)
+        ax.set_axisbelow(True)
+        ax.invert_yaxis()
+        # Extend x limit to give room for labels
+        ax.set_xlim(0, max(values) * 1.35)
+        fig.tight_layout()
+
+        stream = self._chart_to_image_stream(fig)
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
+        p.add_run().add_picture(stream, width=Inches(4.2))
+
+    def add_returning_patients_chart(self, doc, pivoted_data):
+        """Grouped bar chart: returning patients by age group and gender."""
+        rows = [r for r in (pivoted_data or []) if r.get('Age Category') != 'Total']
+        if not rows:
+            return
+        categories = [r['Age Category'] for r in rows]
+        males   = [r.get('Male', 0) for r in rows]
+        females = [r.get('Female', 0) for r in rows]
+
+        x = range(len(categories))
+        bar_w = 0.35
+        fig, ax = plt.subplots(figsize=(3, 2))
+        ax.bar([i - bar_w/2 for i in x], males,   width=bar_w, label='Male',   color='#2E86AB', alpha=0.9)
+        ax.bar([i + bar_w/2 for i in x], females, width=bar_w, label='Female', color='#E84855', alpha=0.8)
+        ax.set_xticks(list(x))
+        ax.set_xticklabels(categories, fontsize=8)
+        ax.set_ylabel('Patients', fontsize=8)
+        ax.tick_params(axis='y', labelsize=7)
+        ax.legend(fontsize=8)
+        ax.set_title('Returning Patients by Age Group & Gender', fontsize=9,
+                     fontweight='bold', color='#1F4E79', pad=8)
+        fig.tight_layout()
+
+        stream = self._chart_to_image_stream(fig)
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
+        p.add_run().add_picture(stream, width=Inches(2.8))
+
     def add_registration_pie_chart(self, doc, gender_data):
         """Pie chart: registered patients by age category (Under 5, 5-13, Adults)."""
         rows = [r for r in (gender_data or []) if r.get('Age Category') != 'Total']
@@ -1059,6 +1192,8 @@ For UTILIZATION: name the most used service with its patient count, the second m
         stream = self._chart_to_image_stream(fig)
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
         run = p.add_run()
         run.add_picture(stream, width=Inches(2.5))
 
@@ -1082,9 +1217,9 @@ For UTILIZATION: name the most used service with its patient count, the second m
         x = range(len(dates))
         bar_w = 0.45
         ax.bar([i - bar_w/2 for i in x], new_reg, width=bar_w,
-               label='New Registrations', color='#1F4E79', alpha=0.9)
+               label='New Registrations', color='#2E86AB', alpha=0.9)
         ax.bar([i + bar_w/2 for i in x], ret_pat, width=bar_w,
-               label='Returning Patients', color='#2E75B6', alpha=0.7)
+               label='Returning Patients', color='#E84855', alpha=0.8)
 
         ax.set_xticks(list(x))
         ax.set_xticklabels([d.strftime('%d %b') for d in dates],
@@ -1099,42 +1234,57 @@ For UTILIZATION: name the most used service with its patient count, the second m
         fig.tight_layout()
 
         stream = self._chart_to_image_stream(fig)
-        doc.add_picture(stream, width=Inches(6.5))
-        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
+        p.add_run().add_picture(stream, width=Inches(6.5))
 
     def add_daily_revenue_chart(self, doc, daily_revenue):
-        """Line chart: daily revenue trend."""
+        """Bar chart: daily revenue trend with peak day highlighted."""
         if not daily_revenue:
             return
         dates   = [datetime.strptime(str(r['transaction_date']), '%Y-%m-%d') for r in daily_revenue]
         revenue = [float(r['Total Collected (MKW)'] or 0) for r in daily_revenue]
 
+        peak_idx = revenue.index(max(revenue)) if revenue else 0
+        colors = ['#E84855' if i == peak_idx else '#2E86AB' for i in range(len(revenue))]
+
         fig, ax = plt.subplots(figsize=(10, 3.5))
-        ax.fill_between(range(len(dates)), revenue, alpha=0.2, color='#1F4E79')
-        ax.plot(range(len(dates)), revenue, color='#1F4E79', linewidth=1.8, marker='o',
-                markersize=3)
+        bars = ax.bar(range(len(dates)), revenue, color=colors, alpha=0.85, width=0.6)
+
+        # Annotate peak bar
+        ax.annotate(
+            f'Peak\n{revenue[peak_idx]/1000:,.0f}K',
+            xy=(peak_idx, revenue[peak_idx]),
+            xytext=(0, 6), textcoords='offset points',
+            ha='center', fontsize=7, color='#E84855', fontweight='bold'
+        )
 
         ax.set_xticks(range(len(dates)))
         ax.set_xticklabels([d.strftime('%d %b') for d in dates],
                            rotation=45, ha='right', fontsize=7)
-        ax.set_ylabel('MWK', fontsize=9)
+        ax.set_ylabel('MWK (thousands)', fontsize=9)
         ax.set_title('Daily Revenue Trend', fontsize=11, fontweight='bold', color='#1F4E79')
-        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v:,.0f}'))
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v/1000:,.0f}K'))
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.yaxis.grid(True, linestyle='--', alpha=0.5)
+        ax.yaxis.grid(True, linestyle='--', alpha=0.4)
         ax.set_axisbelow(True)
         fig.tight_layout()
 
         stream = self._chart_to_image_stream(fig)
-        doc.add_picture(stream, width=Inches(6.5))
-        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
+        p.add_run().add_picture(stream, width=Inches(6.5))
 
     def add_key_explanation(self, doc, text):
         """Add a KEY explanation box to help interpret the data"""
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(8)
-        p.paragraph_format.space_after = Pt(8)
+        p.paragraph_format.space_before = Pt(4)
+        p.paragraph_format.space_after = Pt(4)
         
         key_run = p.add_run('KEY: ')
         key_run.bold = True
@@ -1276,13 +1426,7 @@ Wandikweza Health Center - Automated Reporting System
             detailed_title.runs[0].font.bold = True
             detailed_title.runs[0].font.size = Pt(16)
             detailed_title.runs[0].font.color.rgb = RGBColor(31, 78, 121)
-        sub = doc.add_paragraph()
-        sub_run = sub.add_run(f'Reporting Period: {self.start_date} to {self.end_date}')
-        sub_run.italic = True
-        sub_run.font.name = 'Arial'
-        sub_run.font.size = Pt(10)
-        sub_run.font.color.rgb = RGBColor(90, 90, 90)
-        sub.paragraph_format.space_after = Pt(12)
+        detailed_title.paragraph_format.space_after = Pt(12)
 
         self.add_section_header(doc, '1. Patient Registration Statistics')
         print(f"Total registered patients in report period: {total_registered}")
@@ -1303,6 +1447,7 @@ Wandikweza Health Center - Automated Reporting System
             age_order=['Under 5', '5-13', 'Adults']
         )
         self.add_table_from_data(doc, pivoted_returning, 'Distribution by Age and Gender')
+        self.add_returning_patients_chart(doc, pivoted_returning)
         self.add_key_explanation(doc, 'Returning patients are those who made more than one visit during the reporting period. Under 5: below age 5. 5-13: ages 5 to 13. Adults: 14 and above.')
         print(f"Returning patients distribution")
         
@@ -1314,6 +1459,7 @@ Wandikweza Health Center - Automated Reporting System
             age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', '25+']
         )
         self.add_table_from_data(doc, pivoted_adolescence, 'Patient Age distribution')
+        self.add_age_group_chart(doc, pivoted_adolescence)
         self.add_key_explanation(doc, 'Patients are grouped by age ranges: Under 5, 5-9, 10-14, 15-19, 20-24, and 25+. This helps identify which age groups are most served by the facility.')
         print(f"Adolescence age group analysis")
         
@@ -1373,8 +1519,10 @@ Wandikweza Health Center - Automated Reporting System
                                     size=10, align=WD_ALIGN_PARAGRAPH.LEFT)
                 self._set_cell_text(row_cells[1], self._format_table_value(row_data['Number of Patients']),
                                     size=10, align=WD_ALIGN_PARAGRAPH.RIGHT)
-            doc.add_paragraph()
+            p = doc.add_paragraph()
+            p.paragraph_format.space_after = Pt(2)
 
+        self.add_visit_frequency_chart(doc, frequency_display)
         self.add_key_explanation(doc, '"Number of Visits" = how many times a patient came during the reporting period. "Number of Patients" = how many patients came exactly that many times.')
         print(f"Visit frequency analysis")
 
@@ -1393,6 +1541,7 @@ Wandikweza Health Center - Automated Reporting System
                 for r in service_data
             ]
             self.add_table_from_data(doc, enriched, 'Patients by Service Area')
+            self.add_service_breakdown_chart(doc, service_data)
             self.add_key_explanation(doc, 'Shows how many unique patients used each service during the reporting period. "Total Orders" = number of individual service transactions. A patient may appear in multiple services.')
         else:
             doc.add_paragraph('No service data available for this period.')
