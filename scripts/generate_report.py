@@ -331,7 +331,23 @@ class ReportGenerator:
         GROUP BY cashier
         """
         return self.execute_query(query, (self.start_date, self.end_date))
-    
+
+    def get_service_breakdown(self):
+        """Patient and order count by service area for the reporting period."""
+        query = """
+        SELECT
+            s.name AS service,
+            COUNT(DISTINCT oe.patient_id) AS patients,
+            COUNT(*) AS total_orders
+        FROM order_entries oe
+        JOIN services s ON oe.service_id = s.service_id
+        WHERE oe.created_at BETWEEN %s AND %s
+          AND oe.voided = 0
+        GROUP BY s.name
+        ORDER BY patients DESC
+        """
+        return self.execute_query(query, (self.start_date, self.end_date))
+
     def get_paying_vs_nonpaying(self):
         """Query 9: Breakdown of paying vs non-paying patients"""
         query = """
@@ -466,7 +482,7 @@ class ReportGenerator:
     def add_executive_summary(self, doc, total_registered, returning_count,
                                total_revenue, duplicate_groups_count,
                                total_duplicate_records, paying_breakdown,
-                               gender_data, daily_visits, prev):
+                               gender_data, daily_visits, prev, service_data):
         """Narrative executive summary answering: what happened, what's notable, what action to take."""
 
         def _sub_heading(text):
@@ -616,8 +632,20 @@ class ReportGenerator:
             f' Peak attendance was observed on {peak_day} with {peak_visits:,} visits.'
             if peak_day else ''
         )
+        # Top 2 services by patient count
+        service_sentence = ''
+        if service_data:
+            top = service_data[:2]
+            total_svc = sum(r['patients'] for r in service_data)
+            parts = [
+                f'{r["service"]} ({r["patients"]:,} patients, {r["patients"]/total_svc*100:.1f}%)'
+                for r in top
+            ]
+            service_sentence = f' The most utilised services were {" and ".join(parts)}.'
+
         _para(
-            f'Patient attendance remained consistent throughout the reporting period.{peak_sentence} '
+            f'Patient attendance remained consistent throughout the reporting period.{peak_sentence}'
+            f'{service_sentence} '
             f'Returning patients represented {returning_pct:.1f}% of all new registrations, '
             f'indicating continued engagement with facility services.',
             bold_phrases=[f'{returning_pct:.1f}%']
@@ -645,11 +673,11 @@ class ReportGenerator:
             _para('No duplicate patient records were identified during this period. Data quality is good.')
 
         # --- Management Considerations ---
-        _sub_heading('Management Considerations')
-        _bullet('Continue monitoring patient growth and returning patient trends.')
-        _bullet('Review causes of duplicate registrations and strengthen patient identification procedures.')
-        _bullet('Investigate factors contributing to high-performing revenue and attendance days to inform service planning.')
-        _bullet('Monitor non-paying patient records to ensure appropriate documentation of exemptions and free services.')
+        # _sub_heading('Management Considerations')
+        # _bullet('Continue monitoring patient growth and returning patient trends.')
+        # _bullet('Review causes of duplicate registrations and strengthen patient identification procedures.')
+        # _bullet('Investigate factors contributing to high-performing revenue and attendance days to inform service planning.')
+        # _bullet('Monitor non-paying patient records to ensure appropriate documentation of exemptions and free services.')
 
         # --- Overall Assessment ---
         _sub_heading('Overall Assessment')
@@ -1010,12 +1038,13 @@ Wandikweza Health Center - Automated Reporting System
         prev_start, prev_end = self.get_previous_period()
         print(f"Fetching comparison data for previous period: {prev_start} to {prev_end}")
         prev = self.get_comparison_data(prev_start, prev_end)
+        service_data = self.get_service_breakdown()
 
         # Executive Summary (page 1)
         self.add_executive_summary(doc, total_registered, returning_count,
                                    total_revenue, duplicate_groups_count,
                                    total_duplicate_records, paying_breakdown,
-                                   pivoted_gender_reg, daily_visits, prev)
+                                   pivoted_gender_reg, daily_visits, prev, service_data)
 
         # Section 1: Patient Registration Statistics
         self.add_section_header(doc, '1. Patient Registration Statistics')
@@ -1110,17 +1139,37 @@ Wandikweza Health Center - Automated Reporting System
 
         self.add_key_explanation(doc, '"Number of Visits" = how many times a patient came during the reporting period. "Number of Patients" = how many patients came exactly that many times.')
         print(f"Visit frequency analysis")
-        
-        # Section 5: Duplicate Patient Analysis
-        self.add_section_header(doc, '5. Duplicate Patient Analysis')
+
+        # Section 5: Clinical Service Breakdown
+        self.add_section_header(doc, '5. Clinical Service Breakdown')
+        if service_data:
+            # Add % of total patients column
+            total_service_patients = sum(r['patients'] for r in service_data)
+            enriched = [
+                {
+                    'Service': r['service'],
+                    'Patients': r['patients'],
+                    '% of Total': f"{r['patients'] / total_service_patients * 100:.1f}%",
+                    'Total Orders': r['total_orders'],
+                }
+                for r in service_data
+            ]
+            self.add_table_from_data(doc, enriched, 'Patients by Service Area')
+            self.add_key_explanation(doc, 'Shows how many unique patients used each service during the reporting period. "Total Orders" = number of individual service transactions. A patient may appear in multiple services.')
+        else:
+            doc.add_paragraph('No service data available for this period.')
+        print(f"Clinical service breakdown")
+
+        # Section 6: Duplicate Patient Analysis
+        self.add_section_header(doc, '6. Duplicate Patient Analysis')
         self.add_metric(doc, 'Duplicate Groups', duplicate_groups_count)
         self.add_metric(doc, 'Extra Duplicate Records', total_duplicate_records)
         self.add_metric(doc, 'Patients In Duplicate Groups', total_patients_in_duplicates)
         self.add_key_explanation(doc, '"Duplicate Groups" = number of real patients registered more than once (e.g. 10 groups means 10 patients have duplicates). "Extra Duplicate Records" = redundant registrations that should be removed (e.g. registered 3 times = 2 extra records). "Patients In Duplicate Groups" = total registrations belonging to those patients, including the original. Ideally all three values should be 0.')
         print(f"Duplicate patient analysis")
 
-        # Section 6: Financial Analysis
-        self.add_section_header(doc, '6. Financial Analysis')
+        # Section 7: Financial Analysis
+        self.add_section_header(doc, '7. Financial Analysis')
         self.add_table_from_data(doc, money_collected, 'Total Money Collected by Cashier')
         
         if money_collected:
@@ -1132,7 +1181,7 @@ Wandikweza Health Center - Automated Reporting System
         print(f"Paying vs non-paying breakdown")
         
         # Section 7: Daily Trends
-        self.add_section_header(doc, '7. Daily Trends')
+        self.add_section_header(doc, '8. Daily Trends')
         daily_revenue = self.get_daily_revenue_trend()
         self.add_table_from_data(doc, daily_revenue, 'Daily Revenue Trend')
         self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting period.')
