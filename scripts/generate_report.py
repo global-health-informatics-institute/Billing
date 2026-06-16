@@ -171,6 +171,16 @@ class ReportGenerator:
         result = self.execute_query(query)
         return result[0]['total_patients'] if result else 0
     
+    def get_total_visits(self):
+        """Total patient visits (receipts) in the reporting period."""
+        query = """
+        SELECT COUNT(*) AS total_visits
+        FROM receipts
+        WHERE payment_stamp BETWEEN %s AND %s
+        """
+        result = self.execute_query(query, (self.start_date, self.end_date))
+        return result[0]['total_visits'] if result else 0
+
     def get_returning_patients_count(self):
         """Query 2: Count of returning patients"""
         query = """
@@ -479,7 +489,7 @@ class ReportGenerator:
         
         return doc
     
-    def add_executive_summary(self, doc, total_registered, returning_count,
+    def add_executive_summary(self, doc, total_registered, total_visits, returning_count,
                                total_revenue, duplicate_groups_count,
                                total_duplicate_records, paying_breakdown,
                                gender_data, daily_visits, prev, service_data):
@@ -579,11 +589,12 @@ class ReportGenerator:
         _sub_heading('Overview')
         _para(
             f'During the reporting period ({self.start_date} to {self.end_date}), the facility registered '
-            f'{total_registered:,} new patients and recorded {returning_count:,} returning patients, '
-            f'resulting in {total_patients:,} unique patients served. Revenue collected amounted to '
+            f'{total_registered:,} new patients and recorded {total_visits:,} total patient visits. '
+            f'Of these, {returning_count:,} were returning patients. '
+            f'Revenue collected amounted to '
             f'MWK {revenue_millions:,.2f} million, with {pay_pct:.1f}% of patients having paid transactions.',
-            bold_phrases=[f'{total_registered:,} new patients', f'{returning_count:,} returning patients',
-                          f'MWK {revenue_millions:,.2f} million']
+            bold_phrases=[f'{total_registered:,} new patients', f'{total_visits:,} total patient visits',
+                          f'{returning_count:,} were returning patients', f'MWK {revenue_millions:,.2f} million']
         )
 
         # --- Key Highlights with Month-to-Month Comparison ---
@@ -1019,6 +1030,7 @@ Wandikweza Health Center - Automated Reporting System
         # Gather data needed for executive summary (reused later in sections)
         print("Gathering data for executive summary...")
         total_registered = self.get_total_registered_patients()
+        total_visits = self.get_total_visits()
         returning_count = self.get_returning_patients_count()
         duplicate_groups = self.get_duplicate_group_counts()
         duplicate_groups_count = len(duplicate_groups) if duplicate_groups else 0
@@ -1041,7 +1053,7 @@ Wandikweza Health Center - Automated Reporting System
         service_data = self.get_service_breakdown()
 
         # Executive Summary (page 1)
-        self.add_executive_summary(doc, total_registered, returning_count,
+        self.add_executive_summary(doc, total_registered, total_visits, returning_count,
                                    total_revenue, duplicate_groups_count,
                                    total_duplicate_records, paying_breakdown,
                                    pivoted_gender_reg, daily_visits, prev, service_data)
