@@ -57,6 +57,10 @@ class ReportGenerator:
             self.start_date = self.config.get('report', 'start_date')
             self.end_date   = self.config.get('report', 'end_date')
         
+    def format_date_display(self, date_str):
+        """Convert YYYY-MM-DD to 'YYYY Month D' format for display."""
+        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%Y %B %-d')
+
     def connect_database(self):
         """Establish database connection"""
         try:
@@ -82,7 +86,6 @@ class ReportGenerator:
         return str(prev_start), str(prev_end)
 
     def get_comparison_data(self, prev_start, prev_end):
-        """Fetch the same key metrics for the previous period."""
         def _query(sql, params):
             result = self.execute_query(sql, params)
             return result
@@ -144,7 +147,7 @@ class ReportGenerator:
         prev_dup_records = sum(r['duplicate_count'] - 1 for r in dup) if dup else 0
 
         return {
-            'period':       f'{prev_start} to {prev_end}',
+            'period': f'{self.format_date_display(prev_start)} to {self.format_date_display(prev_end)}',
             'registered':   prev_registered,
             'returning':    prev_returning,
             'revenue':      prev_revenue,
@@ -486,7 +489,7 @@ class ReportGenerator:
         
         # Add report period
         period = doc.add_paragraph()
-        period.add_run(f'Reporting Period: {self.start_date} to {self.end_date}').bold = True
+        period.add_run(f'Reporting Period: {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}').bold = True
         period.alignment = WD_ALIGN_PARAGRAPH.CENTER
         period.runs[0].font.name = 'Arial'
         period.runs[0].font.size = Pt(11)
@@ -494,7 +497,7 @@ class ReportGenerator:
         # Add generation date
         generated = doc.add_paragraph()
         generated.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        generated_run = generated.add_run(f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        generated_run = generated.add_run(f'Generated on: {datetime.now().strftime("%Y %B %-d, %H:%M")}')
         generated_run.italic = True
         generated_run.font.name = 'Arial'
         generated_run.font.size = Pt(9)
@@ -660,7 +663,7 @@ class ReportGenerator:
         rev_change = total_revenue - prev['revenue']
 
         data_context = f"""
-Reporting period: {self.start_date} to {self.end_date}
+Reporting period: {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}
 Previous period: {prev['period']}
 New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,})
 Total patient visits: {total_visits:,}
@@ -686,7 +689,7 @@ FINANCIAL:
 QUALITY:
 
 Data:
-Reporting period: {self.start_date} to {self.end_date} (previous: {prev['period']})
+Reporting period: {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)} (previous: {prev['period']})
 New registrations: {total_registered:,} (prev: {prev['registered']:,}, change: {reg_change:+,})
 Total patient visits: {total_visits:,}
 Returning patients: {returning_count:,} ({returning_pct:.1f}% of new registrations)
@@ -702,7 +705,7 @@ For UTILIZATION: name the most used service with its patient count, the second m
 """
         fallbacks = {
             'OVERVIEW': (
-                f'During the reporting period ({self.start_date} to {self.end_date}), the facility registered '
+                f'During the reporting period ({self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}), the facility registered '
                 f'{total_registered:,} new patients, recorded {total_visits:,} total visits, and collected MWK {revenue_millions:,.2f} million in revenue. '
                 f'{returning_count:,} patients ({returning_pct:.1f}%) made more than one visit during the period.'
             ),
@@ -829,9 +832,9 @@ For UTILIZATION: name the most used service with its patient count, the second m
         if isinstance(value, bool):
             return 'Yes' if value else 'No'
         if isinstance(value, datetime):
-            return value.strftime('%Y-%m-%d %H:%M:%S')
+            return value.strftime('%Y %B %-d')
         if isinstance(value, date):
-            return value.strftime('%Y-%m-%d')
+            return value.strftime('%Y %B %-d')
         if isinstance(value, int):
             return f'{value:,}'
         if isinstance(value, float):
@@ -842,6 +845,14 @@ For UTILIZATION: name the most used service with its patient count, the second m
             if value == value.to_integral_value():
                 return f'{int(value):,}'
             return f'{value:,.2f}'
+        # Handle date strings returned as text from the DB (YYYY-MM-DD)
+        if isinstance(value, str):
+            import re
+            if re.fullmatch(r'\d{4}-\d{2}-\d{2}', value.strip()):
+                try:
+                    return datetime.strptime(value.strip(), '%Y-%m-%d').strftime('%Y %B %-d')
+                except ValueError:
+                    pass
         return str(value)
 
     def _align_table_column(self, header_name, value):
@@ -1299,12 +1310,12 @@ For UTILIZATION: name the most used service with its patient count, the second m
             msg = MIMEMultipart()
             msg['From'] = sender_email
             msg['To'] = recipient_email
-            msg['Subject'] = f'Wandikweza Hospital Monthly Report - {self.start_date} to {self.end_date}'
+            msg['Subject'] = f'Wandikweza Hospital Monthly Report - {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}'
             
             # Email body
             body = f"""Dear Wandikweza M&E Team,
 
-Please find attached the monthly billing and registration report for the period from {self.start_date} to {self.end_date}.
+Please find attached the monthly billing and registration report for the period from {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}.
 
 This report includes:
 - Patient registration statistics
