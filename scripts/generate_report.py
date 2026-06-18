@@ -78,11 +78,11 @@ class ReportGenerator:
             return False
     
     def get_previous_period(self):
-        """Derive the previous month's date range from the configured period."""
+        """Return the full previous calendar month for the current report month."""
         start = datetime.strptime(self.start_date, '%Y-%m-%d').date()
-        end   = datetime.strptime(self.end_date,   '%Y-%m-%d').date()
-        prev_start = start - relativedelta(months=1)
-        prev_end   = end   - relativedelta(months=1)
+        current_month_start = start.replace(day=1)
+        prev_end = current_month_start - relativedelta(days=1)
+        prev_start = prev_end.replace(day=1)
         return str(prev_start), str(prev_end)
 
     def get_comparison_data(self, prev_start, prev_end):
@@ -140,9 +140,10 @@ class ReportGenerator:
             JOIN person per ON p.patient_id = per.person_id
             JOIN person_name pn ON per.person_id = pn.person_id
             WHERE pn.voided = 0 AND per.voided = 0 AND pn.preferred = 1
+              AND p.date_created BETWEEN %s AND %s
             GROUP BY pn.given_name, pn.family_name, per.gender, per.birthdate
             HAVING COUNT(*) > 1
-        """, None)
+        """, (prev_start, prev_end))
         prev_dup_groups  = len(dup) if dup else 0
         prev_dup_records = sum(r['duplicate_count'] - 1 for r in dup) if dup else 0
 
@@ -215,14 +216,47 @@ class ReportGenerator:
         result = self.execute_query(query, (self.start_date, self.end_date))
         return result[0]['returning_patients'] if result else 0
 
+    def get_returning_patients_gap(self):
+        """Time elapsed between a returning patient's previous visit and current period visit."""
+        query = """
+        SELECT
+            CASE
+                WHEN DATEDIFF(current_visit.first_visit_in_period, prev_visit.last_visit_before_period) <= 7  THEN 'Within 1 week'
+                WHEN DATEDIFF(current_visit.first_visit_in_period, prev_visit.last_visit_before_period) <= 14 THEN '1-2 weeks'
+                WHEN DATEDIFF(current_visit.first_visit_in_period, prev_visit.last_visit_before_period) <= 30 THEN '2-4 weeks'
+                WHEN DATEDIFF(current_visit.first_visit_in_period, prev_visit.last_visit_before_period) <= 90 THEN '1-3 months'
+                WHEN DATEDIFF(current_visit.first_visit_in_period, prev_visit.last_visit_before_period) <= 180 THEN '3-6 months'
+                ELSE 'Over 6 months'
+            END AS time_since_last_visit,
+            COUNT(*) AS number_of_patients
+        FROM (
+            SELECT patient_id, MIN(DATE(payment_stamp)) AS first_visit_in_period
+            FROM receipts
+            WHERE payment_stamp BETWEEN %s AND %s
+            GROUP BY patient_id
+        ) AS current_visit
+        JOIN (
+            SELECT patient_id, MAX(DATE(payment_stamp)) AS last_visit_before_period
+            FROM receipts
+            WHERE payment_stamp < %s
+            GROUP BY patient_id
+        ) AS prev_visit ON current_visit.patient_id = prev_visit.patient_id
+        GROUP BY time_since_last_visit
+        ORDER BY MIN(DATEDIFF(current_visit.first_visit_in_period, prev_visit.last_visit_before_period))
+        """
+        return self.execute_query(query, (self.start_date, self.end_date, self.start_date))
+
     def get_returning_patients_distribution(self):
         """Query 3: Distribution of returning patients by age and gender"""
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) < 5 THEN 'Under 5'
-                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) BETWEEN 5 AND 13 THEN '5-13'
-                ELSE 'Adults'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) < 5  THEN 'Under 5'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) BETWEEN 5  AND 9  THEN '5-9'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) BETWEEN 10 AND 14 THEN '10-14'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) BETWEEN 15 AND 19 THEN '15-19'
+                WHEN TIMESTAMPDIFF(YEAR, per.birthdate, CURDATE()) BETWEEN 20 AND 24 THEN '20-24'
+                ELSE '25+'
             END AS age_category,
             per.gender AS gender,
             COUNT(DISTINCT r.patient_id) AS returning_patient_count
@@ -284,7 +318,8 @@ class ReportGenerator:
         return self.execute_query(query, (self.start_date, self.end_date))
 
     def get_duplicate_group_counts(self):
-        """Return duplicate patient group sizes based on preferred names and demographics."""
+        """Return duplicate patient group sizes based on preferred names and demographics,
+        scoped to patients created within the reporting period."""
         query = """
         SELECT COUNT(*) AS duplicate_count
         FROM patient p
@@ -293,6 +328,7 @@ class ReportGenerator:
         WHERE pn.voided = 0
           AND per.voided = 0
           AND pn.preferred = 1
+          AND p.date_created BETWEEN %s AND %s
         GROUP BY
             pn.given_name,
             pn.family_name,
@@ -300,16 +336,19 @@ class ReportGenerator:
             per.birthdate
         HAVING COUNT(*) > 1
         """
-        return self.execute_query(query)
+        return self.execute_query(query, (self.start_date, self.end_date))
     
     def get_gender_distribution_registered(self):
         """Query 6: Gender distribution of registered patients by age group"""
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) < 5 THEN 'Under 5'
-                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 5 AND 13 THEN '5-13'
-                ELSE 'Adults'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) < 5  THEN 'Under 5'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 5  AND 9  THEN '5-9'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 10 AND 14 THEN '10-14'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 15 AND 19 THEN '15-19'
+                WHEN TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) BETWEEN 20 AND 24 THEN '20-24'
+                ELSE '25+'
             END AS age_group,
             p.gender,
             COUNT(*) AS total_patients
@@ -327,8 +366,12 @@ class ReportGenerator:
         query = """
         SELECT 
             CASE 
-                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) < 13 THEN 'Under 13'
-                ELSE 'Adults'
+                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) < 5  THEN 'Under 5'
+                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) BETWEEN 5  AND 9  THEN '5-9'
+                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) BETWEEN 10 AND 14 THEN '10-14'
+                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) BETWEEN 15 AND 19 THEN '15-19'
+                WHEN TIMESTAMPDIFF(YEAR, person.birthdate, CURDATE()) BETWEEN 20 AND 24 THEN '20-24'
+                ELSE '25+'
             END AS age_group,
             person.gender,
             COUNT(DISTINCT patient.patient_id) AS total
@@ -598,7 +641,7 @@ class ReportGenerator:
                     r.font.name = 'Arial'
                     r.font.size = Pt(10)
 
-        def _bullet(text, bold_prefix=None):
+        def _bullet(text, bold_prefix=None, delta=None):
             p = doc.add_paragraph(style='List Bullet')
             p.paragraph_format.space_after = Pt(3)
             if bold_prefix:
@@ -606,13 +649,22 @@ class ReportGenerator:
                 br.bold = True
                 br.font.name = 'Arial'
                 br.font.size = Pt(10)
-                r = p.add_run(text)
-                r.font.name = 'Arial'
-                r.font.size = Pt(10)
-            else:
-                r = p.add_run(text)
-                r.font.name = 'Arial'
-                r.font.size = Pt(10)
+            r = p.add_run(text)
+            r.font.name = 'Arial'
+            r.font.size = Pt(10)
+            if delta:
+                arrow, color, detail = delta
+                br = p.add_run(' (')
+                br.font.name = 'Arial'
+                br.font.size = Pt(10)
+                ar = p.add_run(arrow)
+                ar.font.name = 'Arial'
+                ar.font.size = Pt(10)
+                ar.bold = True
+                ar.font.color.rgb = color
+                dr = p.add_run(f' {detail})')
+                dr.font.name = 'Arial'
+                dr.font.size = Pt(10)
 
         # --- Computed values ---
         exclusively_paying   = paying_breakdown[0]['exclusively_paying']   if paying_breakdown else 0
@@ -754,34 +806,40 @@ For UTILIZATION: name the most used service with its patient count, the second m
         # --- Key Highlights with Month-to-Month Comparison ---
         _sub_heading('Key Highlights')
 
-        def _delta(current, previous, is_currency=False, min_base=50):
+        def _delta(current, previous, is_currency=False, min_base=50, label=''):
             if previous == 0:
-                return ''
+                return None
             diff = current - previous
-            pct  = abs(diff / previous * 100)
-            arrow = '↑' if diff > 0 else ('↓' if diff < 0 else '—')
             if diff == 0:
-                return ' (no change vs previous period)'
+                return None
+            pct  = abs(diff / previous * 100)
+            arrow = '▲' if diff > 0 else '▼'
+            color = RGBColor(0, 150, 0) if diff > 0 else RGBColor(200, 0, 0)
+            direction = 'more' if diff > 0 else 'fewer'
             if is_currency:
-                return f' ({arrow} MWK {abs(diff):,.0f}, {pct:.1f}% vs previous period)'
-            if previous < min_base:
-                return f' ({arrow} {abs(int(diff)):,} vs previous period)'
-            return f' ({arrow} {abs(int(diff)):,}, {pct:.1f}% vs previous period)'
+                detail = f'MWK {abs(diff):,.0f} {direction} than previous period, {pct:.1f}% change'
+            elif previous < min_base:
+                detail = f'{abs(int(diff)):,} {direction} than previous period'
+            else:
+                suffix = f', {pct:.1f}% change in {label}' if label else ''
+                detail = f'{abs(int(diff)):,} {direction} than previous period{suffix}'
+            return (arrow, color, detail)
 
-        _bullet(f'{total_registered:,} patients{_delta(total_registered, prev["registered"])}',
-                bold_prefix='Total new registrations: ')
-        _bullet(f'{returning_count:,} patients{_delta(returning_count, prev["returning"])}',
-                bold_prefix='Returning patients: ')
-        _bullet(f'MWK {total_revenue:,.0f}{_delta(total_revenue, prev["revenue"], is_currency=True)}',
-                bold_prefix='Total revenue collected: ')
-        _bullet(f'{exclusively_paying:,}{_delta(exclusively_paying, prev["paying"])}',
-                bold_prefix='Paying patients: ')
-        _bullet(f'{exclusively_non_paying:,}{_delta(exclusively_non_paying, prev["non_paying"])}',
-                bold_prefix='Non-paying patients: ')
+        _bullet(f'{total_registered:,} patients', bold_prefix='Total new registrations: ',
+                delta=_delta(total_registered, prev["registered"], label="registrations"))
+        _bullet(f'{returning_count:,} patients', bold_prefix='Returning patients: ',
+                delta=_delta(returning_count, prev["returning"], label="returning patients"))
+        _bullet(f'MWK {total_revenue:,.0f}', bold_prefix='Total revenue collected: ',
+                delta=_delta(total_revenue, prev["revenue"], is_currency=True))
+        _bullet(f'{exclusively_paying:,}', bold_prefix='Paying patients: ',
+                delta=_delta(exclusively_paying, prev["paying"], label="paying patients"))
+        _bullet(f'{exclusively_non_paying:,}', bold_prefix='Non-paying patients: ',
+                delta=_delta(exclusively_non_paying, prev["non_paying"], label="non-paying patients"))
+        duplicate_record_label = 'extra record requires review' if total_duplicate_records == 1 else 'extra records require review'
         _bullet(
-            f'{duplicate_groups_count:,} ({total_duplicate_records:,} duplicate records requiring review)'
-            f'{_delta(duplicate_groups_count, prev["dup_groups"])}',
-            bold_prefix='Duplicate patient groups identified: '
+            f'{duplicate_groups_count:,} ({total_duplicate_records:,} {duplicate_record_label})',
+            bold_prefix='Duplicate patient groups identified: ',
+            delta=_delta(duplicate_groups_count, prev["dup_groups"])
         )
 
         # --- Patient Demographics ---
@@ -1024,29 +1082,52 @@ For UTILIZATION: name the most used service with its patient count, the second m
         p.paragraph_format.space_after = Pt(4)
     
     def add_age_group_chart(self, doc, pivoted_data):
-        """Stacked bar chart: registered patients by age group, split by gender."""
+        """Population pyramid: registered patients by age group, males left, females right."""
         rows = [r for r in (pivoted_data or []) if r.get('Age Category') != 'Total']
         if not rows:
             return
-        categories = [r['Age Category'] for r in rows]
-        males   = [r.get('Male', 0) for r in rows]
-        females = [r.get('Female', 0) for r in rows]
 
-        x = range(len(categories))
-        fig, ax = plt.subplots(figsize=(5, 2.8))
-        ax.bar(x, males,   label='Male',   color='#2E86AB', alpha=0.9)
-        ax.bar(x, females, label='Female', color='#E84855', alpha=0.8, bottom=males)
-        ax.set_xticks(list(x))
-        ax.set_xticklabels(categories, fontsize=8)
-        ax.set_ylabel('Patients', fontsize=8)
-        ax.tick_params(axis='y', labelsize=7)
-        ax.legend(fontsize=8, loc='upper left')
-        ax.set_title('Registered Patients by Age Group', fontsize=9,
-                     fontweight='bold', color='#1F4E79', pad=6)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.yaxis.grid(True, linestyle='--', alpha=0.4)
-        ax.set_axisbelow(True)
+        age_order = ['Under 5', '5-9', '10-14', '15-19', '20-24', '25+']
+        row_map = {r['Age Category']: r for r in rows}
+        ordered = [row_map[a] for a in age_order if a in row_map]
+        if not ordered:
+            ordered = rows
+
+        categories = [r['Age Category'] for r in ordered]
+        males   = [r.get('Male', 0) for r in ordered]
+        females = [r.get('Female', 0) for r in ordered]
+        max_val = max(max(males), max(females), 1)
+
+        fig, (ax_m, ax_f) = plt.subplots(1, 2, figsize=(6, 3), sharey=True)
+        fig.subplots_adjust(wspace=0.0)
+
+        y = range(len(categories))
+        ax_m.barh(list(y), males,   color='#2E86AB', alpha=0.88)
+        ax_f.barh(list(y), females, color='#E84855', alpha=0.88)
+
+        # Mirror left axis
+        ax_m.invert_xaxis()
+        ax_m.set_xlim(max_val * 1.15, 0)
+        ax_f.set_xlim(0, max_val * 1.15)
+
+        ax_m.set_yticks(list(y))
+        ax_m.set_yticklabels(categories, fontsize=8)
+        ax_m.tick_params(axis='x', labelsize=7)
+        ax_f.tick_params(axis='x', labelsize=7)
+        ax_f.tick_params(axis='y', left=False, labelleft=False)
+
+        ax_m.set_xlabel('Male', fontsize=8, color='#2E86AB', fontweight='bold')
+        ax_f.set_xlabel('Female', fontsize=8, color='#E84855', fontweight='bold')
+
+        ax_m.spines['top'].set_visible(False)
+        ax_m.spines['right'].set_visible(False)
+        ax_f.spines['top'].set_visible(False)
+        ax_f.spines['left'].set_visible(False)
+        ax_m.xaxis.grid(True, linestyle='--', alpha=0.4)
+        ax_f.xaxis.grid(True, linestyle='--', alpha=0.4)
+
+        fig.suptitle('Patient Registration — Population Pyramid', fontsize=9,
+                     fontweight='bold', color='#1F4E79', y=1.01)
         fig.tight_layout()
 
         stream = self._chart_to_image_stream(fig)
@@ -1054,7 +1135,7 @@ For UTILIZATION: name the most used service with its patient count, the second m
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
-        p.add_run().add_picture(stream, width=Inches(4.0))
+        p.add_run().add_picture(stream, width=Inches(5.0))
 
     def add_visit_frequency_chart(self, doc, frequency_display):
         """Horizontal bar chart: number of patients per visit count."""
@@ -1394,7 +1475,7 @@ Wandikweza Health Center - Automated Reporting System
         gender_registered = self.get_gender_distribution_registered()
         pivoted_gender_reg = self.pivot_age_gender_table(
             gender_registered, 'age_group', 'gender', 'total_patients',
-            age_order=['Under 5', '5-13', 'Adults']
+            age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', '25+']
         )
 
         # Previous period comparison
@@ -1410,7 +1491,8 @@ Wandikweza Health Center - Automated Reporting System
                                    pivoted_gender_reg, daily_visits, prev, service_data)
 
         # Section 1: Patient Registration Statistics
-        # Detailed report title
+        # Detailed report title — start on a new page
+        doc.add_page_break()
         detailed_title = doc.add_heading('Detailed Performance Report', level=1)
         detailed_title.alignment = WD_ALIGN_PARAGRAPH.LEFT
         if detailed_title.runs:
@@ -1426,7 +1508,7 @@ Wandikweza Health Center - Automated Reporting System
         self.add_side_by_side_registration(doc, [
             ('Total Patients Registered in Report Period', f'{total_registered:,}'),
         ], pivoted_gender_reg)
-        self.add_registration_pie_chart(doc, pivoted_gender_reg)
+        self.add_age_group_chart(doc, pivoted_gender_reg)
 
         # Section 2: Returning Patients
         self.add_section_header(doc, '2. Returning Patients Analysis')
@@ -1436,12 +1518,18 @@ Wandikweza Health Center - Automated Reporting System
         returning_dist = self.get_returning_patients_distribution()
         pivoted_returning = self.pivot_age_gender_table(
             returning_dist, 'age_category', 'gender', 'returning_patient_count',
-            age_order=['Under 5', '5-13', 'Adults']
+            age_order=['Under 5', '5-9', '10-14', '15-19', '20-24', '25+']
         )
         self.add_table_from_data(doc, pivoted_returning, 'Distribution by Age and Gender')
         self.add_returning_patients_chart(doc, pivoted_returning)
-        self.add_key_explanation(doc, 'Returning patients are those who made more than one visit during the reporting period. Under 5: below age 5. 5-13: ages 5 to 13. Adults: 14 and above.')
+        self.add_key_explanation(doc, 'Returning patients are those who visited more than once during the reporting period. Age groups: Under 5, 5-9, 10-14, 15-19, 20-24, 25+.')
         print(f"Returning patients distribution")
+
+        # Time-since-last-visit context
+        returning_gap = self.get_returning_patients_gap()
+        self.add_table_from_data(doc, returning_gap, 'Time Since Last Visit')
+        self.add_key_explanation(doc, 'Shows how long returning patients had been away before coming back during this period. Helps identify whether patients are returning for follow-up care or after a long absence.')
+        print(f"Returning patients gap analysis")
         
         # Section 3: Age Group Analysis
         self.add_section_header(doc, '3. Age Group Analysis')
@@ -1555,14 +1643,24 @@ Wandikweza Health Center - Automated Reporting System
             self.add_metric(doc, 'Total Revenue (MKW)', f'{total_revenue:,.2f}')
             print(f"Financial analysis - Total: {total_revenue:,.2f}")
         
-        self.add_table_from_data(doc, paying_breakdown, 'Paying vs Non-Paying Patients Breakdown')
+        # Reshape paying breakdown into vertical Category | Count table
+        if paying_breakdown and paying_breakdown[0]:
+            pb = paying_breakdown[0]
+            paying_vertical = [
+                {'Category': 'Total Patients',          'Count': pb.get('total_patients', 0)},
+                {'Category': 'Exclusively Paying',      'Count': pb.get('exclusively_paying', 0)},
+                {'Category': 'Exclusively Non-Paying',  'Count': pb.get('exclusively_non_paying', 0)},
+                {'Category': 'Both Paying & Non-Paying','Count': pb.get('both_categories', 0)},
+            ]
+        else:
+            paying_vertical = []
+        self.add_table_from_data(doc, paying_vertical, 'Paying vs Non-Paying Patients Breakdown')
         self.add_key_explanation(doc, 'Shows total patients, those who only paid, those who never paid, and those who had both paying and non-paying visits during the reporting period.')
         print(f"Paying vs non-paying breakdown")
         
-        # Section 7: Daily Trends
+        # Section 8: Daily Trends
         self.add_section_header(doc, '8. Daily Trends')
         daily_revenue = self.get_daily_revenue_trend()
-        self.add_table_from_data(doc, daily_revenue, 'Daily Revenue Trend')
         self.add_daily_revenue_chart(doc, daily_revenue)
         self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting period.')
         print(f"Daily revenue trend")
