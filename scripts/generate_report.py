@@ -24,6 +24,7 @@ import sys
 import platform
 import subprocess
 import smtplib
+import io
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -76,6 +77,43 @@ class ReportGenerator:
         except mysql.connector.Error as err:
             print(f"Database connection failed: {err}")
             return False
+
+    def _ollama_narrative(self, prompt, fallback=''):
+        """Call local Ollama to generate narrative text. Returns fallback if unavailable."""
+        try:
+            import re
+            payload = json.dumps({
+                'model': 'llama3.2:3b',
+                'think': False,
+                'messages': [
+                    {
+                        'role': 'system',
+                        'content': (
+                            'You are a professional medical report writer. '
+                            'Write clear, concise, factual paragraphs for hospital management reports. '
+                            'Never use bullet points. Never add headers. Never explain your reasoning. '
+                            'Output only the requested paragraph text.'
+                        )
+                    },
+                    {'role': 'user', 'content': prompt}
+                ],
+                'stream': False,
+                'options': {'temperature': 0.3, 'num_predict': 400}
+            }).encode()
+            req = urllib.request.Request(
+                'http://localhost:11434/api/chat',
+                data=payload,
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                result = json.loads(resp.read())
+                text = result.get('message', {}).get('content', fallback)
+                text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+                return text or fallback
+        except Exception as e:
+            print(f"Ollama unavailable, using fallback text: {e}")
+            return fallback
     
     def get_previous_period(self):
         """Return the full previous calendar month for the current report month."""
@@ -553,43 +591,6 @@ class ReportGenerator:
         
         return doc
     
-    def _ollama_narrative(self, prompt, fallback=''):
-        """Call local Ollama to generate narrative text. Returns fallback if unavailable."""
-        try:
-            import re
-            payload = json.dumps({
-                'model': 'llama3.2:3b',
-                'think': False,
-                'messages': [
-                    {
-                        'role': 'system',
-                        'content': (
-                            'You are a professional medical report writer. '
-                            'Write clear, concise, factual paragraphs for hospital management reports. '
-                            'Never use bullet points. Never add headers. Never explain your reasoning. '
-                            'Output only the requested paragraph text.'
-                        )
-                    },
-                    {'role': 'user', 'content': prompt}
-                ],
-                'stream': False,
-                'options': {'temperature': 0.3, 'num_predict': 400}
-            }).encode()
-            req = urllib.request.Request(
-                'http://localhost:11434/api/chat',
-                data=payload,
-                headers={'Content-Type': 'application/json'},
-                method='POST'
-            )
-            with urllib.request.urlopen(req, timeout=180) as resp:
-                result = json.loads(resp.read())
-                text = result.get('message', {}).get('content', fallback)
-                text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
-                return text or fallback
-        except Exception as e:
-            print(f"Ollama unavailable, using fallback text: {e}")
-            return fallback
-
     def add_executive_summary(self, doc, total_registered, total_visits, returning_count,
                                total_revenue, duplicate_groups_count,
                                total_duplicate_records, paying_breakdown,
@@ -673,13 +674,18 @@ class ReportGenerator:
         pay_pct = (exclusively_paying / total_patients * 100) if total_patients else 0
 
         # Gender/age breakdown from registered pivot
-        adults_total = next((r['Total'] for r in gender_data if r.get('Age Category') == 'Adults'), 0)
         under5_total = next((r['Total'] for r in gender_data if r.get('Age Category') == 'Under 5'), 0)
-        mid_total    = next((r['Total'] for r in gender_data if r.get('Age Category') == '5-13'), 0)
+        five_to_nine_total = next((r['Total'] for r in gender_data if r.get('Age Category') == '5-9'), 0)
+        ten_to_fourteen_total = next((r['Total'] for r in gender_data if r.get('Age Category') == '10-14'), 0)
+        adults_total = sum(
+            r.get('Total', 0)
+            for r in gender_data
+            if r.get('Age Category') in {'15-19', '20-24', '25+'}
+        )
         female_total = sum(r.get('Female', 0) for r in gender_data if r.get('Age Category') != 'Total')
         reg_total_check = sum(r.get('Total', 0) for r in gender_data if r.get('Age Category') != 'Total')
         adult_pct  = (adults_total / reg_total_check * 100) if reg_total_check else 0
-        under14_pct = ((under5_total + mid_total) / reg_total_check * 100) if reg_total_check else 0
+        under14_pct = ((under5_total + five_to_nine_total + ten_to_fourteen_total) / reg_total_check * 100) if reg_total_check else 0
         female_pct = (female_total / reg_total_check * 100) if reg_total_check else 0
 
         # Peak attendance day from daily visits
@@ -701,7 +707,6 @@ class ReportGenerator:
             title.runs[0].font.size = Pt(14)
             title.runs[0].font.color.rgb = RGBColor(31, 78, 121)
 
-        # Build a shared data context string for all prompts
         top_services_str = ', '.join(
             f'{r["service"]} ({r["patients"]:,} patients)'
             for r in (service_data or [])[:3]
@@ -722,15 +727,15 @@ Total patient visits: {total_visits:,}
 Returning patients: {returning_count:,} ({returning_pct:.1f}% of new registrations)
 Total revenue: MWK {total_revenue:,.0f} (previous: MWK {prev['revenue']:,.0f}, change: MWK {rev_change:+,.0f})
 Paying patients: {exclusively_paying:,}, Non-paying: {exclusively_non_paying:,}
-Adult patients: {adult_pct:.1f}%, Female patients: {female_pct:.1f}%, Under 14: {under14_pct:.1f}%
+Adult registered patients: {adult_pct:.1f}%, Female registered patients: {female_pct:.1f}%, Under 14 registered patients: {under14_pct:.1f}%
 Top services: {top_services_str}
+Least used service: {least_service_str}
 Peak attendance: {peak_str}
 Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess records)
 """
 
         print("Generating AI narrative for executive summary...")
 
-        # Single Ollama call for all narrative sections
         full_prompt = f"""You are writing narrative paragraphs for a hospital monthly performance report executive summary.
 Write exactly 5 paragraphs, each exactly 2 sentences. Never write more than 2 sentences per paragraph. Be factual and professional.
 Use ONLY these exact labels on their own line before each paragraph (no other formatting):
@@ -741,19 +746,9 @@ FINANCIAL:
 QUALITY:
 
 Data:
-Reporting period: {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)} (previous: {prev['period']})
-New registrations: {total_registered:,} (prev: {prev['registered']:,}, change: {reg_change:+,})
-Total patient visits: {total_visits:,}
-Returning patients: {returning_count:,} ({returning_pct:.1f}% of new registrations)
-Revenue: MWK {total_revenue:,.0f} (prev: MWK {prev['revenue']:,.0f}, change: MWK {rev_change:+,.0f})
-Paying: {exclusively_paying:,}, Non-paying: {exclusively_non_paying:,}
-Adults: {adult_pct:.1f}%, Females: {female_pct:.1f}%, Under 14: {under14_pct:.1f}%
-Top services: {top_services_str}
-Least used service: {least_service_str}
-Peak attendance: {peak_str}
-Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess records)
+{data_context}
 
-For UTILIZATION: name the most used service with its patient count, the second most used, and the least used service. Do not include scheduling advice or generic recommendations.
+For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION: name the most used service with its patient count, the second most used, and the least used service. Do not include scheduling advice or generic recommendations.
 """
         fallbacks = {
             'OVERVIEW': (
@@ -762,8 +757,8 @@ For UTILIZATION: name the most used service with its patient count, the second m
                 f'{returning_count:,} patients ({returning_pct:.1f}%) made more than one visit during the period.'
             ),
             'DEMOGRAPHICS': (
-                f'Adults accounted for {adult_pct:.1f}% of registrations, with females representing {female_pct:.1f}% of all registered patients. '
-                f'Children under 14 years made up the remaining {under14_pct:.1f}%.'
+                f'Adult registered patients accounted for {adult_pct:.1f}% of registrations, with females representing {female_pct:.1f}% of all registered patients. '
+                f'Children under 14 years made up {under14_pct:.1f}% of registrations.'
             ),
             'UTILIZATION': (
                 f'The most utilised service was {service_data[0]["service"]} ({service_data[0]["patients"]:,} patients), '
@@ -785,7 +780,6 @@ For UTILIZATION: name the most used service with its patient count, the second m
             ),
         }
 
-        # Parse the single response into sections
         import re
         raw = self._ollama_narrative(full_prompt, fallback='')
         sections = {}
@@ -1314,29 +1308,31 @@ For UTILIZATION: name the most used service with its patient count, the second m
         p.add_run().add_picture(stream, width=Inches(6.5))
 
     def add_daily_revenue_chart(self, doc, daily_revenue):
-        """Bar chart: daily revenue trend with peak day highlighted."""
+        """Line chart: daily revenue trend with peak day annotated."""
         if not daily_revenue:
             return
         dates   = [datetime.strptime(str(r['transaction_date']), '%Y-%m-%d') for r in daily_revenue]
         revenue = [float(r['Total Collected (MKW)'] or 0) for r in daily_revenue]
 
         peak_idx = revenue.index(max(revenue)) if revenue else 0
-        colors = ['#E84855' if i == peak_idx else '#2E86AB' for i in range(len(revenue))]
 
         fig, ax = plt.subplots(figsize=(10, 3.5))
-        bars = ax.bar(range(len(dates)), revenue, color=colors, alpha=0.85, width=0.6)
 
-        # Annotate peak bar
+        ax.plot(dates, revenue, color='#1F4E79', linewidth=2, marker='o', markersize=4, zorder=3)
+        ax.fill_between(dates, revenue, alpha=0.08, color='#1F4E79')
+
+        # Highlight peak point
+        ax.plot(dates[peak_idx], revenue[peak_idx], 'o', color='#E84855', markersize=8, zorder=4)
         ax.annotate(
             f'Peak\n{revenue[peak_idx]/1000:,.0f}K',
-            xy=(peak_idx, revenue[peak_idx]),
-            xytext=(0, 6), textcoords='offset points',
+            xy=(dates[peak_idx], revenue[peak_idx]),
+            xytext=(0, 10), textcoords='offset points',
             ha='center', fontsize=7, color='#E84855', fontweight='bold'
         )
 
-        ax.set_xticks(range(len(dates)))
-        ax.set_xticklabels([d.strftime('%d %b') for d in dates],
-                           rotation=45, ha='right', fontsize=7)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+        fig.autofmt_xdate(rotation=45)
         ax.set_ylabel('MWK (thousands)', fontsize=9)
         ax.set_title('Daily Revenue Trend', fontsize=11, fontweight='bold', color='#1F4E79')
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v/1000:,.0f}K'))
