@@ -784,12 +784,22 @@ For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION:
         raw = self._ollama_narrative(full_prompt, fallback='')
         sections = {}
         if raw:
-            for key in fallbacks:
+            # Map flexible AI label variations to canonical keys
+            label_patterns = {
+                'OVERVIEW':     r'OVERVIEW',
+                'DEMOGRAPHICS': r'DEMOGRAPHICS',
+                'UTILIZATION':  r'UTILIZATION|UTILISATION|SERVICE\s+UTILIZATION',
+                'FINANCIAL':    r'FINANCIAL(?:\s+PERFORMANCE)?',
+                'QUALITY':      r'(?:DATA\s+)?QUALITY',
+            }
+            boundary = r'(?:OVERVIEW|DEMOGRAPHICS|UTILIZATION|UTILISATION|FINANCIAL|QUALITY|DATA\s+QUALITY|SERVICE)'
+            for key, pattern in label_patterns.items():
                 match = re.search(
-                    rf'{key}:\s*(.*?)(?=(?:OVERVIEW|DEMOGRAPHICS|UTILIZATION|FINANCIAL|QUALITY|ASSESSMENT):|$)',
+                    rf'(?:{pattern}):\s*(.*?)(?={boundary}:|$)',
                     raw, re.DOTALL | re.IGNORECASE
                 )
-                sections[key] = match.group(1).strip() if match else fallbacks[key]
+                extracted = match.group(1).strip() if match else ''
+                sections[key] = extracted if extracted else fallbacks[key]
         else:
             sections = fallbacks
 
