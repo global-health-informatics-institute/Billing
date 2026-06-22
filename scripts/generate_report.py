@@ -5,6 +5,7 @@ Generates reports from live database
 """
 
 import configparser
+import calendar
 import mysql.connector
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -55,8 +56,45 @@ class ReportGenerator:
             self.end_date   = str(last_month_end)
             print(f"Auto date mode: reporting period set to {self.start_date} to {self.end_date}")
         else:
-            self.start_date = self.config.get('report', 'start_date')
-            self.end_date   = self.config.get('report', 'end_date')
+            self.start_date = self._normalize_report_date(
+                self.config.get('report', 'start_date'), 'start_date'
+            )
+            self.end_date = self._normalize_report_date(
+                self.config.get('report', 'end_date'), 'end_date'
+            )
+            start = datetime.strptime(self.start_date, '%Y-%m-%d').date()
+            end = datetime.strptime(self.end_date, '%Y-%m-%d').date()
+            if start > end:
+                raise ValueError(
+                    f"Invalid report period: start_date ({self.start_date}) "
+                    f"is after end_date ({self.end_date})"
+                )
+
+    def _normalize_report_date(self, date_str, field_name):
+        """Parse YYYY-MM-DD and clamp impossible days to the month's last day."""
+        try:
+            parts = date_str.strip().split('-')
+            if len(parts) != 3:
+                raise ValueError
+            year, month, day = map(int, parts)
+            last_day = calendar.monthrange(year, month)[1]
+        except (ValueError, AttributeError):
+            raise ValueError(
+                f"Invalid {field_name} '{date_str}': expected YYYY-MM-DD"
+            ) from None
+
+        if day < 1:
+            raise ValueError(
+                f"Invalid {field_name} '{date_str}': day must be at least 1"
+            )
+        if day > last_day:
+            normalized = date(year, month, last_day)
+            print(
+                f"Warning: {field_name} '{date_str}' is not a valid calendar date; "
+                f"using {normalized} instead."
+            )
+            return str(normalized)
+        return date_str.strip()
         
     def format_date_display(self, date_str):
         """Convert YYYY-MM-DD to 'YYYY Month D' format for display."""
@@ -696,6 +734,11 @@ class ReportGenerator:
             peak_visits = int(peak_row.get('total_visits') or 0)
 
         returning_pct = (returning_count / total_registered * 100) if total_registered else 0
+        returning_change = returning_count - prev['returning']
+        returning_mom_pct = (
+            abs(returning_change / prev['returning'] * 100)
+            if prev['returning'] else None
+        )
         revenue_millions = total_revenue / 1_000_000
 
         # --- Section title ---
@@ -717,14 +760,24 @@ class ReportGenerator:
         )
         peak_str = f'{peak_day} with {peak_visits:,} visits' if peak_day else 'not available'
         reg_change = total_registered - prev['registered']
+        reg_mom_pct = abs(reg_change / prev['registered'] * 100) if prev['registered'] else None
         rev_change = total_revenue - prev['revenue']
+
+        returning_mom_line = (
+            f'Returning patients month-over-month change: {returning_change:+,} '
+            f'({returning_mom_pct:.1f}% vs previous period, previous count: {prev["returning"]:,})'
+            if returning_mom_pct is not None
+            else f'Returning patients month-over-month change: {returning_change:+,} (no previous-period baseline)'
+        )
 
         data_context = f"""
 Reporting period: {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}
 Previous period: {prev['period']}
-New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,})
+New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,}{f', {reg_mom_pct:.1f}% vs previous period' if reg_mom_pct is not None else ''})
 Total patient visits: {total_visits:,}
-Returning patients: {returning_count:,} ({returning_pct:.1f}% of new registrations)
+Returning patients (multiple visits in this period): {returning_count:,}
+Returning patients as share of new registrations: {returning_pct:.1f}% (NOT a month-over-month change)
+{returning_mom_line}
 Total revenue: MWK {total_revenue:,.0f} (previous: MWK {prev['revenue']:,.0f}, change: MWK {rev_change:+,.0f})
 Paying patients: {exclusively_paying:,}, Non-paying: {exclusively_non_paying:,}
 Adult registered patients: {adult_pct:.1f}%, Female registered patients: {female_pct:.1f}%, Under 14 registered patients: {under14_pct:.1f}%
@@ -749,12 +802,27 @@ Data:
 {data_context}
 
 For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION: name the most used service with its patient count, the second most used, and the least used service. Do not include scheduling advice or generic recommendations.
+For OVERVIEW: if you mention returning patients versus the previous period, use ONLY the month-over-month change figure. Never describe "{returning_pct:.1f}%" as an increase or decrease versus the previous period — that percentage is returning patients as a share of new registrations, not a period-over-period change.
+For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_groups_count}, excess records: {total_duplicate_records}. Do not say zero duplicates unless both numbers are 0.
 """
+        if returning_mom_pct is not None and returning_change != 0:
+            returning_overview_sentence = (
+                f'Returning patients {"increased" if returning_change > 0 else "decreased"} by '
+                f'{abs(returning_change):,} ({returning_mom_pct:.1f}%) compared to the previous period.'
+            )
+        elif returning_change == 0:
+            returning_overview_sentence = 'Returning patient volume was unchanged compared to the previous period.'
+        else:
+            returning_overview_sentence = (
+                f'{returning_count:,} patients made more than one visit during the period '
+                f'({returning_pct:.1f}% of new registrations).'
+            )
+
         fallbacks = {
             'OVERVIEW': (
-                f'During the reporting period ({self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}), the facility registered '
-                f'{total_registered:,} new patients, recorded {total_visits:,} total visits, and collected MWK {revenue_millions:,.2f} million in revenue. '
-                f'{returning_count:,} patients ({returning_pct:.1f}%) made more than one visit during the period.'
+                f'During the reporting period ({self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}), the facility recorded '
+                f'{total_visits:,} total patient visits and registered {total_registered:,} new patients. '
+                f'{returning_overview_sentence}'
             ),
             'DEMOGRAPHICS': (
                 f'Adult registered patients accounted for {adult_pct:.1f}% of registrations, with females representing {female_pct:.1f}% of all registered patients. '
@@ -800,6 +868,33 @@ For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION:
                 )
                 extracted = match.group(1).strip() if match else ''
                 sections[key] = extracted if extracted else fallbacks[key]
+            # Sanity-check QUALITY: if duplicates exist but AI says "no duplicate", use fallback
+            quality_text = sections.get('QUALITY', '')
+            if duplicate_groups_count > 0 and re.search(r'\bno\b.*\bduplic', quality_text, re.IGNORECASE):
+                sections['QUALITY'] = fallbacks['QUALITY']
+            # Sanity-check OVERVIEW: AI often mislabels returning_pct as a month-over-month change
+            overview_text = sections.get('OVERVIEW', '')
+            pct_token = f'{returning_pct:.1f}%'
+            mentions_previous_period = re.search(
+                r'\b(previous|prior)\s+period\b|\bcompared\s+to\b|\bmonth[- ]over[- ]month\b|\bvs\.?\b',
+                overview_text,
+                re.IGNORECASE,
+            )
+            mentions_change = re.search(
+                r'\b(increase|decrease|change|more|fewer|rose|fell|up|down)\b',
+                overview_text,
+                re.IGNORECASE,
+            )
+            if (
+                pct_token in overview_text
+                and mentions_previous_period
+                and mentions_change
+                and (
+                    returning_mom_pct is None
+                    or f'{returning_mom_pct:.1f}%' not in overview_text
+                )
+            ):
+                sections['OVERVIEW'] = fallbacks['OVERVIEW']
         else:
             sections = fallbacks
 
@@ -1326,7 +1421,10 @@ For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION:
 
         peak_idx = revenue.index(max(revenue)) if revenue else 0
 
-        fig, ax = plt.subplots(figsize=(10, 3.5))
+        # Filter out Sundays (weekday 6) for x-axis ticks only — data points stay
+        tick_dates = [d for d in dates if d.weekday() != 6]
+
+        fig, ax = plt.subplots(figsize=(12, 3.8))
 
         ax.plot(dates, revenue, color='#1F4E79', linewidth=2, marker='o', markersize=4, zorder=3)
         ax.fill_between(dates, revenue, alpha=0.08, color='#1F4E79')
@@ -1340,9 +1438,8 @@ For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION:
             ha='center', fontsize=7, color='#E84855', fontweight='bold'
         )
 
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
-        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-        fig.autofmt_xdate(rotation=45)
+        ax.set_xticks(tick_dates)
+        ax.set_xticklabels([d.strftime('%a\n%d %b') for d in tick_dates], fontsize=7)
         ax.set_ylabel('MWK (thousands)', fontsize=9)
         ax.set_title('Daily Revenue Trend', fontsize=11, fontweight='bold', color='#1F4E79')
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v/1000:,.0f}K'))
