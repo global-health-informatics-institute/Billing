@@ -605,27 +605,34 @@ class ReportGenerator:
         if os.path.exists(logo_path):
             logo_paragraph = doc.add_paragraph()
             logo_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            logo_paragraph.paragraph_format.space_before = Pt(0)
+            logo_paragraph.paragraph_format.space_after = Pt(4)
             logo_run = logo_paragraph.add_run()
             logo_run.add_picture(logo_path, width=Inches(0.8))  # 0.8 inches wide
-            logo_paragraph.space_after = Pt(6)
-        
+
         # Add title
         title = doc.add_heading('Wandikweza Billing and Registration Report', 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title.paragraph_format.space_before = Pt(0)
+        title.paragraph_format.space_after = Pt(4)
         title.runs[0].font.name = 'Arial'
         title.runs[0].font.bold = True
-        title.runs[0].font.size = Pt(22)
+        title.runs[0].font.size = Pt(18)
         title.runs[0].font.color.rgb = RGBColor(31, 78, 121)
-        
+
         # Add report period
         period = doc.add_paragraph()
+        period.paragraph_format.space_before = Pt(0)
+        period.paragraph_format.space_after = Pt(2)
         period.add_run(f'Reporting Period: {self.format_period_display(self.start_date, self.end_date)}').bold = True
         period.alignment = WD_ALIGN_PARAGRAPH.CENTER
         period.runs[0].font.name = 'Arial'
         period.runs[0].font.size = Pt(11)
-        
+
         # Add generation date
         generated = doc.add_paragraph()
+        generated.paragraph_format.space_before = Pt(0)
+        generated.paragraph_format.space_after = Pt(2)
         generated.alignment = WD_ALIGN_PARAGRAPH.CENTER
         generated_run = generated.add_run(f'Generated on: {datetime.now().strftime("%-d %B %Y, %H:%M")}')
         generated_run.italic = True
@@ -635,6 +642,8 @@ class ReportGenerator:
 
         divider = doc.add_paragraph()
         divider.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        divider.paragraph_format.space_before = Pt(2)
+        divider.paragraph_format.space_after = Pt(2)
         divider_run = divider.add_run('_' * 90)
         divider_run.font.color.rgb = RGBColor(180, 180, 180)
         
@@ -649,10 +658,12 @@ class ReportGenerator:
         def _sub_heading(text):
             h = doc.add_heading(text, level=2)
             h.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            h.paragraph_format.space_before = Pt(4)
+            h.paragraph_format.space_after = Pt(2)
             if h.runs:
                 h.runs[0].font.name = 'Arial'
                 h.runs[0].font.bold = True
-                h.runs[0].font.size = Pt(12)
+                h.runs[0].font.size = Pt(11)
                 h.runs[0].font.color.rgb = RGBColor(31, 78, 121)
 
         def _trim(text, max_sentences=2):
@@ -664,7 +675,7 @@ class ReportGenerator:
         def _para(text, bold_phrases=None):
             """Add a paragraph, optionally bolding specific phrases."""
             p = doc.add_paragraph()
-            p.paragraph_format.space_after = Pt(6)
+            p.paragraph_format.space_after = Pt(3)
             if not bold_phrases:
                 r = p.add_run(text)
                 r.font.name = 'Arial'
@@ -693,7 +704,7 @@ class ReportGenerator:
 
         def _bullet(text, bold_prefix=None, delta=None):
             p = doc.add_paragraph(style='List Bullet')
-            p.paragraph_format.space_after = Pt(3)
+            p.paragraph_format.space_after = Pt(1)
             if bold_prefix:
                 br = p.add_run(bold_prefix)
                 br.bold = True
@@ -755,6 +766,8 @@ class ReportGenerator:
         # --- Section title ---
         title = doc.add_heading('Executive Summary', level=1)
         title.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        title.paragraph_format.space_before = Pt(4)
+        title.paragraph_format.space_after = Pt(4)
         if title.runs:
             title.runs[0].font.name = 'Arial'
             title.runs[0].font.bold = True
