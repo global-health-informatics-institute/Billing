@@ -97,8 +97,19 @@ class ReportGenerator:
         return date_str.strip()
         
     def format_date_display(self, date_str):
-        """Convert YYYY-MM-DD to 'YYYY Month D' format for display."""
-        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%Y %B %-d')
+        """Convert YYYY-MM-DD to 'D Month YYYY' format for display (e.g. 17 April 2026)."""
+        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%-d %B %Y')
+
+    def format_period_display(self, start_str, end_str):
+        """Return period in executive summary style: '1st - 30th April, 2026'.
+        Assumes start and end are in the same month."""
+        def ordinal(n):
+            if 11 <= n % 100 <= 13:
+                return f'{n}th'
+            return f'{n}{["th","st","nd","rd","th","th","th","th","th","th"][n % 10]}'
+        start = datetime.strptime(start_str, '%Y-%m-%d')
+        end   = datetime.strptime(end_str,   '%Y-%m-%d')
+        return f'{ordinal(start.day)} - {ordinal(end.day)} {end.strftime("%B, %Y")}'
 
     def connect_database(self):
         """Establish database connection"""
@@ -224,7 +235,7 @@ class ReportGenerator:
         prev_dup_records = sum(r['duplicate_count'] - 1 for r in dup) if dup else 0
 
         return {
-            'period': f'{self.format_date_display(prev_start)} to {self.format_date_display(prev_end)}',
+            'period': 'the previous month',
             'registered':   prev_registered,
             'returning':    prev_returning,
             'revenue':      prev_revenue,
@@ -608,7 +619,7 @@ class ReportGenerator:
         
         # Add report period
         period = doc.add_paragraph()
-        period.add_run(f'Reporting Period: {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}').bold = True
+        period.add_run(f'Reporting Period: {self.format_period_display(self.start_date, self.end_date)}').bold = True
         period.alignment = WD_ALIGN_PARAGRAPH.CENTER
         period.runs[0].font.name = 'Arial'
         period.runs[0].font.size = Pt(11)
@@ -616,7 +627,7 @@ class ReportGenerator:
         # Add generation date
         generated = doc.add_paragraph()
         generated.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        generated_run = generated.add_run(f'Generated on: {datetime.now().strftime("%Y %B %-d, %H:%M")}')
+        generated_run = generated.add_run(f'Generated on: {datetime.now().strftime("%-d %B %Y, %H:%M")}')
         generated_run.italic = True
         generated_run.font.name = 'Arial'
         generated_run.font.size = Pt(9)
@@ -765,15 +776,15 @@ class ReportGenerator:
 
         returning_mom_line = (
             f'Returning patients month-over-month change: {returning_change:+,} '
-            f'({returning_mom_pct:.1f}% vs previous period, previous count: {prev["returning"]:,})'
+            f'({returning_mom_pct:.1f}% vs the previous month, previous count: {prev["returning"]:,})'
             if returning_mom_pct is not None
-            else f'Returning patients month-over-month change: {returning_change:+,} (no previous-period baseline)'
+            else f'Returning patients month-over-month change: {returning_change:+,} (no previous-month baseline)'
         )
 
         data_context = f"""
-Reporting period: {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}
+Reporting period: {self.format_period_display(self.start_date, self.end_date)}
 Previous period: {prev['period']}
-New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,}{f', {reg_mom_pct:.1f}% vs previous period' if reg_mom_pct is not None else ''})
+New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,}{f', {reg_mom_pct:.1f}% vs the previous month' if reg_mom_pct is not None else ''})
 Total patient visits: {total_visits:,}
 Returning patients (multiple visits in this period): {returning_count:,}
 Returning patients as share of new registrations: {returning_pct:.1f}% (NOT a month-over-month change)
@@ -802,16 +813,16 @@ Data:
 {data_context}
 
 For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION: name the most used service with its patient count, the second most used, and the least used service. Do not include scheduling advice or generic recommendations.
-For OVERVIEW: if you mention returning patients versus the previous period, use ONLY the month-over-month change figure. Never describe "{returning_pct:.1f}%" as an increase or decrease versus the previous period — that percentage is returning patients as a share of new registrations, not a period-over-period change.
+For OVERVIEW: if you mention returning patients versus the previous month, use ONLY the month-over-month change figure. Never describe "{returning_pct:.1f}%" as an increase or decrease versus the previous month — that percentage is returning patients as a share of new registrations, not a period-over-period change.
 For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_groups_count}, excess records: {total_duplicate_records}. Do not say zero duplicates unless both numbers are 0.
 """
         if returning_mom_pct is not None and returning_change != 0:
             returning_overview_sentence = (
                 f'Returning patients {"increased" if returning_change > 0 else "decreased"} by '
-                f'{abs(returning_change):,} ({returning_mom_pct:.1f}%) compared to the previous period.'
+                f'{abs(returning_change):,} ({returning_mom_pct:.1f}%) compared to the previous month.'
             )
         elif returning_change == 0:
-            returning_overview_sentence = 'Returning patient volume was unchanged compared to the previous period.'
+            returning_overview_sentence = 'Returning patient volume was unchanged compared to the previous month.'
         else:
             returning_overview_sentence = (
                 f'{returning_count:,} patients made more than one visit during the period '
@@ -820,7 +831,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
 
         fallbacks = {
             'OVERVIEW': (
-                f'During the reporting period ({self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}), the facility recorded '
+                f'During the reporting period ({self.format_period_display(self.start_date, self.end_date)}), the facility recorded '
                 f'{total_visits:,} total patient visits and registered {total_registered:,} new patients. '
                 f'{returning_overview_sentence}'
             ),
@@ -837,7 +848,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
             ),
             'FINANCIAL': (
                 f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period, '
-                f'{"an increase" if rev_change >= 0 else "a decrease"} of MWK {abs(rev_change):,.0f} from the previous period. '
+                f'{"an increase" if rev_change >= 0 else "a decrease"} of MWK {abs(rev_change):,.0f} from the previous month. '
                 f'{exclusively_paying:,} patients ({pay_pct:.1f}%) had paying transactions.'
             ),
             'QUALITY': (
@@ -916,12 +927,12 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
             color = RGBColor(0, 150, 0) if diff > 0 else RGBColor(200, 0, 0)
             direction = 'more' if diff > 0 else 'fewer'
             if is_currency:
-                detail = f'MWK {abs(diff):,.0f} {direction} than previous period, {pct:.1f}% change'
+                detail = f'MWK {abs(diff):,.0f} {direction} than the previous month, {pct:.1f}% change'
             elif previous < min_base:
-                detail = f'{abs(int(diff)):,} {direction} than previous period'
+                detail = f'{abs(int(diff)):,} {direction} than the previous month'
             else:
                 suffix = f', {pct:.1f}% change in {label}' if label else ''
-                detail = f'{abs(int(diff)):,} {direction} than previous period{suffix}'
+                detail = f'{abs(int(diff)):,} {direction} than the previous month{suffix}'
             return (arrow, color, detail)
 
         _bullet(f'{total_registered:,} patients', bold_prefix='Total new registrations: ',
@@ -989,9 +1000,9 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         if isinstance(value, bool):
             return 'Yes' if value else 'No'
         if isinstance(value, datetime):
-            return value.strftime('%Y %B %-d')
+            return value.strftime('%-d %B %Y')
         if isinstance(value, date):
-            return value.strftime('%Y %B %-d')
+            return value.strftime('%-d %B %Y')
         if isinstance(value, int):
             return f'{value:,}'
         if isinstance(value, float):
@@ -1007,7 +1018,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
             import re
             if re.fullmatch(r'\d{4}-\d{2}-\d{2}', value.strip()):
                 try:
-                    return datetime.strptime(value.strip(), '%Y-%m-%d').strftime('%Y %B %-d')
+                    return datetime.strptime(value.strip(), '%Y-%m-%d').strftime('%-d %B %Y')
                 except ValueError:
                     pass
         return str(value)
