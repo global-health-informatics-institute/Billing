@@ -675,6 +675,7 @@ class ReportGenerator:
         def _para(text, bold_phrases=None):
             """Add a paragraph, optionally bolding specific phrases."""
             p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             p.paragraph_format.space_after = Pt(3)
             if not bold_phrases:
                 r = p.add_run(text)
@@ -705,6 +706,14 @@ class ReportGenerator:
         def _bullet(text, bold_prefix=None, delta=None):
             p = doc.add_paragraph(style='List Bullet')
             p.paragraph_format.space_after = Pt(1)
+            # Force justify at XML level — List Bullet style can override paragraph alignment
+            from docx.oxml.ns import qn
+            from lxml import etree
+            pPr = p._element.get_or_add_pPr()
+            jc = pPr.find(qn('w:jc'))
+            if jc is None:
+                jc = etree.SubElement(pPr, qn('w:jc'))
+            jc.set(qn('w:val'), 'both')
             if bold_prefix:
                 br = p.add_run(bold_prefix)
                 br.bold = True
@@ -795,8 +804,8 @@ class ReportGenerator:
         )
 
         data_context = f"""
-Reporting period: {self.format_period_display(self.start_date, self.end_date)}
-Previous period: {prev['period']}
+Reporting month: {self.format_period_display(self.start_date, self.end_date)}
+Previous month: {prev['period']}
 New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,}{f', {reg_mom_pct:.1f}% vs the previous month' if reg_mom_pct is not None else ''})
 Total patient visits: {total_visits:,}
 Returning patients (multiple visits in this period): {returning_count:,}
@@ -815,6 +824,7 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
 
         full_prompt = f"""You are writing narrative paragraphs for a hospital monthly performance report executive summary.
 Write exactly 5 paragraphs, each exactly 2 sentences. Never write more than 2 sentences per paragraph. Be factual and professional.
+Always say "reporting month" — never "reporting period".
 Use ONLY these exact labels on their own line before each paragraph (no other formatting):
 OVERVIEW:
 DEMOGRAPHICS:
@@ -826,7 +836,7 @@ Data:
 {data_context}
 
 For DEMOGRAPHICS: describe the registered patients, not visits. For UTILIZATION: name the most used service with its patient count, the second most used, and the least used service. Do not include scheduling advice or generic recommendations.
-For OVERVIEW: if you mention returning patients versus the previous month, use ONLY the month-over-month change figure. Never describe "{returning_pct:.1f}%" as an increase or decrease versus the previous month — that percentage is returning patients as a share of new registrations, not a period-over-period change.
+For OVERVIEW: if you mention returning patients versus the previous month, use ONLY the month-over-month change figure. Never describe "{returning_pct:.1f}%" as an increase or decrease versus the previous month — that percentage is returning patients as a share of new registrations, not a month-over-month change.
 For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_groups_count}, excess records: {total_duplicate_records}. Do not say zero duplicates unless both numbers are 0.
 """
         if returning_mom_pct is not None and returning_change != 0:
@@ -838,13 +848,13 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
             returning_overview_sentence = 'Returning patient volume was unchanged compared to the previous month.'
         else:
             returning_overview_sentence = (
-                f'{returning_count:,} patients made more than one visit during the period '
+                f'{returning_count:,} patients made more than one visit during the reporting month '
                 f'({returning_pct:.1f}% of new registrations).'
             )
 
         fallbacks = {
             'OVERVIEW': (
-                f'During the reporting period ({self.format_period_display(self.start_date, self.end_date)}), the facility recorded '
+                f'During the reporting month ({self.format_period_display(self.start_date, self.end_date)}), the facility recorded '
                 f'{total_visits:,} total patient visits and registered {total_registered:,} new patients. '
                 f'{returning_overview_sentence}'
             ),
@@ -857,10 +867,10 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
                 f'followed by {service_data[1]["service"]} ({service_data[1]["patients"]:,} patients). '
                 f'The least utilised was {service_data[-1]["service"]} with {service_data[-1]["patients"]:,} patients.'
                 if service_data and len(service_data) >= 2
-                else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting period.'
+                else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting month.'
             ),
             'FINANCIAL': (
-                f'The facility generated MWK {revenue_millions:,.2f} million during the reporting period, '
+                f'The facility generated MWK {revenue_millions:,.2f} million during the reporting month, '
                 f'{"an increase" if rev_change >= 0 else "a decrease"} of MWK {abs(rev_change):,.0f} from the previous month. '
                 f'{exclusively_paying:,} patients ({pay_pct:.1f}%) had paying transactions.'
             ),
@@ -921,6 +931,10 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
                 sections['OVERVIEW'] = fallbacks['OVERVIEW']
         else:
             sections = fallbacks
+
+        # Sanitize: replace any stray "reporting period" the AI may have written
+        for key in sections:
+            sections[key] = re.sub(r'reporting period', 'reporting month', sections[key], flags=re.IGNORECASE)
 
         # --- Overview ---
         _sub_heading('Overview')
@@ -1483,6 +1497,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
     def add_key_explanation(self, doc, text):
         """Add a KEY explanation box to help interpret the data"""
         p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         p.paragraph_format.space_before = Pt(4)
         p.paragraph_format.space_after = Pt(4)
         
@@ -1633,7 +1648,7 @@ Wandikweza Health Center - Automated Reporting System
         print(f"Total registered patients in report period: {total_registered}")
 
         self.add_side_by_side_registration(doc, [
-            ('Total Patients Registered in Report Period', f'{total_registered:,}'),
+            ('Total Patients Registered This Month', f'{total_registered:,}'),
         ], pivoted_gender_reg)
         self.add_age_group_chart(doc, pivoted_gender_reg)
 
@@ -1649,7 +1664,7 @@ Wandikweza Health Center - Automated Reporting System
         )
         self.add_table_from_data(doc, pivoted_returning, 'Distribution by Age and Gender')
         self.add_returning_patients_chart(doc, pivoted_returning)
-        self.add_key_explanation(doc, 'Returning patients are those who visited more than once during the reporting period. Age groups: Under 5, 5-9, 10-14, 15-19, 20-24, 25+.')
+        self.add_key_explanation(doc, 'Returning patients are those who visited more than once during the reporting month. Age groups: Under 5, 5-9, 10-14, 15-19, 20-24, 25+.')
         print(f"Returning patients distribution")
 
         # Time-since-last-visit context
@@ -1730,7 +1745,7 @@ Wandikweza Health Center - Automated Reporting System
             p.paragraph_format.space_after = Pt(2)
 
         self.add_visit_frequency_chart(doc, frequency_display)
-        self.add_key_explanation(doc, '"Number of Visits" = how many times a patient came during the reporting period. "Number of Patients" = how many patients came exactly that many times.')
+        self.add_key_explanation(doc, '"Number of Visits" = how many times a patient came during the reporting month. "Number of Patients" = how many patients came exactly that many times.')
         print(f"Visit frequency analysis")
 
         # Section 5: Clinical Service Breakdown
@@ -1749,7 +1764,7 @@ Wandikweza Health Center - Automated Reporting System
             ]
             self.add_table_from_data(doc, enriched, 'Patients by Service Area')
             self.add_service_breakdown_chart(doc, service_data)
-            self.add_key_explanation(doc, 'Shows how many unique patients used each service during the reporting period. "Total Orders" = number of individual service transactions. A patient may appear in multiple services.')
+            self.add_key_explanation(doc, 'Shows how many unique patients used each service during the reporting month. "Total Orders" = number of individual service transactions. A patient may appear in multiple services.')
         else:
             doc.add_paragraph('No service data available for this period.')
         print(f"Clinical service breakdown")
@@ -1782,14 +1797,14 @@ Wandikweza Health Center - Automated Reporting System
         else:
             paying_vertical = []
         self.add_table_from_data(doc, paying_vertical, 'Paying vs Non-Paying Patients Breakdown')
-        self.add_key_explanation(doc, 'Shows total patients, those who only paid, those who never paid, and those who had both paying and non-paying visits during the reporting period.')
+        self.add_key_explanation(doc, 'Shows total patients, those who only paid, those who never paid, and those who had both paying and non-paying visits during the reporting month.')
         print(f"Paying vs non-paying breakdown")
         
         # Section 8: Daily Trends
         self.add_section_header(doc, '8. Daily Trends')
         daily_revenue = self.get_daily_revenue_trend()
         self.add_daily_revenue_chart(doc, daily_revenue)
-        self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting period.')
+        self.add_key_explanation(doc, 'Daily revenue collected by cashiers. Helps identify peak revenue days and patterns throughout the reporting month.')
         print(f"Daily revenue trend")
 
         self.add_table_from_data(doc, daily_visits, 'Daily Patient Visits')
