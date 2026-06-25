@@ -1266,8 +1266,11 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         ax_f.tick_params(axis='x', labelsize=7)
         ax_f.tick_params(axis='y', left=False, labelleft=False)
 
-        ax_m.set_xlabel('Male', fontsize=8, color='#2E86AB', fontweight='bold')
-        ax_f.set_xlabel('Female', fontsize=8, color='#E84855', fontweight='bold')
+        ax_m.set_title('Male', fontsize=8, color='#2E86AB', fontweight='bold')
+        ax_f.set_title('Female', fontsize=8, color='#E84855', fontweight='bold')
+        ax_m.set_xlabel('Patients', fontsize=8)
+        ax_f.set_xlabel('Patients', fontsize=8)
+        ax_m.set_ylabel('Age Group', fontsize=8)
 
         ax_m.spines['top'].set_visible(False)
         ax_m.spines['right'].set_visible(False)
@@ -1303,6 +1306,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         bars = ax.barh(labels, values, color=colors, alpha=0.88, height=0.55)
         ax.bar_label(bars, fmt=lambda v: f'{int(v):,}', padding=4, fontsize=7)
         ax.set_xlabel('Number of Patients', fontsize=8)
+        ax.set_ylabel('Number of Visits', fontsize=8)
         ax.tick_params(axis='y', labelsize=8)
         ax.tick_params(axis='x', labelsize=7)
         ax.set_title('Visit Frequency Distribution', fontsize=9,
@@ -1338,6 +1342,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
                      labels=[f'{v:,}  ({v/total*100:.1f}%)' for v in values],
                      padding=4, fontsize=7)
         ax.set_xlabel('Patients', fontsize=8)
+        ax.set_ylabel('Service Area', fontsize=8)
         ax.tick_params(axis='y', labelsize=8)
         ax.tick_params(axis='x', labelsize=7)
         ax.set_title('Patients by Service Area', fontsize=9,
@@ -1374,6 +1379,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         ax.bar([i + bar_w/2 for i in x], females, width=bar_w, label='Female', color='#E84855', alpha=0.8)
         ax.set_xticks(list(x))
         ax.set_xticklabels(categories, fontsize=8)
+        ax.set_xlabel('Age Group', fontsize=8)
         ax.set_ylabel('Patients', fontsize=8)
         ax.tick_params(axis='y', labelsize=7)
         ax.legend(fontsize=8)
@@ -1447,6 +1453,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         ax.set_xticks(list(x))
         ax.set_xticklabels([d.strftime('%d %b') for d in dates],
                            rotation=45, ha='right', fontsize=7)
+        ax.set_xlabel('Date', fontsize=9)
         ax.set_ylabel('Patients', fontsize=9)
         ax.set_title('Daily Patient Visits', fontsize=11, fontweight='bold', color='#1F4E79')
         ax.legend(fontsize=8)
@@ -1491,6 +1498,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
 
         ax.set_xticks(tick_dates)
         ax.set_xticklabels([d.strftime('%a\n%d %b') for d in tick_dates], fontsize=7)
+        ax.set_xlabel('Date', fontsize=9)
         ax.set_ylabel('MWK (thousands)', fontsize=9)
         ax.set_title('Daily Revenue Trend', fontsize=11, fontweight='bold', color='#1F4E79')
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v/1000:,.0f}K'))
