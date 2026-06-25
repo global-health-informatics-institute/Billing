@@ -1102,7 +1102,16 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         
         # Add data rows
         for row_idx, row_data in enumerate(data):
-            row_cells = table.add_row().cells
+            row = table.add_row()
+            # Increase row height for readability
+            from docx.oxml.ns import qn
+            from docx.oxml import OxmlElement
+            trPr = row._tr.get_or_add_trPr()
+            trHeight = OxmlElement('w:trHeight')
+            trHeight.set(qn('w:val'), '360')  # 360 twips = 0.25 inch
+            trHeight.set(qn('w:hRule'), 'atLeast')
+            trPr.append(trHeight)
+            row_cells = row.cells
             is_total_row = str(list(row_data.values())[0]).strip().lower() == 'total'
             for i, header in enumerate(headers):
                 value = row_data[header]
@@ -1217,6 +1226,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
     def add_metric(self, doc, label, value):
         """Add a key metric to the document"""
         p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         p.add_run(f'{label}: ').bold = True
         p.add_run(self._format_table_value(value))
         p.paragraph_format.space_after = Pt(4)
@@ -1288,7 +1298,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         labels  = [r['Number of Visits'] for r in rows]
         values  = [r['Number of Patients'] for r in rows]
 
-        fig, ax = plt.subplots(figsize=(5, max(1.5, len(rows) * 0.35)))
+        fig, ax = plt.subplots(figsize=(6, 3))
         colors = ['#2E86AB' if i > 0 else '#F4A261' for i in range(len(rows))]
         bars = ax.barh(labels, values, color=colors, alpha=0.88, height=0.55)
         ax.bar_label(bars, fmt=lambda v: f'{int(v):,}', padding=4, fontsize=7)
@@ -1309,7 +1319,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
-        p.add_run().add_picture(stream, width=Inches(3.8))
+        p.add_run().add_picture(stream, width=Inches(5.0))
 
     def add_service_breakdown_chart(self, doc, service_data):
         """Horizontal bar chart: patients by service area."""
@@ -1322,7 +1332,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         # Color top service differently
         colors = ['#E84855' if i == 0 else '#2E86AB' for i in range(len(labels))]
 
-        fig, ax = plt.subplots(figsize=(5, max(1.8, len(labels) * 0.45)))
+        fig, ax = plt.subplots(figsize=(6, 3))
         bars = ax.barh(labels, values, color=colors, alpha=0.88, height=0.55)
         ax.bar_label(bars,
                      labels=[f'{v:,}  ({v/total*100:.1f}%)' for v in values],
@@ -1346,7 +1356,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
-        p.add_run().add_picture(stream, width=Inches(4.2))
+        p.add_run().add_picture(stream, width=Inches(5.0))
 
     def add_returning_patients_chart(self, doc, pivoted_data):
         """Grouped bar chart: returning patients by age group and gender."""
@@ -1359,7 +1369,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
 
         x = range(len(categories))
         bar_w = 0.35
-        fig, ax = plt.subplots(figsize=(3, 2))
+        fig, ax = plt.subplots(figsize=(6, 3))
         ax.bar([i - bar_w/2 for i in x], males,   width=bar_w, label='Male',   color='#2E86AB', alpha=0.9)
         ax.bar([i + bar_w/2 for i in x], females, width=bar_w, label='Female', color='#E84855', alpha=0.8)
         ax.set_xticks(list(x))
@@ -1376,7 +1386,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
-        p.add_run().add_picture(stream, width=Inches(2.8))
+        p.add_run().add_picture(stream, width=Inches(5.0))
 
     def add_registration_pie_chart(self, doc, gender_data):
         """Pie chart: registered patients by age category (Under 5, 5-13, Adults)."""
@@ -1739,7 +1749,15 @@ Wandikweza Health Center - Automated Reporting System
                                     color=RGBColor(255, 255, 255), size=10,
                                     align=WD_ALIGN_PARAGRAPH.CENTER)
             for row_data in frequency_display:
-                row_cells = table.add_row().cells
+                row = table.add_row()
+                from docx.oxml.ns import qn
+                from docx.oxml import OxmlElement
+                trPr = row._tr.get_or_add_trPr()
+                trHeight = OxmlElement('w:trHeight')
+                trHeight.set(qn('w:val'), '360')
+                trHeight.set(qn('w:hRule'), 'atLeast')
+                trPr.append(trHeight)
+                row_cells = row.cells
                 self._set_cell_text(row_cells[0], row_data['Number of Visits'],
                                     size=10, align=WD_ALIGN_PARAGRAPH.LEFT)
                 self._set_cell_text(row_cells[1], self._format_table_value(row_data['Number of Patients']),
