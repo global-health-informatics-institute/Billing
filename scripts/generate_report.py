@@ -823,7 +823,7 @@ Duplicate groups: {duplicate_groups_count:,} ({total_duplicate_records:,} excess
         print("Generating AI narrative for executive summary...")
 
         full_prompt = f"""You are writing narrative paragraphs for a hospital monthly performance report executive summary.
-Write exactly 5 paragraphs, each exactly 2 sentences. Never write more than 2 sentences per paragraph. Be factual and professional.
+Write exactly 5 paragraphs, each exactly 3 sentences. Never write more than 3 sentences per paragraph. Be factual and professional.
 Always say "reporting month" — never "reporting period".
 Use ONLY these exact labels on their own line before each paragraph (no other formatting):
 OVERVIEW:
@@ -856,29 +856,32 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
             'OVERVIEW': (
                 f'During the reporting month ({self.format_period_display(self.start_date, self.end_date)}), the facility recorded '
                 f'{total_visits:,} total patient visits and registered {total_registered:,} new patients. '
-                f'{returning_overview_sentence}'
+                f'{returning_overview_sentence} '
+                f'Overall activity this month reflects the ongoing demand for services at the facility.'
             ),
             'DEMOGRAPHICS': (
                 f'Adult registered patients accounted for {adult_pct:.1f}% of registrations, with females representing {female_pct:.1f}% of all registered patients. '
-                f'Children under 14 years made up {under14_pct:.1f}% of registrations.'
+                f'Children under 14 years made up {under14_pct:.1f}% of registrations. '
+                f'These demographics provide a basis for planning age- and gender-appropriate services.'
             ),
             'UTILIZATION': (
                 f'The most utilised service was {service_data[0]["service"]} ({service_data[0]["patients"]:,} patients), '
                 f'followed by {service_data[1]["service"]} ({service_data[1]["patients"]:,} patients). '
                 f'The least utilised was {service_data[-1]["service"]} with {service_data[-1]["patients"]:,} patients.'
                 if service_data and len(service_data) >= 2
-                else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting month.'
+                else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting month. Service utilisation data was not available for this period.'
             ),
             'FINANCIAL': (
                 f'The facility generated MWK {revenue_millions:,.2f} million during the reporting month, '
-                f'{"an increase" if rev_change >= 0 else "a decrease"} of MWK {abs(rev_change):,.0f} from the previous month. '
-                f'{exclusively_paying:,} patients ({pay_pct:.1f}%) had paying transactions.'
+                f'{"an increase" if rev_change >= 0 else "a decrease"} of MWK {abs(rev_change):,.0f} compared to the previous month. '
+                f'{exclusively_paying:,} patients ({pay_pct:.1f}%) had paying transactions, while {exclusively_non_paying:,} patients were non-paying.'
             ),
             'QUALITY': (
-                f'A total of {duplicate_groups_count:,} duplicate patient groups representing {total_duplicate_records:,} excess records were identified. '
+                f'A total of {duplicate_groups_count:,} duplicate patient groups representing {total_duplicate_records:,} excess records were identified this month. '
+                f'Duplicate registrations inflate patient counts and compromise data integrity. '
                 f'Staff should search for existing records before registering new patients to reduce this figure.'
                 if duplicate_groups_count > 0
-                else 'No duplicate patient records were identified during this period, indicating good data quality.'
+                else 'No duplicate patient records were identified during the reporting month, indicating good data quality. Continued vigilance during patient registration is encouraged to maintain this standard. Staff should always search for existing records before creating a new registration.'
             ),
         }
 
