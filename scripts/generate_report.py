@@ -938,7 +938,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
 
         # --- Overview ---
         _sub_heading('Overview')
-        _para(_trim(sections.get('OVERVIEW', fallbacks['OVERVIEW'])))
+        _para(sections.get('OVERVIEW', fallbacks['OVERVIEW']))
 
         # --- Key Highlights with Month-to-Month Comparison ---
         _sub_heading('Key Highlights')
@@ -981,19 +981,19 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
 
         # --- Patient Demographics ---
         _sub_heading('Patient Demographics')
-        _para(_trim(sections.get('DEMOGRAPHICS', fallbacks['DEMOGRAPHICS'])))
+        _para(sections.get('DEMOGRAPHICS', fallbacks['DEMOGRAPHICS']))
 
         # --- Service Utilization ---
         _sub_heading('Service Utilization')
-        _para(_trim(sections.get('UTILIZATION', fallbacks['UTILIZATION'])))
+        _para(sections.get('UTILIZATION', fallbacks['UTILIZATION']))
 
         # --- Financial Performance ---
         _sub_heading('Financial Performance')
-        _para(_trim(sections.get('FINANCIAL', fallbacks['FINANCIAL'])))
+        _para(sections.get('FINANCIAL', fallbacks['FINANCIAL']))
 
         # --- Data Quality ---
         _sub_heading('Data Quality')
-        _para(_trim(sections.get('QUALITY', fallbacks['QUALITY'])))
+        _para(sections.get('QUALITY', fallbacks['QUALITY']))
 
     def add_section_header(self, doc, text):
         """Add a formatted section header"""
