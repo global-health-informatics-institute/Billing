@@ -1061,6 +1061,17 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         if any(keyword in header_name.lower() for keyword in numeric_keywords):
             return WD_ALIGN_PARAGRAPH.RIGHT
         return WD_ALIGN_PARAGRAPH.LEFT
+
+    def _set_row_min_height(self, row, twips='360'):
+        """Set a minimum row height so tables have a consistent visual rhythm."""
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+
+        trPr = row._tr.get_or_add_trPr()
+        trHeight = OxmlElement('w:trHeight')
+        trHeight.set(qn('w:val'), twips)
+        trHeight.set(qn('w:hRule'), 'atLeast')
+        trPr.append(trHeight)
     
     def add_table_from_data(self, doc, data, title=None):
         """Add a formatted table to the document"""
@@ -1103,14 +1114,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         # Add data rows
         for row_idx, row_data in enumerate(data):
             row = table.add_row()
-            # Increase row height for readability
-            from docx.oxml.ns import qn
-            from docx.oxml import OxmlElement
-            trPr = row._tr.get_or_add_trPr()
-            trHeight = OxmlElement('w:trHeight')
-            trHeight.set(qn('w:val'), '360')  # 360 twips = 0.25 inch
-            trHeight.set(qn('w:hRule'), 'atLeast')
-            trPr.append(trHeight)
+            self._set_row_min_height(row)
             row_cells = row.cells
             is_total_row = str(list(row_data.values())[0]).strip().lower() == 'total'
             for i, header in enumerate(headers):
@@ -1211,7 +1215,9 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
                                     align=WD_ALIGN_PARAGRAPH.CENTER)
 
             for row_data in gender_data:
-                row_cells = table.add_row().cells
+                row = table.add_row()
+                self._set_row_min_height(row)
+                row_cells = row.cells
                 is_total = str(list(row_data.values())[0]).strip().lower() == 'total'
                 for i, header in enumerate(headers):
                     value = row_data[header]
@@ -1758,13 +1764,7 @@ Wandikweza Health Center - Automated Reporting System
                                     align=WD_ALIGN_PARAGRAPH.CENTER)
             for row_data in frequency_display:
                 row = table.add_row()
-                from docx.oxml.ns import qn
-                from docx.oxml import OxmlElement
-                trPr = row._tr.get_or_add_trPr()
-                trHeight = OxmlElement('w:trHeight')
-                trHeight.set(qn('w:val'), '360')
-                trHeight.set(qn('w:hRule'), 'atLeast')
-                trPr.append(trHeight)
+                self._set_row_min_height(row)
                 row_cells = row.cells
                 self._set_cell_text(row_cells[0], row_data['Number of Visits'],
                                     size=10, align=WD_ALIGN_PARAGRAPH.LEFT)
