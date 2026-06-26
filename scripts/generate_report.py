@@ -808,7 +808,7 @@ Reporting month: {self.format_period_display(self.start_date, self.end_date)}
 Previous month: {prev['period']}
 New registrations: {total_registered:,} (previous: {prev['registered']:,}, change: {reg_change:+,}{f', {reg_mom_pct:.1f}% vs the previous month' if reg_mom_pct is not None else ''})
 Total patient visits: {total_visits:,}
-Returning patients (multiple visits in this period): {returning_count:,}
+Returning patients (multiple visits in this month): {returning_count:,}
 Returning patients as share of new registrations: {returning_pct:.1f}% (NOT a month-over-month change)
 {returning_mom_line}
 Total revenue: MWK {total_revenue:,.0f} (previous: MWK {prev['revenue']:,.0f}, change: MWK {rev_change:+,.0f})
@@ -869,7 +869,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
                 f'followed by {service_data[1]["service"]} ({service_data[1]["patients"]:,} patients). '
                 f'The least utilised was {service_data[-1]["service"]} with {service_data[-1]["patients"]:,} patients.'
                 if service_data and len(service_data) >= 2
-                else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting month. Service utilisation data was not available for this period.'
+                else f'Returning patients represented {returning_pct:.1f}% of all new registrations during the reporting month. Service utilisation data was not available for this month.'
             ),
             'FINANCIAL': (
                 f'The facility generated MWK {revenue_millions:,.2f} million during the reporting month, '
@@ -935,9 +935,17 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
         else:
             sections = fallbacks
 
-        # Sanitize: replace any stray "reporting period" the AI may have written
+        # Sanitize: replace any stray "period" phrasing the AI may have written
         for key in sections:
             sections[key] = re.sub(r'reporting period', 'reporting month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\bprevious period\b', 'previous month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\bprior period\b', 'previous month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\breport period\b', 'reporting month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\bthis period\b', 'this month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\bthe period\b', 'the month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\bduring this period\b', 'during this month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\bfor this period\b', 'for this month', sections[key], flags=re.IGNORECASE)
+            sections[key] = re.sub(r'\bfor the period\b', 'for the month', sections[key], flags=re.IGNORECASE)
 
         # --- Overview ---
         _sub_heading('Overview')
@@ -1565,7 +1573,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
             # Email body
             body = f"""Dear Wandikweza M&E Team,
 
-Please find attached the monthly billing and registration report for the period from {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}.
+Please find attached the monthly billing and registration report for the month from {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}.
 
 This report includes:
 - Patient registration statistics
@@ -1697,7 +1705,7 @@ Wandikweza Health Center - Automated Reporting System
         # Time-since-last-visit context
         returning_gap = self.get_returning_patients_gap()
         self.add_table_from_data(doc, returning_gap, 'Time Since Last Visit')
-        self.add_key_explanation(doc, 'Shows how long returning patients had been away before coming back during this period. Helps identify whether patients are returning for follow-up care or after a long absence.')
+        self.add_key_explanation(doc, 'Shows how long returning patients had been away before coming back during this month. Helps identify whether patients are returning for follow-up care or after a long absence.')
         print(f"Returning patients gap analysis")
         
         # Section 3: Age Group Analysis
@@ -1795,7 +1803,7 @@ Wandikweza Health Center - Automated Reporting System
             self.add_service_breakdown_chart(doc, service_data)
             self.add_key_explanation(doc, 'Shows how many unique patients used each service during the reporting month. "Total Orders" = number of individual service transactions. A patient may appear in multiple services.')
         else:
-            doc.add_paragraph('No service data available for this period.')
+            doc.add_paragraph('No service data available for this month.')
         print(f"Clinical service breakdown")
 
         # Section 6: Duplicate Patient Analysis
