@@ -1216,7 +1216,7 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
 
             for row_data in gender_data:
                 row = table.add_row()
-                self._set_row_min_height(row)
+                self._set_row_min_height(row, twips='420')
                 row_cells = row.cells
                 is_total = str(list(row_data.values())[0]).strip().lower() == 'total'
                 for i, header in enumerate(headers):
