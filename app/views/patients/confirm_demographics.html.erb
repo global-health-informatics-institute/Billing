@@ -93,10 +93,128 @@
      to { top: 30px; opacity: 1; }
    }
 
-   @keyframes fadeout {
-     from { top: 30px; opacity: 1; }
-     to { top: 0; opacity: 0; }
-   }
+@keyframes fadeout {
+      from { top: 30px; opacity: 1; }
+      to { top: 0; opacity: 0; }
+    }
+
+    .label_cell {
+      font-size: 28px !important;
+    }
+
+    .input_cell {
+      font-size: 28px !important;
+    }
+
+    .button_red {
+      border: 1px solid #cc0000;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 32px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 16px 22px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #ff4d4d;
+      background-image: linear-gradient(to bottom, #ff4d4d, #cc0000);
+      cursor: pointer;
+    }
+
+    .button_red:hover {
+      background-color: #ff6666;
+      background-image: linear-gradient(to bottom, #ff6666, #b30000);
+    }
+
+    .button_orange {
+      border: 1px solid #e67300;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 32px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 16px 22px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #ff9933;
+      background-image: linear-gradient(to bottom, #ff9933, #e67300);
+      cursor: pointer;
+    }
+
+    .button_orange:hover {
+      background-color: #ffa74d;
+      background-image: linear-gradient(to bottom, #ffa74d, #cc6600);
+    }
+
+    .button_green {
+      border: 1px solid #34740e;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 32px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 16px 22px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #4CAF50;
+      background-image: linear-gradient(to bottom, #4CAF50, #2E7D32);
+      cursor: pointer;
+    }
+
+    .button_green:hover {
+      background-color: #66BB6A;
+      background-image: linear-gradient(to bottom, #66BB6A, #1B5E20);
+    }
+
+    .button_gray {
+      border: 1px solid #999;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 32px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 16px 22px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #cccccc;
+      background-image: linear-gradient(to bottom, #cccccc, #999999);
+      cursor: pointer;
+    }
+
+    .button_gray:hover {
+      background-color: #d9d9d9;
+      background-image: linear-gradient(to bottom, #d9d9d9, #888888);
+    }
+
+    .button_blue {
+      border: 1px solid #7eb9d0;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 32px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 16px 22px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #a7cfdf;
+      background-image: linear-gradient(to bottom, #a7cfdf, #23538a);
+      cursor: pointer;
+    }
+
+    .button_blue:hover {
+      background-color: #82bbd1;
+      background-image: linear-gradient(to bottom, #82bbd1, #193b61);
+    }
 
 </style>
 
@@ -281,7 +399,7 @@
 
   <% if has_results %>
 
-      <button id="btnSelect" class='button_green' style='float: right; margin-right: 20px;'>
+      <button id="btnSelect" class='button_orange' style='float: right; margin-right: 20px;'>
         Select Person
       </button>
 
@@ -289,7 +407,10 @@
         Update Person
       </button-->
 
-      <button id="btnAdd" class='button_blue' style='float: right;' onclick=" ajaxProcessRequest('create')">
+      <button id="btnAdd" class='button_green' style='float: right;' onclick=" ajaxProcessRequest('create')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 15 15" fill="white" style="margin-right: 8px; vertical-align: middle;">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M0 7.5C0 3.35786 3.35786 0 7.5 0C11.6421 0 15 3.35786 15 7.5C15 11.6421 11.6421 15 7.5 15C3.35786 15 0 11.6421 0 7.5ZM7 11V8H4V7H7V4H8V7H11V8H8V11H7Z"/>
+        </svg>
         New Person
       </button>
 
@@ -299,7 +420,10 @@
 
   <% elsif !params[:person].blank? || !params[:patient].blank? || !params[:patient_id].blank? %>
 
-      <button id="btnAdd" class='button_blue' style='float: right; margin-right: 20px;' onclick=" ajaxProcessRequest('create')">
+      <button id="btnAdd" class='button_green' style='float: right; margin-right: 20px;' onclick=" ajaxProcessRequest('create')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 15 15" fill="white" style="margin-right: 8px; vertical-align: middle;">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M0 7.5C0 3.35786 3.35786 0 7.5 0C11.6421 0 15 3.35786 15 7.5C15 11.6421 11.6421 15 7.5 15C3.35786 15 0 11.6421 0 7.5ZM7 11V8H4V7H7V4H8V7H11V8H8V11H7Z"/>
+        </svg>
         New Person
       </button>
       <button onclick="window.history.back()" class='button_blue' style='float: right;'>
@@ -482,7 +606,7 @@
             people = JSON.parse(result);
 
             if (__$("btnSelect")) {
-                __$("btnSelect").className = "button_gray";
+                __$("btnSelect").className = "button_orange";
                 __$("btnSelect").removeAttribute("onclick");
             }
 
@@ -568,7 +692,7 @@
                     var matchScore = compareBirthdates(capturedBirthdate, (obj["birthdate_estimated"] ? "~" : "") + obj["birthdate"]);
                     var matchPercent = capturedBirthdate.length > 0 ? Math.round((matchScore / capturedBirthdate.length) * 100) : 0;
                     
-                    li.innerHTML = obj["names"]["given_name"] + " " + obj["names"]["family_name"] + " (" + gender[obj["gender"]] + " - " + obj["_id"] + ") <span style='float: right; background: " + (matchPercent >= 50 ? "#4CAF50" : "#f44336") + "; color: white; padding: 2px 8px; border-radius: 3px; font-size: 14px;'>" + matchPercent + "% Match</span><br/>" + highlightBirthdate(capturedBirthdate, (obj["birthdate_estimated"] ? "~" : "") + obj["birthdate"]);
+                    li.innerHTML = obj["names"]["given_name"] + " " + obj["names"]["family_name"] + " (" + gender[obj["gender"]] + " - " + obj["_id"] + ") <span style='float: right; background: " + (matchPercent >= 50 ? "#4CAF50" : "#f44336") + "; color: white; padding: 4px 10px; border-radius: 4px; font-size: 18px; font-weight: bold;'>" + matchPercent + "% Match</span><br/>" + highlightBirthdate(capturedBirthdate, (obj["birthdate_estimated"] ? "~" : "") + obj["birthdate"]);
 
                     li.onclick = function () {
                         for (var j = 0; j < __$("options").children.length; j++) {
@@ -601,7 +725,7 @@ function loadData(pos) {
              var matchPercent = capturedBirthdate.length > 0 ? Math.round((matchScore / capturedBirthdate.length) * 100) : 0;
 
             if (__$("btnSelect")) {
-                __$("btnSelect").className = "button_green";
+                __$("btnSelect").className = "button_orange";
                 __$("btnSelect").setAttribute("pos", pos);
 
                 __$("btnSelect").onclick = function () {
