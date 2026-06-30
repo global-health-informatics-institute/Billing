@@ -99,11 +99,11 @@
     }
 
     .label_cell {
-      font-size: 24px !important;
+      font-size: 26px !important;
     }
 
     .input_cell {
-      font-size: 24px !important;
+      font-size: 26px !important;
     }
 
     .button_red {
@@ -389,9 +389,9 @@
   </div>
 </div>
 
-<div class="navbar  navbar-inverse navbar-fixed-bottom" style="position:absolute; bottom: 0px; width: 100%; min-height: 105px;
+<div class="navbar  navbar-inverse navbar-fixed-bottom" style="position:absolute; bottom: 0px; width: 100%; min-height: 80px;
     color: #ccc; text-align: center; padding-top: 5px; background-color: #333; margin: 0px; margin-left: -5px;">
-  <button class='button_red' id='btncancel' style='float: left; margin-left: 20px;' onmousedown="window.location = '/';">
+  <button class='button_red' id='btncancel' style='float: left; margin-left: 20px; margin-top: 15px;' onmousedown="window.location = '/';">
     Cancel
   </button>
 
@@ -399,7 +399,7 @@
 
   <% if has_results %>
 
-      <button id="btnSelect" class='button_orange' style='float: right; margin-right: 20px;'>
+      <button id="btnSelect" class='button_orange' style='float: right; margin-right: 20px; margin-top: 15px;'>
         Select Person
       </button>
 
@@ -407,26 +407,26 @@
         Update Person
       </button-->
 
-      <button id="btnAdd" class='button_green' style='float: right;' onclick=" ajaxProcessRequest('create')">
+      <button id="btnAdd" class='button_green' style='float: right; margin-top: 15px;' onclick=" ajaxProcessRequest('create')">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 15 15" fill="white" style="margin-right: 8px; vertical-align: middle;">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M0 7.5C0 3.35786 3.35786 0 7.5 0C11.6421 0 15 3.35786 15 7.5C15 11.6421 11.6421 15 7.5 15C3.35786 15 0 11.6421 0 7.5ZM7 11V8H4V7H7V4H8V7H11V8H8V11H7Z"/>
         </svg>
         New Person
       </button>
 
-      <button onclick="window.history.back()" class='button_blue' style='float: right;'>
+      <button onclick="window.history.back()" class='button_blue' style='float: right; margin-top: 15px;'>
         Back
       </button>
 
   <% elsif !params[:person].blank? || !params[:patient].blank? || !params[:patient_id].blank? %>
 
-      <button id="btnAdd" class='button_green' style='float: right; margin-right: 20px;' onclick=" ajaxProcessRequest('create')">
+      <button id="btnAdd" class='button_green' style='float: right; margin-right: 20px; margin-top: 15px;' onclick=" ajaxProcessRequest('create')">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 15 15" fill="white" style="margin-right: 8px; vertical-align: middle;">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M0 7.5C0 3.35786 3.35786 0 7.5 0C11.6421 0 15 3.35786 15 7.5C15 11.6421 11.6421 15 7.5 15C3.35786 15 0 11.6421 0 7.5ZM7 11V8H4V7H7V4H8V7H11V8H8V11H7Z"/>
         </svg>
         New Person
       </button>
-      <button onclick="window.history.back()" class='button_blue' style='float: right;'>
+      <button onclick="window.history.back()" class='button_blue' style='float: right; margin-top: 15px;'>
         Back
       </button>
 
