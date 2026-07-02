@@ -1,4 +1,6 @@
 class PatientsController < ApplicationController
+  skip_before_action :verify_authenticity_token, only: [:confirm_demographics, :process_confirmation]
+
   def create
     raise params.inspect
   end
@@ -7,6 +9,38 @@ class PatientsController < ApplicationController
 
     @settings = YAML.load_file("#{Rails.root}/config/dde_connection.yml")[Rails.env] rescue {}
     @use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
+
+    # Handle GET request for redirect after location update
+    if params[:patient_id].present? && request.get?
+      @patient = Patient.find(params[:patient_id]) rescue nil
+      if @patient
+        @json = {
+          "names" => {
+            "given_name" => @patient.person.names.first.given_name,
+            "family_name" => @patient.person.names.first.family_name,
+            "gender" => @patient.gender
+          },
+          "gender" => @patient.gender,
+          "birthdate" => @patient.person.birthdate,
+          "birthdate_estimated" => @patient.person.birthdate_estimated,
+          "national_id" => @patient.national_id,
+          "patient_id" => @patient.patient_id,
+          "addresses" => {
+            "current_residence" => @patient.person.addresses.last.address1,
+            "current_village" => @patient.person.addresses.last.city_village,
+            "current_ta" => @patient.person.addresses.last.township_division,
+            "current_district" => @patient.person.addresses.last.state_province,
+            "home_village" => @patient.person.addresses.last.neighborhood_cell,
+            "home_ta" => @patient.person.addresses.last.county_district,
+            "home_district" => @patient.person.addresses.last.address2
+          }
+        }
+        @results = []
+        render :layout => 'touch' and return
+      else
+        redirect_to root_path, alert: 'Patient not found' and return
+      end
+    end
 
     json_params = view_context.patient_json(params[:person],params["CURRENT AREA OR T/A"],params["identifier"],true)
 
@@ -43,12 +77,47 @@ class PatientsController < ApplicationController
         people_like = Person.joins(:names =>[:person_name_code]).where(person_name_code: {given_name_code: @json["names"]["given_name"].soundex, family_name_code: @json["names"]["family_name"].soundex}, gender: @json["names"]["gender"]).where.not(person_id: matching_people).order("person_name.given_name ASC, person_name_code.family_name_code ASC")
         @results = @results + people_like
       end
+
+      @results = view_context.patient_list(@results)
     end
+
+    raw_results = @results.respond_to?(:body) ? @results.body : @results
+    parsed_results = raw_results.is_a?(String) ? (JSON.parse(raw_results) rescue raw_results) : raw_results
+    @results = parsed_results.is_a?(Array) ? parsed_results : []
+
     render :layout => 'touch'
   end
 
-  def new
+  # POST /patients/:id/update_location
+  # Sets current session location and reprints the patient's label
+  def update_location
+    patient = Patient.find(params[:id]) rescue nil
 
+    new_location = params[:location_id].presence || params[:location].presence || session[:location]
+
+    if new_location.blank?
+      redirect_to patient_path(patient), alert: 'No location provided' and return
+    end
+
+    # update session and Location.current_location
+    session[:location] = new_location.to_i
+    begin
+      Location.current_location = Location.find(session[:location]) rescue nil
+    rescue
+      # ignore
+    end
+
+    # Reprint patient label (uses existing helper in application_controller)
+    if patient
+      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", "/patients/#{patient.id}") and return
+    else
+      redirect_to root_path, alert: 'Patient not found' and return
+    end
+  end
+
+  def new
+    
+    
     settings = YAML.load_file("#{Rails.root}/config/globals.yml")[Rails.env] rescue {}
 
     @show_middle_name = (settings["show_middle_name"] == true ? true : false) rescue false
@@ -233,10 +302,6 @@ class PatientsController < ApplicationController
       person["site_code"] = "#{facility_code}"
 
       result << person
-
-      # TODO: Need to find a way to limit in a better way the number of records returned without skipping any as some will never be seen with the current approach
-
-      # break if result.length >= 7
 
     end if pagesize > 0 and result.length < 8
 
@@ -423,7 +488,7 @@ class PatientsController < ApplicationController
 
       patient = Patient.find(patient_id) rescue nil
 
-      print_and_redirect("/patients/national_id_label?patient_id=#{patient_id}", "/patients/patient_demographics/id=#{patient_id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
+      print_and_redirect("/patients/national_id_label?patient_id=#{patient_id}", "/patients/#{patient_id}") and return if !patient.blank? and (json["print_barcode"] rescue false)
 
     else
 
@@ -431,16 +496,17 @@ class PatientsController < ApplicationController
 
       case params[:update_field]
       when 'given_name'
-        person.names.first.update_attributes("given_name" => params[:person][:names]["given_name"])
+        # raise params.inspect
+        person.names.first.update("given_name" => params[:person][:names]["given_name"])
         print_barcode = true
       when 'middle_name'
-        person.names.first.update_attributes("middle_name" => params[:person][:names]["middle_name"])
+        person.names.first.update("middle_name" => params[:person][:names]["middle_name"])
         print_barcode = true
       when 'family_name'
-        person.names.first.update_attributes("family_name" => params[:person][:names]["family_name"])
+        person.names.first.update("family_name" => params[:person][:names]["family_name"])
         print_barcode = true
       when 'maiden_name'
-        person.names.first.update_attributes("family_name2" => params[:person][:names]["maiden_name"])
+        person.names.first.update("family_name2" => params[:person][:names]["maiden_name"])
         print_barcode = true
       when 'gender'
         person.gender = params["gender"]
@@ -478,24 +544,25 @@ class PatientsController < ApplicationController
         person.save
         print_barcode = true
 
-      when 'state_province'
-        #current residence
-
-        address = PersonAddress.where(person_id: person.id).first_or_initialize
-        address.state_province = params[:person][:addresses][:state_province]
-        address.township_division = params[:person][:addresses][:township_division]
-        address.city_village = params[:person][:addresses][:city_village]
-        address.address1 = params[:person][:addresses][:address1]
-        address.save
-        print_barcode = true
+      # when 'state_province'
+      #   #current residence
+      #
+      #   address = PersonAddress.where(person_id: person.id).first_or_initialize
+      #   address.state_province = params[:person][:addresses][:state_province]
+      #   address.township_division = params[:person][:addresses][:township_division]
+      #   address.city_village = params[:person][:addresses][:city_village]
+      #   address.address1 = params[:person][:addresses][:address1]
+      #   address.save
+      #   print_barcode = true
 
       when 'address2'
         #home district
         address = PersonAddress.where(person_id: person.id).first_or_initialize
         address.address2 = params[:person][:addresses][:address2]
         address.county_district = params[:person][:addresses][:county_district]
-        address.neighborhood_cell = params[:person][:addresses][:neighborhood_cell]
+        address.city_village = params[:person][:addresses][:city_village]
         address.save
+        print_barcode = true
 
       when 'cell_phone_number'
         attrib_type = PersonAttributeType.find_by_name("Cell Phone Number").id
@@ -533,11 +600,20 @@ class PatientsController < ApplicationController
 
       end
 
-      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", "/patients/patient_demographics/#{patient.id}") and return if print_barcode
+      redirect_path = if params[:return_url] == "confirm_demographics"
+        "/patients/confirm_demographics/#{patient.id}?printed=true"
+      elsif params[:return_url] == "history"
+        "/patients/#{patient.id}?printed=true"
+      else
+        "/patients/#{patient.id}"
+      end
+      print_and_redirect("/patients/print_national_id?patient_id=#{patient.id}", redirect_path) and return if print_barcode
 
     end
 
-    redirect_to "/patients/patient_demographics/#{patient.id}" and return if !patient.id.blank?
+    redirect_to "/patients/confirm_demographics/#{patient.id}?printed=true" and return if !patient.id.blank? && params[:return_url] == "confirm_demographics"
+
+    redirect_to "/patients/#{patient.id}?printed=true" and return if !patient.id.blank? && params[:return_url] == "history"
 
     flash["error"] = "Sorry! Something went wrong. Failed to process properly!"
 
@@ -548,18 +624,11 @@ class PatientsController < ApplicationController
   def show
 
     @patient = Patient.find(params[:id])
+    unpaid_orders = OrderEntry.where(patient_id: @patient.id).where("amount_paid < full_price")
+    past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,:order_date)
+                            .where("patient_id = ? and order_date < ?",  @patient.id, Date.current.beginning_of_day)
 
-    range = Date.current.beginning_of_day..Date.current.end_of_day
-
-    unpaid_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity,:amount_paid,
-                                      :full_price).where('patient_id = ? AND amount_paid < full_price', @patient.id)
-    past_orders = OrderEntry.select(:order_entry_id,:service_id,:quantity, :full_price,:amount_paid,
-                                    :order_date).where("patient_id = ? and order_date < ?",
-                                                       @patient.id, Date.current.beginning_of_day)
-
-    today_payments = Receipt.select(:receipt_number).where("patient_id = ? AND payment_stamp BETWEEN ? AND ?",
-                                                           @patient.id,range.first, range.last)
-
+    today_payments = Receipt.select(:receipt_number).where(patient_id: @patient.id, created_at: Date.today.beginning_of_day..Date.today.end_of_day)
 
     @unpaid_orders, @total, @amount_due = view_context.unpaid_records(unpaid_orders)
     @history = view_context.past_records(past_orders)
@@ -714,11 +783,9 @@ class PatientsController < ApplicationController
 
     use_dde = YAML.load_file("#{Rails.root}/config/application.yml")['create_from_dde'] rescue false
     json = JSON.parse(params["person"]) rescue {}
-
     if (json["patient"]["identifiers"].class.to_s.downcase == "hash" rescue false)
 
       tmp = json["patient"]["identifiers"]
-
       json["patient"]["identifiers"] = []
 
       (tmp || []).each do |key, value|
@@ -769,7 +836,7 @@ class PatientsController < ApplicationController
         (json["person_attributes"] || []).each do |attribute, value|
 
           next if value.blank?
-
+          # raise attribute.inspect
           new_person.person_attributes.create(:person_attribute_type_id => PersonAttributeType.find_by_name(attribute).person_attribute_type_id,
                                               :value => value)
 
@@ -787,15 +854,15 @@ class PatientsController < ApplicationController
         if patient.patient_identifiers.blank?
           health_center_id = Location.current_health_center.location_id
           national_id_version = "1"
-          national_id_prefix = "P#{national_id_version}#{health_center_id.to_s.rjust(3,"0")}"
-
+          # national_id_prefix = "PT#{national_id_version}#{health_center_id.to_s.rjust(3,"0")}"
+          national_id_prefix = "PT"
           identifier_type = PatientIdentifierType.find_by_name("National ID")
-          last_national_id = PatientIdentifier.where("identifier_type = ? AND left(identifier,5)= ?", identifier_type.id, national_id_prefix).order("identifier desc").first
+          last_national_id = PatientIdentifier.where("identifier_type = ? AND left(identifier,2)= ?", identifier_type.id, national_id_prefix).order("identifier desc").first
           last_national_id_number = last_national_id.identifier rescue "0"
 
-          next_number = (last_national_id_number[5..-2].to_i+1).to_s.rjust(7,"0")
+          next_number = (last_national_id_number[2..6].to_i+1).to_s.rjust(5,"0")
           new_national_id_no_check_digit = "#{national_id_prefix}#{next_number}"
-          check_digit = PatientIdentifier.calculate_checkdigit(new_national_id_no_check_digit[1..-1])
+          check_digit = PatientIdentifier.calculate_checkdigit(new_national_id_no_check_digit[2..-1])
           new_national_id = "#{new_national_id_no_check_digit}#{check_digit}"
           patient_identifier = PatientIdentifier.new
           patient_identifier.type = identifier_type
@@ -968,8 +1035,28 @@ class PatientsController < ApplicationController
     districts = districts.map do |d|
       "<li value=\"#{d.name}\">#{d.name}</li>"
     end
-    render :text => districts.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => districts.join('') + "<li value='Other'>Other</li>" and return
   end
+
+
+  # def district
+  #   @districts = District.all.collect{|x| [x.district_id, x.name]}
+  #   raise @districts.inspect
+  #   region = Region.find_by_name(params[:filter_value])
+  
+  #   if region
+  #     # Query for districts based on the search_string and region_id
+  #     districts = District.where("name LIKE ? AND region_id = ?", " #{params[:search_string]}%", region.id).order('name')
+  
+  #     # Return an array of district names
+  #     district_names = districts.pluck(:name)  # Get an array of district names
+  #     district_names << 'Other'  # Add 'Other' as a suggestion
+  #     render json: district_names  # Respond with the array as JSON
+  #   else
+  #     render json: ['Other']  # If no region is found, return only 'Other'
+  #   end
+  # end
+  
 
   # List traditional authority containing the string given in params[:value]
   def traditional_authority
@@ -980,7 +1067,7 @@ class PatientsController < ApplicationController
     traditional_authorities = traditional_authorities.map do |t_a|
       "<li value=\"#{t_a.name}\">#{t_a.name}</li>"
     end
-    render :text => traditional_authorities.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => traditional_authorities.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Villages containing the string given in params[:value]
@@ -992,17 +1079,17 @@ class PatientsController < ApplicationController
     villages = villages.map do |v|
       "<li value=\"#{v.name}\">#{v.name}</li>"
     end
-    render :text => villages.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => villages.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Landmark containing the string given in params[:value]
   def landmark
 
-    landmarks = ["", "Market", "School", "Police", "Church", "Borehole", "Graveyard"]
+    landmarks = ["Market", "School", "Police", "Church", "Borehole", "Graveyard"]
     landmarks = landmarks.map do |v|
       "<li value='#{v}'>#{v}</li>"
     end
-    render :text => landmarks.join('') + "<li value='Other'>Other</li>" and return
+    render :plain => landmarks.join('') + "<li value='Other'>Other</li>" and return
   end
 
   # Countries containing the string given in params[:value]
@@ -1064,5 +1151,9 @@ class PatientsController < ApplicationController
       @id = params[:id]
       render :layout => 'touch'
     end
+  end
+
+  def update_attributes
+    raise params.inspect
   end
 end

@@ -6,33 +6,33 @@
 
 # Ignore bundler config.
 /.bundle
-.idea/
+/.idea/
+
 # Ignore the default SQLite database.
 /db/*.sqlite3
 /db/*.sqlite3-*
-*.lock
-*.yml
+
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
 !/log/.keep
 !/tmp/.keep
-
-# Ignore pidfiles, but keep the directory.
 /tmp/pids/*
 !/tmp/pids/
 !/tmp/pids/.keep
+
+.DS_Store
+.byebug_history
+
+# Ignore master key for decrypting credentials and more.
+/config/master.key
 
 # Ignore uploaded files in development.
 /storage/*
 !/storage/.keep
 
 /public/assets
-.byebug_history
-
-# Ignore master key for decrypting credentials and more.
-/config/master.key
-
+!/public/assets/.keep
 /public/packs
 /public/packs-test
 /node_modules
@@ -40,5 +40,14 @@
 yarn-debug.log*
 .yarn-integrity
 
+# Ignore IDE and editor files
+/.vscode/
+*.swp
+*.swo
+*~
 
-*.yml
+# Ignore credentials (keep templates but not actual credentials)
+/config/credentials/*.key
+
+# Ignore environment-specific config files
+!.gitignore

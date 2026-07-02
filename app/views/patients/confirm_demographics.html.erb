@@ -1,3 +1,24 @@
+<% has_results = @results.respond_to?(:length) && @results.length > 0 %>
+<%
+  known_landmarks = ["market", "school", "police", "church", "borehole", "graveyard"]
+  address_lines = lambda do |addresses, fields|
+    lines = []
+    seen = {}
+    has_current_residence = addresses["current_residence"].present? rescue false
+
+    fields.each do |field|
+      value = addresses[field].to_s.strip rescue ""
+      next if value.blank?
+      next if field == "current_ta" && has_current_residence && known_landmarks.include?(value.downcase)
+      next if seen[value.downcase]
+
+      lines << value
+      seen[value.downcase] = true
+    end
+
+    lines
+  end
+%>
 <style>
   #btnHelp {
     right: 25px !important;
@@ -38,8 +59,171 @@
     border-top: 30px solid #ef8544;
   }
 
+.highlighted {
+    background-color: #ffff99 !important;
+  }
+
+.listing li:hover {
+     background-color: #BBDEFB !important;
+   }
+
+   .snackbar {
+     visibility: hidden;
+     min-width: 250px;
+     background-color: green;
+     color: #ffffff;
+     text-align: center;
+     border-radius: 5px;
+     padding: 22px;
+     position: fixed;
+     z-index: 1000;
+     top: 30px;
+     left: 50%;
+     transform: translateX(-50%);
+     font-size: 26px;
+   }
+
+   .snackbar.alert {
+     background-color: #b00020;
+     color: #ffffff;
+   }
+
+   .snackbar.show {
+     visibility: visible;
+     animation: fadein 0.5s, fadeout 0.5s 4.5s;
+   }
+
+   @keyframes fadein {
+     from { top: 0; opacity: 0; }
+     to { top: 30px; opacity: 1; }
+   }
+
+@keyframes fadeout {
+      from { top: 30px; opacity: 1; }
+      to { top: 0; opacity: 0; }
+    }
+
+    .label_cell {
+      font-size: 26px !important;
+    }
+
+    .input_cell {
+      font-size: 26px !important;
+    }
+
+    .button_red {
+      border: 1px solid #cc0000;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 28px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 12px 18px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #ff4d4d;
+      background-image: linear-gradient(to bottom, #ff4d4d, #cc0000);
+      cursor: pointer;
+    }
+
+    .button_red:hover {
+      background-color: #ff6666;
+      background-image: linear-gradient(to bottom, #ff6666, #b30000);
+    }
+
+    .button_orange {
+      border: 1px solid #e67300;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 28px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 12px 18px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #ff9933;
+      background-image: linear-gradient(to bottom, #ff9933, #e67300);
+      cursor: pointer;
+    }
+
+    .button_orange:hover {
+      background-color: #ffa74d;
+      background-image: linear-gradient(to bottom, #ffa74d, #cc6600);
+    }
+
+    .button_green {
+      border: 1px solid #34740e;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 28px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 12px 18px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #4CAF50;
+      background-image: linear-gradient(to bottom, #4CAF50, #2E7D32);
+      cursor: pointer;
+    }
+
+    .button_green:hover {
+      background-color: #66BB6A;
+      background-image: linear-gradient(to bottom, #66BB6A, #1B5E20);
+    }
+
+    .button_gray {
+      border: 1px solid #999;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 28px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 12px 18px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #cccccc;
+      background-image: linear-gradient(to bottom, #cccccc, #999999);
+      cursor: pointer;
+    }
+
+    .button_gray:hover {
+      background-color: #d9d9d9;
+      background-image: linear-gradient(to bottom, #d9d9d9, #888888);
+    }
+
+    .button_blue {
+      border: 1px solid #7eb9d0;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      border-radius: 3px;
+      font-size: 28px;
+      font-family: arial, helvetica, sans-serif;
+      padding: 12px 18px;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #a7cfdf;
+      background-image: linear-gradient(to bottom, #a7cfdf, #23538a);
+      cursor: pointer;
+    }
+
+    .button_blue:hover {
+      background-color: #82bbd1;
+      background-image: linear-gradient(to bottom, #82bbd1, #193b61);
+    }
+
 </style>
 
+<div id="snackbar" class="snackbar <%= 'alert' if flash[:alert].present? %>"><%= flash[:notice] || flash[:alert] || (params[:printed] == 'true' ? 'Location updated. Label printed.' : nil) %></div>
 
 <div class="table" style="width: 100%; height: 100%; border-spacing: 5px;">
   <div class="row">
@@ -84,13 +268,13 @@
             <div class="cell">
               &nbsp;
             </div>
-            <!--/div>
+<!--/div>
 
             <div class="row"-->
             <div class="cell bold label_cell">
               Birthdate:
             </div>
-            <div class="cell  input_cell">
+            <div class="cell  input_cell highlighted">
               &nbsp;<%= ((@json["birthdate_estimated"] rescue false) ? "~" : "") %><%= @json["birthdate"] rescue nil %>
             </div>
           </div>
@@ -116,39 +300,15 @@
             </div>
           </div>
 
-          <div class="row">
-            <div class="cell bold label_cell">
-              Country of Residence:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= @json["person_attributes"]["country_of_residence"] rescue nil %>
-            </div>
-            <div class="cell">
-              &nbsp;
-            </div>
-            <!--/div>
-
-            <div class="row"-->
-            <div class="cell bold label_cell">
-              Nationality:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= @json["person_attributes"]["citizenship"] rescue nil %>
-            </div>
-          </div>
+          
 
           <div class="row">
             <div class="cell bold label_cell no_bottom">
               Current Address:
             </div>
             <div class="cell  input_cell no_bottom">
-              <%= @json["addresses"]["current_residence"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["current_village"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["current_ta"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["current_district"] rescue nil %>
+              <% current_address_lines = address_lines.call(@json["addresses"], ["current_residence", "current_village", "current_ta", "current_district"]) rescue [] %>
+              <%= safe_join(current_address_lines, tag.br) %>
               &nbsp;
             </div>
             <div class="cell">
@@ -161,11 +321,8 @@
               Home Address:
             </div>
             <div class="cell input_cell no_bottom">
-              <%= @json["addresses"]["home_village"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["home_ta"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["home_district"] rescue nil %>
+              <% home_address_lines = address_lines.call(@json["addresses"], ["home_village", "home_ta", "home_district"]) rescue [] %>
+              <%= safe_join(home_address_lines, tag.br) %>
               &nbsp;
             </div>
           </div>
@@ -175,142 +332,29 @@
       </div>
 
 
-      <div style="font-size: 32px; padding: 5px; background-color: #84cfa5;
-          text-align: center; border-radius: 0px; margin: auto; margin-bottom: 10px; margin-top: 10px;">
-        Matched Data
-      </div>
-
-      <div id="matched" style="height: 40%; width: 100%; border: 1px solid #000; overflow: auto;">
-        <div class="table" style="width: 100%; border-spacing: 0px;">
-          <div class="row">
-            <div class="cell bold label_cell">
-              First Name:
-            </div>
-            <div class="cell  input_cell ">
-              &nbsp;<%= @json["names"]["given_name"] rescue nil %>
-            </div>
-            <div class="cell" style="width: 30px;">
-              &nbsp;
-            </div>
-            <!--/div>
-
-            <div class="row"-->
-            <div class="cell bold label_cell">
-              Last Name:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= @json["names"]["family_name"] rescue nil %>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="cell bold label_cell">
-              Gender:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= @json["gender"] rescue nil %>
-            </div>
-            <div class="cell">
-              &nbsp;
-            </div>
-            <!--/div>
-
-            <div class="row"-->
-            <div class="cell bold label_cell">
-              Birthdate:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= ((@json["birthdate_estimated"] rescue false) ? "~" : "") %><%= @json["birthdate"] rescue nil %>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="cell bold label_cell">
-              National ID:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= @json["national_id"] rescue nil %>
-            </div>
-            <div class="cell">
-              &nbsp;
-            </div>
-            <!--/div>
-
-            <div class="row"-->
-            <div class="cell bold label_cell">
-              Other Identifiers:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= (@json["patient"]["identifiers"].collect { |k, v| "#{k}: #{v}" } rescue []).join(",\n") rescue nil %>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="cell bold label_cell">
-              Country of Residence:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= @json["person_attributes"]["country_of_residence"] rescue nil %>
-            </div>
-            <div class="cell">
-              &nbsp;
-            </div>
-            <!--/div>
-
-            <div class="row"-->
-            <div class="cell bold label_cell">
-              Nationality:
-            </div>
-            <div class="cell  input_cell">
-              &nbsp;<%= @json["person_attributes"]["citizenship"] rescue nil %>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="cell bold label_cell no_bottom">
-              Current Address:
-            </div>
-            <div class="cell  input_cell no_bottom">
-              <%= @json["addresses"]["current_residence"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["current_village"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["current_ta"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["current_district"] rescue nil %>
-              &nbsp;
-            </div>
-            <div class="cell">
-              &nbsp;
-            </div>
-            <!--/div>
-
-            <div class="row"-->
-            <div class="cell bold label_cell no_bottom">
-              Home Address:
-            </div>
-            <div class="cell input_cell no_bottom">
-              <%= @json["addresses"]["home_village"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["home_ta"] rescue nil %>
-              <br/>
-              <%= @json["addresses"]["home_district"] rescue nil %>
-              &nbsp;
-            </div>
-          </div>
-
+<div style="font-size: 32px; padding: 5px; background-color: #84cfa5;
+          text-align: center; border-radius: 0px; margin: auto; margin-bottom: 10px; margin-top: 20px;">
+          Matched Data
         </div>
 
+      <div id="matched" style="height: 40%; width: 100%; border: 1px solid #000; overflow: auto; padding-top: 10px;">
+        <% if has_results %>
+          &nbsp;
+        <% else %>
+          <div style="width: 100%; height: 100%; font-size: 36px; text-align: center; padding-top: 60px;">
+            No match found
+          </div>
+        <% end %>
       </div>
 
     </div>
     <div class="cell" style="width: 50%; border-radius: 1px; border: 1px solid #666; overflow: hidden;">
 
-      <% if !@results.blank? and @results.length == 0 %>
+      <% if !has_results %>
 
           <div id="selections" style="width: 100%; border: none; padding: 10px; ">
             <div style="width: 100%; height: 100%; font-size: 36px; text-align: center; padding-top: 60px;">
-              No matching existing people found!
+              No match found
             </div>
           </div>
 
@@ -350,35 +394,50 @@
   </div>
 </div>
 
-<div class="navbar  navbar-inverse navbar-fixed-bottom" style="position:absolute; bottom: 0px; width: 100%; min-height: 105px;
+<div class="navbar  navbar-inverse navbar-fixed-bottom" style="position:absolute; bottom: 0px; width: 100%; min-height: 80px;
     color: #ccc; text-align: center; padding-top: 5px; background-color: #333; margin: 0px; margin-left: -5px;">
-  <button class='button_red' id='btncancel' style='float: left; margin-left: 20px;' onmousedown="window.location = '/';">
+  <button class='button_red' id='btncancel' style='float: left; margin-left: 20px; margin-top: 15px;' onmousedown="window.location = '/';">
     Cancel
   </button>
 
-  <% if @results.length > 0 && @results != '[]'%>
+  
 
-      <button id="btnSelect" class='button_green' style='float: right; margin-right: 20px;'>
-        Select Person
+  <% if has_results %>
+
+      <button id="btnSelect" class='button_orange' style='float: right; margin-right: 20px; margin-top: 15px;'>
+        Select Patient
       </button>
 
       <!--button id="btnUpdate" class='button_blue' style='float: right;' onclick="ajaxProcessRequest('update')">
         Update Person
       </button-->
 
-      <button id="btnAdd" class='button_blue' style='float: right;' onclick=" ajaxProcessRequest('create')">
-        New Person
+      <button id="btnAdd" class='button_green' style='float: right; margin-top: 15px;' onclick=" ajaxProcessRequest('create')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 15 15" fill="white" style="margin-right: 8px; vertical-align: middle;">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M0 7.5C0 3.35786 3.35786 0 7.5 0C11.6421 0 15 3.35786 15 7.5C15 11.6421 11.6421 15 7.5 15C3.35786 15 0 11.6421 0 7.5ZM7 11V8H4V7H7V4H8V7H11V8H8V11H7Z"/>
+        </svg>
+        New Patient
       </button>
 
-  <% elsif !params[:person].blank? %>
+      <button onclick="window.history.back()" class='button_blue' style='float: right; margin-top: 15px;'>
+        Back
+      </button>
 
-      <button id="btnAdd" class='button_blue' style='float: right; margin-right: 20px;' onclick=" ajaxProcessRequest('create')">
-        New Person
+  <% elsif !params[:person].blank? || !params[:patient].blank? || !params[:patient_id].blank? %>
+
+      <button id="btnAdd" class='button_green' style='float: right; margin-right: 20px; margin-top: 15px;' onclick=" ajaxProcessRequest('create')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 15 15" fill="white" style="margin-right: 8px; vertical-align: middle;">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M0 7.5C0 3.35786 3.35786 0 7.5 0C11.6421 0 15 3.35786 15 7.5C15 11.6421 11.6421 15 7.5 15C3.35786 15 0 11.6421 0 7.5ZM7 11V8H4V7H7V4H8V7H11V8H8V11H7Z"/>
+        </svg>
+        New Patient
+      </button>
+      <button onclick="window.history.back()" class='button_blue' style='float: right; margin-top: 15px;'>
+        Back
       </button>
 
   <% end %>
 
-  <% if @results.length > 0 %>
+  <% if has_results %>
 
       <!--button id="btnRight" class='button_blue' style='float: right;'>
         &rarr;
@@ -407,16 +466,69 @@
 
 <script type="text/javascript">
     <!--
-
+ 
     var json = JSON.stringify(<%= raw @json.to_json %>);
     var people = [];
+    var capturedBirthdate = "<%= @json['birthdate'] rescue '' %>";
+    var sortedPeople = [];
+    
+    function compareBirthdates(birthdate1, birthdate2) {
+        var score = 0;
+        birthdate1 = (birthdate1 || "").toString();
+        birthdate2 = (birthdate2 || "").toString();
+        
+        for (var i = 0; i < Math.min(birthdate1.length, birthdate2.length); i++) {
+            if (birthdate1[i] === birthdate2[i]) {
+                score += 1;
+            }
+        }
+        return score;
+    }
+    
+    function highlightBirthdate(birthdate1, birthdate2) {
+        birthdate1 = (birthdate1 || "").toString();
+        birthdate2 = (birthdate2 || "").toString();
+        var result = '<span style="font-weight: bold;">DOB:</span> ';
+        
+        for (var i = 0; i < birthdate2.length; i++) {
+            if (birthdate1[i] === birthdate2[i]) {
+                result += '<span style="color: green; font-weight: bold;">' + birthdate2[i] + '</span>';
+            } else {
+                result += '<span style="color: red;">' + birthdate2[i] + '</span>';
+            }
+        }
+        return result;
+    }
+
+    function formatAddress(addresses, fields, separator) {
+        addresses = addresses || {};
+        var values = [];
+        var seen = {};
+        var knownLandmarks = {"market": true, "school": true, "police": true, "church": true, "borehole": true, "graveyard": true};
+        var hasCurrentResidence = addresses.current_residence != null && addresses.current_residence.toString().trim() != "";
+
+        for (var i = 0; i < fields.length; i++) {
+            var value = addresses[fields[i]] != null ? addresses[fields[i]].toString().trim() : "";
+
+            if (fields[i] == "current_ta" && hasCurrentResidence && knownLandmarks[value.toLowerCase()]) {
+                continue;
+            }
+
+            if (value != "" && !seen[value.toLowerCase()]) {
+                values.push(value);
+                seen[value.toLowerCase()] = true;
+            }
+        }
+
+        return values.length > 0 ? values.join(separator) : "N/A";
+    }
 
     function ajaxProcessRequest(target) {
         var url = "/patients/process_confirmation";
 
         var httpRequest = new XMLHttpRequest();
         httpRequest.onreadystatechange = function () {
-            handleAjaxProcessRequest(httpRequest);
+            handleAjaxProcessRequest(httpRequest, target);
         };
         try {
             httpRequest.open("POST", url, true);
@@ -426,7 +538,7 @@
         }
     }
 
-    function handleAjaxProcessRequest(aXMLHttpRequest) {
+    function handleAjaxProcessRequest(aXMLHttpRequest, target) {
 
         if (!aXMLHttpRequest) return;
 
@@ -434,6 +546,21 @@
             aXMLHttpRequest.status == 304)) {
 
             var result = aXMLHttpRequest.responseText;
+
+            try {
+                var parsedResult = JSON.parse(result);
+
+                if (typeof parsedResult == "string") {
+                    parsedResult = JSON.parse(parsedResult);
+                }
+
+                if (target == "create") {
+                    parsedResult["print_barcode"] = true;
+                }
+
+                result = JSON.stringify(parsedResult);
+            } catch (e) {
+            }
 
             submitForm = document.createElement("FORM");
             submitForm.setAttribute("type","hidden");
@@ -484,7 +611,7 @@
             people = JSON.parse(result);
 
             if (__$("btnSelect")) {
-                __$("btnSelect").className = "button_gray";
+                __$("btnSelect").className = "button_orange";
                 __$("btnSelect").removeAttribute("onclick");
             }
 
@@ -534,6 +661,16 @@
             if (__$("selections")) {
                 __$("selections").innerHTML = "";
 
+                if (people.length <= 0) {
+                    __$("selections").innerHTML = "<div style='width: 100%; height: 100%; font-size: 36px; text-align: center; padding-top: 60px;'>No match found</div>";
+
+                    if (__$("matched")) {
+                        __$("matched").innerHTML = "<div style='width: 100%; height: 100%; font-size: 36px; text-align: center; padding-top: 60px;'>No match found</div>";
+                    }
+
+                    return;
+                }
+
                 var ul = document.createElement("ul");
                 ul.id = "options";
                 ul.className = "listing";
@@ -542,15 +679,25 @@
 
                 var gender = {M: "Male", F: "Female"};
 
-                for (var i = 0; i < people.length; i++) {
-                    var obj = JSON.parse(people[i]);
+                sortedPeople = people.slice().sort(function(a, b) {
+                    var scoreA = compareBirthdates(capturedBirthdate, JSON.parse(a)["birthdate"]);
+                    var scoreB = compareBirthdates(capturedBirthdate, JSON.parse(b)["birthdate"]);
+                    return scoreB - scoreA;
+                });
+
+                for (var i = 0; i < sortedPeople.length; i++) {
+                    var obj = JSON.parse(sortedPeople[i]);
 
                     var li = document.createElement("li");
                     li.id = i;
                     li.style.cursor = "pointer";
                     li.style.backgroundColor = (i % 2 == 0 ? "#eee" : "");
                     li.style.border = (i % 2 > 0 ? "1px solid #eee" : "");
-                    li.innerHTML = obj["names"]["given_name"] + " " + obj["names"]["family_name"] + " (" + gender[obj["gender"]] + " - " + obj["_id"] + ")";
+                    
+                    var matchScore = compareBirthdates(capturedBirthdate, (obj["birthdate_estimated"] ? "~" : "") + obj["birthdate"]);
+                    var matchPercent = capturedBirthdate.length > 0 ? Math.round((matchScore / capturedBirthdate.length) * 100) : 0;
+                    
+                    li.innerHTML = obj["names"]["given_name"] + " " + obj["names"]["family_name"] + " (" + gender[obj["gender"]] + " - " + obj["_id"] + ") <span style='float: right; background: " + (matchPercent >= 50 ? "#4CAF50" : "#f44336") + "; color: white; padding: 4px 10px; border-radius: 4px; font-size: 18px; font-weight: bold;'>" + matchPercent + "% Match</span><br/>" + highlightBirthdate(capturedBirthdate, (obj["birthdate_estimated"] ? "~" : "") + obj["birthdate"]);
 
                     li.onclick = function () {
                         for (var j = 0; j < __$("options").children.length; j++) {
@@ -572,27 +719,30 @@
         }
     }
 
-    function loadData(pos) {
-        if (__$("matched")) {
-            __$("matched").innerHTML = "";
+function loadData(pos) {
+         if (__$("matched")) {
+             __$("matched").innerHTML = "";
 
-            var obj = JSON.parse(people[parseInt(pos)]);
+             var originalIndex = sortedPeople[pos];
+             var obj = JSON.parse(originalIndex);
+             
+             var matchScore = compareBirthdates(capturedBirthdate, (obj.birthdate_estimated ? "~" : "") + obj.birthdate);
+             var matchPercent = capturedBirthdate.length > 0 ? Math.round((matchScore / capturedBirthdate.length) * 100) : 0;
 
             if (__$("btnSelect")) {
-                __$("btnSelect").className = "button_green";
+                __$("btnSelect").className = "button_orange";
                 __$("btnSelect").setAttribute("pos", pos);
 
                 __$("btnSelect").onclick = function () {
 
                    // showSpinner();
 
-                    window.location = "/patients/" + JSON.parse(people[parseInt(this.getAttribute("pos"))])['patient_id'];
+                    window.location = "/patients/" + JSON.parse(sortedPeople[parseInt(this.getAttribute('pos'))])['patient_id'];
                 }
             }
 
             if (__$("btnUpdate")) {
 
-                var obj = JSON.parse(people[pos]);
 
                 if (obj["_id"] != null) {
 
@@ -603,9 +753,9 @@
 
                      //   showSpinner();
 
-                        var obj = JSON.parse(people[parseInt(this.getAttribute("pos"))]);
+                        var clickedObj = JSON.parse(sortedPeople[parseInt(this.getAttribute("pos"))]);
 
-                        json["national_id"] = obj["_id"];
+                        json["national_id"] = clickedObj["_id"];
 
                         ajaxProcessRequest("update");
                     }
@@ -631,50 +781,47 @@
                     },
                     {
                         field: "Birthdate",
-                        value: (obj.birthdate_estimated ? "~" : "") + obj.birthdate
+                        value: highlightBirthdate(capturedBirthdate, (obj.birthdate_estimated ? "~" : "") + obj.birthdate),
+                        highlight: true
                     }
                 ],
                 [
+                    {
+                        field: "Match Score",
+                        value: matchPercent + "%",
+                        highlight: matchPercent >= 50
+                    },
                     {
                         field: "National ID",
                         value: obj._id
-                    },
-                    {
-                        field: "Other Identifiers",
-                        value: []
                     }
                 ],
                 [
                     {
-                        field: "Country of Residence",
-                        value: obj.person_attributes.country_of_residence
+                        field: "Other Identifiers",
+                        value: []
                     },
                     {
-                        field: "Nationality",
-                        value: obj.person_attributes.citizenship
+                        field: "",
+                        value: ""
                     }
                 ],
                 [
                     {
                         field: "Current Address",
-                        value: (obj.addresses.current_residence != null ? obj.addresses.current_residence : "") + "<br />" +
-                        (obj.addresses.current_village != null ? obj.addresses.current_village : "") + "<br />" +
-                        (obj.addresses.current_ta != null ? obj.addresses.current_ta : "") + "<br />" +
-                        (obj.addresses.current_district != null ? obj.addresses.current_district : ""),
+                        value: formatAddress(obj.addresses, ["current_residence", "current_village", "current_ta", "current_district"], "<br />"),
                         classes: "no_bottom"
                     },
                     {
                         field: "Home Address",
-                        value: (obj.addresses.home_village != null ? obj.addresses.home_village : "") + "<br />" +
-                        (obj.addresses.home_ta != null ? obj.addresses.home_ta : "") + "<br />" +
-                        (obj.addresses.home_district != null ? obj.addresses.home_district : ""),
+                        value: formatAddress(obj.addresses, ["home_village", "home_ta", "home_district"], "<br />"),
                         classes: "no_bottom"
                     }
                 ]
             ];
 
             for (var e = 0; e < obj.patient.identifiers.length; e++) {
-                rows[2][1]["value"].push(Object.keys(obj.patient.identifiers[e]) + ": " + obj.patient.identifiers[e][Object.keys(obj.patient.identifiers[e])] + "<br />");
+                rows[3][0]["value"].push(Object.keys(obj.patient.identifiers[e]) + ": " + obj.patient.identifiers[e][Object.keys(obj.patient.identifiers[e])] + "<br />");
             }
 
             var table = document.createElement("div");
@@ -715,7 +862,7 @@
                 row.appendChild(cell4);
 
                 var cell5 = document.createElement("div");
-                cell5.className = "cell input_cell" + (rows[i][1].classes != undefined ? " " + rows[i][1].classes : "");
+                cell5.className = "cell input_cell" + (rows[i][1].classes != undefined ? " " + rows[i][1].classes : "") + (rows[i][1].highlight ? " highlighted" : "");
                 cell5.innerHTML = rows[i][1].value;
 
                 row.appendChild(cell5);
@@ -723,6 +870,22 @@
         }
     }
 
+    <% if has_results %>
     ajaxRequest(1);
+    <% end %>
     //-->
-</script>
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var snackbar = document.getElementById("snackbar");
+      if (snackbar && snackbar.textContent.trim() !== "") {
+        snackbar.classList.add("show");
+        setTimeout(function () {
+          snackbar.classList.remove("show");
+        }, 5000);
+      }
+    });
+  </script>
+</body>
+</html>

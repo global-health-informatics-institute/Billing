@@ -1866,6 +1866,11 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["voided_by"], name: "user_who_voided_task"
   end
 
+  create_table "test_joins", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
   create_table "traditional_authority", primary_key: "traditional_authority_id", id: :integer, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
     t.string "name", default: "", null: false
     t.integer "district_id", default: 0, null: false
@@ -1935,6 +1940,15 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["retired"], name: "retired_status"
     t.index ["retired_by"], name: "user_who_retired_village"
     t.index ["traditional_authority_id"], name: "ta_for_village"
+  end
+
+  create_table "village_infos", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "village_list", id: false, charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.string "name"
   end
 
   create_table "weight_for_height", id: false, charset: "latin1", collation: "latin1_swedish_ci", options: "ENGINE=MyISAM", force: :cascade do |t|

@@ -116,7 +116,7 @@ div.tab-content.invisible{
 }
 div.header-cell{
     border: 3px outset blue;
-    box-shadow: 4px 4px grey;
+    box-shadow: 4px 4px rgb(250, 249, 249);
     display: table-cell;
     margin-left: 1vw;
     line-height: 2.5em;
@@ -267,6 +267,41 @@ button:active {
     background-image: -o-linear-gradient(top, #77021d, #3a000d);
     background-image: linear-gradient(to bottom, #77021d, #3a000d);
     filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#77021d, endColorstr=#3a000d);
+}
+
+.orange {
+    border: 1px solid #c97808;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    font-size: 28px;
+    font-family: arial, helvetica, sans-serif;
+    padding: 10px 10px 10px 10px;
+    text-decoration: none;
+    display: inline-block;
+    text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+    color: #FFFFFF;
+    background-color: #ffb74d;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#ffb74d), to(#fb8c00));
+    background-image: -webkit-linear-gradient(top, #ffb74d, #fb8c00);
+    background-image: -moz-linear-gradient(top, #ffb74d, #fb8c00);
+    background-image: -ms-linear-gradient(top, #ffb74d, #fb8c00);
+    background-image: -o-linear-gradient(top, #ffb74d, #fb8c00);
+    background-image: linear-gradient(to bottom, #ffb74d, #fb8c00);
+    filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#ffb74d, endColorstr=#fb8c00);
+}
+
+.orange:hover {
+    border: 1px solid #b56f07;
+    background-color: #ff9f3b;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#ff9f3b), to(#e66a00));
+    background-image: -webkit-linear-gradient(top, #ff9f3b, #e66a00);
+    background-image: -moz-linear-gradient(top, #ff9f3b, #e66a00);
+    background-image: -ms-linear-gradient(top, #ff9f3b, #e66a00);
+    background-image: -o-linear-gradient(top, #ff9f3b, #e66a00);
+    background-image: linear-gradient(to bottom, #ff9f3b, #e66a00);
+    filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#ff9f3b, endColorstr=#e66a00);
 }
 
 .gray {

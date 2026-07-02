@@ -20,7 +20,7 @@ default: &default
   show_occupation: false
   show_nationality: false
   default_gender_female: false
-  
+   
 development:
   <<: *default
 

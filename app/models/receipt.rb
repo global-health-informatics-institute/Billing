@@ -42,10 +42,21 @@ class Receipt < ActiveRecord::Base
   end
 
   def next_number
-    last_number = Receipt.find_by_sql("SELECT count(receipt_number) as count FROM receipts WHERE payment_stamp BETWEEN
-                                     '#{Date.current.beginning_of_year.strftime('%Y-%m-%d 00:00:00')}' AND '#{DateTime.current.end_of_year}'").first
-    new_number =  "#{(last_number.count.to_i + 1).to_s.rjust(6, '0')}-#{Date.current.strftime('%y')}"
-    return new_number
+    last_receipt = Receipt.where(payment_stamp: Date.current.beginning_of_year..DateTime.current.end_of_year)
+                            .order(:created_at)
+                            .last
+  
+    last_sequence = if last_receipt && last_receipt.receipt_number.present?
+                      last_receipt.receipt_number.split('-').first.to_i
+                    else
+                      0
+                    end
+  
+    new_sequence = last_sequence + 1
+    new_number = "#{new_sequence.to_s.rjust(6, '0')}-#{Date.current.strftime('%y')}"
+    new_number
   end
+  
+  
 
 end
