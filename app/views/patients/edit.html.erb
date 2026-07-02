@@ -174,7 +174,7 @@
 
 </style>
 <script>
-    var tt_cancel_destination = '/patients/patient_demographics/<%= @patient.patient_id%>'
+    var tt_cancel_destination = '<%= params[:return_url] == "history" ? patient_path(@patient) : patient_demographics_patient_path(@patient) %>'
     var skipped = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     function seen(page) {
