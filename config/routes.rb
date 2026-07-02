@@ -37,6 +37,7 @@ Rails.application.routes.draw do
   resources :patients do
     member do
       get 'confirm_and_proceed'
+      get 'patient_demographics'
       post 'update_location'
     end
     collection do
