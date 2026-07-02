@@ -17,13 +17,18 @@
       font-size: 26px;
     }
 
+    .snackbar.alert {
+      background-color: #b00020;
+      color: #ffffff;
+    }
+
     .highlighted {
       background-color: #ffff99 !important;
     }
 
     .snackbar.show {
       visibility: visible;
-      animation: fadein 0.5s, fadeout 1.5s 2.5s;
+      animation: fadein 0.5s, fadeout 0.5s 4.5s;
     }
 
     @keyframes fadein {
@@ -261,7 +266,7 @@
 </head>
 <body onload="resize()" onresize="resize()">
 
-<div id="snackbar" class="snackbar"><%= flash[:notice] || (params[:printed] == 'true' ? params[:print_message] || 'Label printed.' : nil) %></div>
+<div id="snackbar" class="snackbar <%= 'alert' if flash[:alert].present? %>"><%= flash[:notice] || flash[:alert] || (params[:printed] == 'true' ? params[:print_message] || 'Label printed.' : nil) %></div>
 <div id="details" style="height: 100%;overflow:auto;display:block; width: 100%; background-color: white; border: 1px solid #000; vertical-align: top;">
 
   <div style="height: 70px; width: 100%; background-color: #415772; text-align: center; vertical-align: middle; font-size: 2em; color: #9aa0a7; padding-top: 10px;">
@@ -545,13 +550,12 @@ loadLinks();
          snackbar.classList.add("show");
          setTimeout(function () {
            snackbar.classList.remove("show");
-         }, 3000);
+         }, 5000);
        }
      });
 
    </script>
  </body>
 </html>
-
 
 
