@@ -8,7 +8,7 @@
       if params[:order_entries].blank?
         orders = OrderEntry
           .where("patient_id = ? AND (amount_paid < full_price OR full_price = 0)", params[:order_payment][:patient_id])
-          .select(:id, :full_price, :amount_paid)        
+          .select(:order_entry_id, :full_price, :amount_paid)
       else
         orders = OrderEntry.where(patient_id: params[:order_payment][:patient_id], order_entry_id: params[:order_entries].split(','))
       end
@@ -31,7 +31,7 @@
   
             # Handle zero-price services: Treat them as paid and generate receipt
             if entry.full_price == 0
-              OrderPayment.create(order_entry_id: entry.id, cashier: User.find(params[:creator]),
+              OrderPayment.create(order_entry_id: entry.order_entry_id, cashier: User.find(params[:creator]),
                                   amount: 0, receipt_number: new_receipt.receipt_number)
               next
             end
@@ -42,7 +42,7 @@
             entry.amount_paid += pay_amount
             entry.save
   
-            OrderPayment.create(order_entry_id: entry.id, cashier: User.find(params[:creator]),
+            OrderPayment.create(order_entry_id: entry.order_entry_id, cashier: User.find(params[:creator]),
                                 amount: pay_amount, receipt_number: new_receipt.receipt_number)
   
             amount -= pay_amount
