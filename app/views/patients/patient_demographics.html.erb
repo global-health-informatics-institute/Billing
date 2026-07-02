@@ -286,7 +286,7 @@
 </div>
 
 <script type="text/javascript">
-    tt_cancel_destination = "/patients/show?id=<%= @person.patient.patient_id%>";
+    tt_cancel_destination = "/patients/<%= @person.patient.patient_id%>";
 
     function __$(id) {
         return document.getElementById(id);
