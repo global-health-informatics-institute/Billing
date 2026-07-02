@@ -6,12 +6,11 @@
   
     def create
       if params[:order_entries].blank?
-        orders = OrderEntry
-          .where("patient_id = ? AND (amount_paid < full_price OR full_price = 0)", params[:order_payment][:patient_id])
-          .select(:order_entry_id, :full_price, :amount_paid)
-      else
-        orders = OrderEntry.where(patient_id: params[:order_payment][:patient_id], order_entry_id: params[:order_entries].split(','))
+        redirect_to "/patients/#{params[:order_payment][:patient_id]}", alert: "Select a service before payment" and return
       end
+
+      orders = OrderEntry.where(patient_id: params[:order_payment][:patient_id],
+                                order_entry_id: params[:order_entries].split(','))
   
       amount = params[:order_payment][:amount].to_f + params[:order_payment][:deposits].to_f
       if amount > 0 || orders.any? { |entry| entry.full_price == 0 }
