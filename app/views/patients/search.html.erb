@@ -541,6 +541,24 @@
             "&family_name=&gender=" + __$("gender").value.trim();
     }
 
+    function setupGivenNameNewPatientFlow() {
+        var givenNameInput = __$("touchscreenInput" + tstCurrentPage);
+        __$("nextButton").setAttribute("onMouseDown", "if(!this.className.match(/gray/)) { newPatient(); }");
+        givenNameInput.removeEventListener("keyup", checkKey, false);
+        givenNameInput.addEventListener("keydown", function (event) {
+            if (event.keyCode == 13) {
+                event.preventDefault();
+                newPatient();
+            }
+        }, false);
+        givenNameInput.addEventListener("keyup", function (event) {
+            if (event.keyCode == 13) {
+                event.preventDefault();
+                newPatient();
+            }
+        }, false);
+    }
+
 </script>
 
 <%= form_for :patients,  :url => process_result_patients_path  do |f| %>
@@ -553,7 +571,7 @@
         <td>
           <input type="text" id="given_name" name="given_name" value="" helpText="First Name"
                  allowFreeText=true
-                 tt_onLoad="__$('nextButton').setAttribute('onMouseDown', 'if(!this.className.match(/gray/)) { newPatient(); }');" />
+                 tt_onLoad="setupGivenNameNewPatientFlow();" />
         </td>
       </tr>
       <tr>
