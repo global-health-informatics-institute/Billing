@@ -170,6 +170,7 @@ display: none !important;
     <% if params[:family_name].blank? %>
         <%= text_field_tag "person[names][family_name]", params[:family_name],
                            {:id => "last_name",
+                            :tt_onLoad => 'if(__$("backButton")){__$("backButton").style.display="block";__$("backButton").setAttribute("onMouseDown", "window.location = \'/patients/search\';");}',
                             :helptext => "Last Name"} %>
 
     <% else %>
