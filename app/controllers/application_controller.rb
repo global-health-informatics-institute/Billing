@@ -2,15 +2,15 @@ class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
   before_action :authenticate, :except => %w[login create_session]
   helper_method :current_user, :current_location
-  rescue_from StandardError, with: :render_600
+  rescue_from StandardError, with: :render_500
 
-  def print_and_redirect(print_url, redirect_url, message = "Printing label ...", show_next_button = false, patient_id = nil)
-    #Function handles redirects when printing labels
+  def print_and_redirect(print_url, redirect_url, message = "Printing label ...", show_next_button = false, patient_id = nil, print_message = nil)
     @print_url = print_url
     @redirect_url = redirect_url
     @message = message
     @show_next_button = show_next_button
-    render :layout => false
+    @print_message = print_message
+    render template: 'application/print_and_redirect', layout: false
   end
 
   def just_redirect(redirect_url)
@@ -49,6 +49,7 @@ class ApplicationController < ActionController::Base
     return YAML.load_file("#{Rails.root}/config/application.yml")['facility_code']
   end
 
+  # 500 error page with Back to Home button that links to root_path
   def render_500(exception = nil)
     error_message = exception ? exception.message : "Unknown error"
 
@@ -92,6 +93,20 @@ class ApplicationController < ActionController::Base
                   max-width: 80%;
                   word-wrap: break-word;
               }
+                 .home-btn{
+                  display: inline-block;
+                  margin-top: 20px;
+                  padding: 10px 20px;
+                  background: #155724;
+                  color: #fff;
+                  text-decoration: none;
+                  border-radius: 4px;
+                  font-size: 22px;
+  }
+                .home-btn:hover {
+                  background: #134a1e;
+  }
+               
           </style>
       </head>
       <body>
@@ -99,6 +114,8 @@ class ApplicationController < ActionController::Base
           <p>Please contact support</p>
           <p>Something went wrong. We are working on it.</p>
           <div class="error-message">#{error_message}</div>
+          <!-- Back to Home button preserved from your May 20 commit -->
+           <a href="#{root_path}" class="home-btn">Back to Home</a>
       </body>
       </html>
     HTML

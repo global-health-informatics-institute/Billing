@@ -1,0 +1,32 @@
+<html>
+<style>
+  body{
+    font-family: "Nimbus Sans L", "Arial Narrow", sans-serif;
+  }
+</style>
+
+<% if not @show_next_button %>
+    <body>
+    <br/><br/><br/>
+    <center><h1><%=h @message %></h1></center>
+    <iframe src="<%= @print_url %>" style='display:none'></iframe>
+    </body>
+    <script>
+        setTimeout(redirect, 1000);
+        function redirect(){
+            var redirectUrl = '<%= @redirect_url %>';
+            var printMessage = '<%= @print_message || 'Label printed' %>';
+            if (redirectUrl.indexOf('?') > -1) {
+                document.location = redirectUrl + '&printed=true&print_message=' + encodeURIComponent(printMessage);
+            } else {
+                document.location = redirectUrl + '?printed=true&print_message=' + encodeURIComponent(printMessage);
+            }
+        }
+    </script>
+<%else%>
+    <body onload="setAttributes();">
+    <%=@message%>
+    <iframe src="/" style='display:none'></iframe>
+    </body>
+<%end%>
+</html>

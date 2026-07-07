@@ -1,0 +1,35 @@
+default: &default
+  adapter: mysql2
+  username: your_db_username
+  password: your_db_password
+  host: localhost
+  pool: 5000
+
+development:
+  <<: *default
+  database: billing_import
+
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  <<: *default
+  database: billing_test
+
+billing_development:
+  <<: *default
+  username: your_billing_username
+  password: your_billing_password
+  database: billing_import
+
+production:
+  <<: *default
+  database: billing_prod
+
+registration:
+  adapter: mysql2
+  username: your_openmrs_username
+  password: your_openmrs_password
+  database: openmrs
+  host: localhost
+  pool: 5000

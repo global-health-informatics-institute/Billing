@@ -92,7 +92,7 @@ module Misc
   end
   
   def self.get_config(prop)
-    YAML.load_file("#{Rails.root}/config/application.yml")[prop]
+    YAML.load_file("#{Rails.root}/config/application.yml")[prop].to_s
   end
 
   def self.local_currency(amount)

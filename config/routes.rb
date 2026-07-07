@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
+  # Root path used by the 500 error Back to Home button
   root 'main#index'
 
   get "/main/index"
@@ -34,6 +35,11 @@ Rails.application.routes.draw do
   
 
   resources :patients do
+    member do
+      get 'confirm_and_proceed'
+      get 'patient_demographics'
+      post 'update_location'
+    end
     collection do
       get 'search'
       get 'ajax_search'
@@ -43,14 +49,13 @@ Rails.application.routes.draw do
       get 'traditional_authority'
       get 'village'
       get 'nationality'
-      get 'landmark'
+get 'landmark'
       get 'country'
-      get 'patient_demographics(/:id)', action: :patient_demographics
-      post 'process_result'
-      post 'process_confirmation'
-      post 'ajax_process_result'
       post 'confirm_demographics'
+      get 'confirm_demographics(/:patient_id)', action: :confirm_demographics, as: 'confirm_demographics_for_patient'
+      post 'process_result'
       post 'ajax_process_data'
+      post 'process_confirmation'
       get 'patient_not_found(/:id)', action: :patient_not_found
       post 'patient_not_found(/:id)', action: :patient_not_found
       get 'print_national_id'
