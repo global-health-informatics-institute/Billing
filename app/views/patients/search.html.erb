@@ -227,19 +227,6 @@
 
         __$("buttons").appendChild(footer);
 
-        var newPatient = document.createElement("button");
-        newPatient.innerHTML = "<span>New Patient</span>";
-        newPatient.id = "newPatient";
-        newPatient.style.cssFloat = "right";
-
-        newPatient.onmousedown = function () {
-            window.location = "/patients/new?given_name=" + __$("given_name").value.trim() +
-                "&family_name=" + __$("family_name").value.trim() + "&gender=" +
-                __$("gender").value.trim();
-        }
-
-        footer.appendChild(newPatient);
-
         var btnRight = document.createElement("button");
         btnRight.innerHTML = "<span>&rarr;</span>";
         btnRight.id = "btnFirst";
@@ -548,6 +535,12 @@
 
     }
 
+    function newPatient() {
+        var givenName = (__$("touchscreenInput" + tstCurrentPage) || __$("given_name")).value.trim();
+        window.location = "/patients/new?given_name=" + givenName +
+            "&family_name=&gender=" + __$("gender").value.trim();
+    }
+
 </script>
 
 <%= form_for :patients,  :url => process_result_patients_path  do |f| %>
@@ -559,7 +552,8 @@
         </td>
         <td>
           <input type="text" id="given_name" name="given_name" value="" helpText="First Name"
-                 allowFreeText=true />
+                 allowFreeText=true
+                 tt_onLoad="__$('nextButton').setAttribute('onMouseDown', 'if(!this.className.match(/gray/)) { newPatient(); }');" />
         </td>
       </tr>
       <tr>
@@ -567,7 +561,7 @@
           Family Name
         </td>
         <td>
-          <input type="text" id="family_name" name="family_name" value="" helpText="Family Name"
+          <input type="hidden" id="family_name" name="family_name" value=""
                   allowFreeText=true
                  tt_onLoad="loadNames();__$('nextButton').onmousedown = function(){};" optional="true"/>
         </td>
