@@ -1,40 +1,221 @@
-<div class="section-header">
-<%= @title %>
-</div>
-<div style="height: 75vh; width: 100%;overflow-y: auto;">
-  <div style="display: table; width: 100%;font-size: 1.4em;">
-    <div style="display: table-row; background-color: silver; font-size: 1.5em;font-weight:bold;color: #000000;line-height: 2em;">
-      <div style="display: table-cell;padding-left: 1vw;">
-          Receipt Number
+<head>
+<style>
+  *{
+      box-sizing: border-box;
+  }
+    body {
+        font-family: 'Arial', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: start;
+        background: #ffffff;
+        margin: 0;
+        overflow-y: auto;
+        font-size: 22px;
+    }
+    .receipt {
+        background: #ffffff;
+        padding: 0;
+        width: 100%;
+        height: auto;
+        text-align: center;
+        justify-content: center;
+    }
+    h2 {
+        margin: 5px 0;
+        color: #555555;
+    }
+    .info {
+        text-align: left;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #cccccc;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      display: none;
+    }
+    tr{
+      width: 100vw;
+    }
+    th, td {
+        border-bottom: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+        width: 25%;
+    }
+    th {
+        background: #f1f1f1;
+        color: #000;
+        text-transform: uppercase;
+    }
+    .total {
+        font-weight: bold;
+        background: #f1f1f1;
+    }
+    .print-btn {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        margin-top: 15px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .thank-you {
+        margin-top: 10px;
+        font-size: 20px;
+        font-style: bold;
+        color: #555;
+}
+</style>
+</head>
+<div class="receipt">
+  <h2> <%= facility_name.titleize %></h2>
+  <p>Cashier Summary Receipt - <%= Time.now.strftime("%A, %B %d, %Y, %I:%M %p") %> </p>
+
+    <% @income_aggregates.each do |cashiers| %>
+        <div class="info" id="<%= cashiers[:cashier_name].gsub(/\s+/, '') %>" onclick="toggleTables('<%= cashiers[:cashier_name].gsub(/\s+/, '') %>', 'tables_<%= cashiers[:cashier_name].gsub(/\s+/, '') %>')">
+          <p><strong>Date:</strong> <%=@duration%> </p>
+          <p>
+            <strong>Name:</strong> 
+            <%= cashiers[:cashier_name] %>
+          </p>
+
       </div>
-      <div style="display: table-cell; text-align: center;">
-        Received by
-      </div>
-      <div style="display: table-cell; text-align: right;">
-        Full Cost
-      </div>
-      <div style="display: table-cell; text-align: right; padding-right: 1vw;">
-        Amount Paid
-      </div>
-    </div>
-    <% (@records || []).each do |e| %>
-        <div style="display: table-row;line-height: 1.8em;background-color: <%= cycle('#FFFFFF','#DADADA')%>;">
-          <div style="display: table-cell; padding-left: 0.5vw; color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= e[:receipt]%>
-          </div>
-          <div style="display: table-cell; text-align: center;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= e[:received_by]%>
-          </div>
-          <div style="display: table-cell; text-align: right;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= local_currency(e[:bill])%>
-          </div>
-          <div style="display: table-cell; text-align: right;padding-right: 1vw;color: <%= e[:voided] ? '#FF0000' : '#000000'%>;">
-            <%= local_currency(e[:paid])%>
-          </div>
-        </div>
+
+      <table id="tables_<%= cashiers[:cashier_name].gsub(/\s+/, '') %>">
+        <tr>
+            <th>Service Name</th>
+            <th></th>
+            <th>Amount</th>
+            <th>Received</th>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_1]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:male_adult_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:male_adult_paid])%></td>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_2]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:female_non_antenatal_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:female_non_antenatal_paid])%></td>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_3]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:under_five_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:under_five_paid])%></td>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_4]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:female_antenatal_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:female_antenatal_paid])%></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_5]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:kulera_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:kulera_paid])%></td>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_6]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:scanning_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:scanning_paid])%></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_7]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:ambulance_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:ambulance_paid])%></td>
+        </tr>
+        <tr>
+          <td><%=cashiers[:service_totals][:service_name_8]%></td>
+          <td></td>
+          <td><%=local_currency(cashiers[:service_totals][:ambulance_non_paying_price])%></td>
+          <td><%=local_currency(cashiers[:service_totals][:ambulance_non_paying_paid])%></td>
+        </tr>
+        <tr class="total">
+          <td>Voided</td>
+          <td></td>
+          <td><%= local_currency(cashiers[:totals][:total_voided_price]) %></td>
+          <td><%= local_currency(cashiers[:totals][:total_voided_paid]) %></td>
+        </tr>
+        <tr class="total">
+            <td>Total</td>
+            <td></td>
+            <td><%= local_currency(cashiers[:totals][:total_full_price] ) %></td>
+            <td><%= local_currency(cashiers[:totals][:total_amount_paid]) %></td>
+        </tr>
+        <tr class="total">
+            <td><b>Total refunds:</b> <%=local_currency(cashiers[:totals][:total_refund])%></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+      </table>
     <% end %>
-  </div>
+
+  <p class="thank-you">Billing v2.0. - Wandimweza Hospital</p>
 </div>
+
 <div class="footer">
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
 </div>
+
+<script>
+  function toggleTables(infoId, tableId) {
+    var allInfos = document.querySelectorAll(".info");
+    var allTables = document.querySelectorAll("table");
+    var targetInfo = document.getElementById(infoId);
+    var targetTable = document.getElementById(tableId);
+
+    if (targetTable.style.display === "block") {
+      // Hide all info divs except the one clicked
+      allInfos.forEach(info => {
+        if (info.id !== infoId) {
+          info.style.display = "block";
+        }
+      });
+
+      // Hide the selected table
+      targetTable.style.display = "none";
+    } else {
+      // Hide all tables
+      allTables.forEach(table => {
+        table.style.display = "none";
+      });
+
+      // Hide all info divs except the one clicked
+      allInfos.forEach(info => {
+        if (info.id !== infoId) {
+          info.style.display = "none";
+        }
+      });
+
+      // Show the selected table
+      targetTable.style.display = "block";
+    }
+
+    // Force re-render
+    forceReflow();
+  }
+
+  function forceReflow() {
+    var container = document.div; 
+    container.style.display = "none";
+    
+    requestAnimationFrame(() => {
+      container.style.display = "block";
+    });
+  }
+</script>

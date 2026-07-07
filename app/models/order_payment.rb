@@ -1,6 +1,5 @@
 class OrderPayment < ActiveRecord::Base
 
-  #default_scope {-> { where "#{self.table_name}.voided = false" }}
   default_scope { where(voided: false) }
   belongs_to :order_entry, :foreign_key => :order_entry_id
   belongs_to :receipt, class_name: "Receipt",:foreign_key => :receipt_number

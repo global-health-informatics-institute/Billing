@@ -265,7 +265,7 @@ module ZebraPrinter #:nodoc:
 
     def draw_table(data, column_properties = nil)
       #function to print tabular data
-      cols = data.first.length
+      cols = data.first.length rescue nil
       column_properties = Array.new(cols){|i| [@content_width/cols, "left"]} if column_properties.blank?
 
       (data || []).each do |row|

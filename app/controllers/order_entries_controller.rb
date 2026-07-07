@@ -1,15 +1,25 @@
 class OrderEntriesController < ApplicationController
+  require 'date'
   def show
 
   end
+
+  def calculate_age(dob)
+    require 'date'
+    today = Date.today
+    dob = dob.is_a?(Date) ? dob : Date.parse(dob.to_s)
+
+    return (today - dob).to_i
+  end
+
 
   def new
     patient = Patient.find(params[:patient_id])
     dob = Person.select(:birthdate).where(person_id: patient.id).collect{|x| x.birthdate}.first
     gender = Person.select(:gender).where(person_id: patient.id).collect{|x| x.gender}.first
-    age = Date.today.year - dob.year
-    # raise age.inspect
-    if age < 5
+    age = calculate_age(dob)
+    puts "age is : #{age}"
+    if age < 1825
       @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.child)]}.flatten(1)]
     elsif age >= 5 && gender == 'M'
       @categories = Hash[*ServiceType.select(:name,:service_type_id).collect{|x|[x.name,(x.male)]}.flatten(1)]
