@@ -516,9 +516,9 @@
   <% end %>
 
   <button class="green" style="float: right;" onmousedown="window.location='/'">Finish</button>
-  <button style="float: right;" onmousedown="window.location='/patients/<%= @patient.id%>/order_entries/new'">Add Transaction</button>
+  <button style="float: right; font-weight: bold;" onmousedown="window.location='/patients/<%= @patient.id%>/order_entries/new'">Add Transaction</button>
   <%if  !@unpaid_orders.blank? %>
-    <button id="myBtn" style="float: right;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
+    <button id="myBtn" style="float: right; font-weight: bold;" onmousedown="showModal();getSelectedTrans();">Pay Bill</button>
   <% end %>
 </div>
 <script>
