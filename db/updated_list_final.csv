@@ -503,7 +503,7 @@ Lymph node Biopsy,Other Procedures,10200,0,Each,999,FALSE
 Removal of foreign body,Other Procedures,10200,6000,Each,999,FALSE
 limited repeat,Other Procedures,0,12000,Each,999,FALSE
 keratometry,Other Procedures,0,12000,Each,999,FALSE
-A/scanning,Other Procedures,0,12000,Each,999,FALSE
+A/scanning,Other Procedures,8000,12000,Each,999,FALSE
 retinoscopy+ subjective refraction,Other Procedures,0,12000,Each,999,FALSE
 Skin Traction,Other Procedures,12000,0,Each,999,FALSE
 Circumcision Voluntary (VMMC),Other Procedures,13000,25000,Each,999,FALSE
@@ -1167,7 +1167,7 @@ TRIPLE OPERATION,Surgery,0,90000,Each,999,FALSE
 AKA – above knee amputation,Surgery,0,90000,Each,999,FALSE
 VITREORETINAL,Surgery,0,100000,Each,999,FALSE
 PHACO + IOL,Surgery,0,150000,Each,999,FALSE
-Ambulance,Surgery,10000,10000,Each,999,FALSE
+Ambulance,Surgery,15000,15000,Each,999,FALSE
 Chloramphenicol ointment,Pharmacy,0,1000,tube,999,FALSE
 Tetracyclin drops,Pharmacy,0,1000,Bottle,999,FALSE
 Flurometholone,Pharmacy,0,1000,Bottle,999,FALSE
@@ -1209,3 +1209,5 @@ Caesarean Section (Emergency) ,Maternity,0,84500,Each,999,FALSE
 Postnatal checkup (Normal),Maternity,750,13650,Each,999,FALSE
 Retrobulbar Injection,Ophthalmology,0,2500,Each,999,FALSE
 Accommodation (Paediatric),Admission,500,12000,Day,999,FALSE
+Dental cleaning,Dental,15000,NULL,Each,999,FALSE
+Tooth removal,Dental,10000,NULL,Each,999,FALSE
