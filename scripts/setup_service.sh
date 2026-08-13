@@ -1,11 +1,13 @@
 #!/bin/bash
 # Setup script for Hospital Report Service
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "Setting up Wandikweza Hospital Report Service..."
 
 # Copy service files to systemd directory
-sudo cp hospital-report.service /etc/systemd/system/
-sudo cp hospital-report.timer /etc/systemd/system/
+sudo cp "$SCRIPT_DIR/hospital-report.service" /etc/systemd/system/
+sudo cp "$SCRIPT_DIR/hospital-report.timer" /etc/systemd/system/
 
 # Reload systemd to recognize new service
 sudo systemctl daemon-reload
