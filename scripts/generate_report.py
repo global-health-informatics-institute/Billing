@@ -111,6 +111,24 @@ class ReportGenerator:
         end   = datetime.strptime(end_str,   '%Y-%m-%d')
         return f'{ordinal(start.day)} - {ordinal(end.day)} {end.strftime("%B, %Y")}'
 
+    def _parse_email_recipients(self, *recipient_fields):
+        """Normalize one or more recipient fields into a unique email list."""
+        recipients = []
+        seen = set()
+
+        for field in recipient_fields:
+            if not field:
+                continue
+
+            normalized = field.replace('\n', ',').replace(';', ',')
+            for raw_email in normalized.split(','):
+                email = raw_email.strip()
+                if email and email not in seen:
+                    recipients.append(email)
+                    seen.add(email)
+
+        return recipients
+
     def connect_database(self):
         """Establish database connection"""
         try:
@@ -1562,12 +1580,18 @@ For QUALITY: you MUST use these exact numbers — duplicate groups: {duplicate_g
             smtp_port = self.config.getint('email', 'smtp_port')
             sender_email = self.config.get('email', 'sender_email')
             sender_password = self.config.get('email', 'sender_password')
-            recipient_email = self.config.get('email', 'recipient_email')
+            recipient_email = self.config.get('email', 'recipient_email', fallback='')
+            recipient_emails = self.config.get('email', 'recipient_emails', fallback='')
+            recipients = self._parse_email_recipients(recipient_email, recipient_emails)
+
+            if not recipients:
+                print("No recipient email addresses configured")
+                return False
             
             # Create message
             msg = MIMEMultipart()
             msg['From'] = sender_email
-            msg['To'] = recipient_email
+            msg['To'] = ', '.join(recipients)
             msg['Subject'] = f'Wandikweza Hospital Monthly Report - {self.format_date_display(self.start_date)} to {self.format_date_display(self.end_date)}'
             
             # Email body
@@ -1604,12 +1628,12 @@ Wandikweza Health Center - Automated Reporting System
             # Send email
             print("\nSending email report...")
             print(f"From: {sender_email}")
-            print(f"To: {recipient_email}")
+            print(f"To: {', '.join(recipients)}")
             
             server = smtplib.SMTP(smtp_server, smtp_port)
             server.starttls()
             server.login(sender_email, sender_password)
-            server.send_message(msg)
+            server.send_message(msg, from_addr=sender_email, to_addrs=recipients)
             server.quit()
             
             print("Email sent successfully!")
