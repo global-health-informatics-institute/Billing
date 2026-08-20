@@ -103,6 +103,13 @@ div.tab-active{
     border-radius: 10px 10px 0px 0px;
 }
 
+div.tab.disabled {
+    background: #cccccc;
+    color: #888888;
+    border-color: #bbbbbb;
+    cursor: not-allowed;
+}
+
 div.tab-content{
     width: 100%;
     height: 60vh;
@@ -618,4 +625,70 @@ div.collapsible-content {
     border: 5px outset #003366;
     border-radius: 15px;
     padding: 1%;
+}
+
+.dataTables_info {
+  font-size: 1.4em !important;
+  color: #23538a !important;
+  font-weight: bold !important;
+  padding: 10px !important;
+}
+
+.paginate_button {
+  font-size: 1.3em !important;
+  padding: 8px 16px !important;
+  margin: 0 5px !important;
+  border: 2px solid #7eb9d0 !important;
+  border-radius: 5px !important;
+  background-color: #a7cfdf !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.3) !important;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#a7cfdf), to(#23538a)) !important;
+  background-image: -webkit-linear-gradient(top, #a7cfdf, #23538a) !important;
+  background-image: -moz-linear-gradient(top, #a7cfdf, #23538a) !important;
+  background-image: -ms-linear-gradient(top, #a7cfdf, #23538a) !important;
+  background-image: -o-linear-gradient(top, #a7cfdf, #23538a) !important;
+  background-image: linear-gradient(to bottom, #a7cfdf, #23538a) !important;
+}
+
+.paginate_button:hover {
+  background-color: #82bbd1 !important;
+  border-color: #5ca6c4 !important;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#82bbd1), to(#193b61)) !important;
+  background-image: -webkit-linear-gradient(top, #82bbd1, #193b61) !important;
+  background-image: -moz-linear-gradient(top, #82bbd1, #193b61) !important;
+  background-image: -ms-linear-gradient(top, #82bbd1, #193b61) !important;
+  background-image: -o-linear-gradient(top, #82bbd1, #193b61) !important;
+  background-image: linear-gradient(to bottom, #82bbd1, #193b61) !important;
+}
+
+.paginate_button.disabled {
+  background-color: #ccc !important;
+  border-color: #ccc !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+  text-shadow: none !important;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#ccc), to(#999)) !important;
+  background-image: -webkit-linear-gradient(top, #ccc, #999) !important;
+  background-image: -moz-linear-gradient(top, #ccc, #999) !important;
+  background-image: -ms-linear-gradient(top, #ccc, #999) !important;
+  background-image: -o-linear-gradient(top, #ccc, #999) !important;
+  background-image: linear-gradient(to bottom, #ccc, #999) !important;
+}
+
+.paginate_button.current {
+  background-color: #23538a !important;
+  border-color: #193b61 !important;
+  color: #FFFFFF !important;
+  cursor: default !important;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#23538a), to(#193b61)) !important;
+  background-image: -webkit-linear-gradient(top, #23538a, #193b61) !important;
+  background-image: -moz-linear-gradient(top, #23538a, #193b61) !important;
+  background-image: -ms-linear-gradient(top, #23538a, #193b61) !important;
+  background-image: -o-linear-gradient(top, #23538a, #193b61) !important;
+  background-image: linear-gradient(to bottom, #23538a, #193b61) !important;
 }

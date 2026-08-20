@@ -976,8 +976,14 @@ function loadOptions(selectOptions, options) {
     var optionsList = "<ul>";
     var selectOptionCount = selectOptions.length;
     for (var j = 0; j < selectOptionCount; j++) {
-        optionsList += "<li onmousedown='updateTouchscreenInputForSelect(this)'>" + (typeof tstLocaleWords != typeof undefined && tstLocaleWords[selectOptions[j].value.toLowerCase().trim()] ?
-                tstLocaleWords[selectOptions[j].value.toLowerCase().trim()] : selectOptions[j].value) + "</li>\n";
+        var optionLabel = selectOptions[j].value;
+        if (selectOptions[j].getAttribute && selectOptions[j].getAttribute("type") == "radio") {
+            optionLabel = getLabel(selectOptions[j].id) || optionLabel;
+        }
+
+        optionLabel = optionLabel.toString();
+        optionsList += "<li tstValue=\"" + selectOptions[j].value + "\" onmousedown='updateTouchscreenInputForSelect(this)'>" + (typeof tstLocaleWords != typeof undefined && tstLocaleWords[optionLabel.toLowerCase().trim()] ?
+                tstLocaleWords[optionLabel.toLowerCase().trim()] : optionLabel) + "</li>\n";
     }
     optionsList += "</ul>";
     options.innerHTML = optionsList;
@@ -1028,7 +1034,11 @@ function updateTouchscreenInputForSelect(element) {
         if (inputTarget.value.indexOf(tstMultipleSplitChar) == 0)
             inputTarget.value = inputTarget.value.substring(1, inputTarget.value.length);
     } else {
-        if (element.value.length > 1) {
+        if (element.getAttribute("tstValue")) {
+            inputTarget.value = unescape(element.innerHTML);
+            inputTarget.setAttribute("tstValue", element.getAttribute("tstValue"));
+        }
+        else if (element.value.length > 1) {
             inputTarget.value = element.value;
         }
         else if (element.innerHTML.length > 0) {
@@ -1099,7 +1109,8 @@ function highlightSelection(options, inputElement) {
     for (i = 0; i < options.length; i++) {
         if (options[i].style) {
             // njih
-            if (optionIncludedInValue(unescape(options[i].innerHTML), val_arr)) {
+            if (optionIncludedInValue(unescape(options[i].innerHTML), val_arr) ||
+                (options[i].getAttribute("tstValue") && optionIncludedInValue(options[i].getAttribute("tstValue"), val_arr))) {
                 options[i].style.backgroundColor = "lightblue"
 
                 if (tstFormElements[tstCurrentPage].getAttribute("multiple")) {

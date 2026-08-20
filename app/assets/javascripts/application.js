@@ -16,6 +16,7 @@
 // require_tree .
 
 function toggleTab(tab){
+    if (tab.classList.contains("disabled")) return;
 
     var tabs = document.getElementsByClassName("tab-active");
     for (var e=0; e < tabs.length; e++){
