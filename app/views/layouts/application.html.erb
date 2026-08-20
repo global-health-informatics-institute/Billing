@@ -14,7 +14,7 @@
   </head>
 
   <body>
-    <% if !flash[:errors].blank? || !flash[:success].blank? %>
+    <% if controller.controller_name != 'services' && (!flash[:errors].blank? || !flash[:success].blank?) %>
       <div id="shadowLayer" class="opaqueLayer"> </div>
       <div id="messageLayer" class="questionLayer" style="font-size: 0.9em;">
         <div class="dialogBox">
@@ -37,10 +37,25 @@
       </div>
     <% end %>
     <%= yield %>
-    <% if !flash[:errors].blank? || !flash[:success].blank? %>
+    <% if controller.controller_name != 'services' && (!flash[:errors].blank? || !flash[:success].blank?) %>
       <script type="text/javascript">
           showLayer("shadowLayer", "messageLayer");
       </script>
     <% end %>
+
+    <div id="flash-snackbar" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:12px 20px; border-radius:4px; z-index:10000;"></div>
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        var msg = "<%= j(flash[:success] || flash[:errors] || '') %>";
+        if (msg && msg.length > 0) {
+          var el = document.getElementById('flash-snackbar');
+          el.textContent = msg;
+          el.style.display = 'block';
+          if (("<%= j flash[:success].present? %>") === 'true') el.style.background = '#2ecc71';
+          else el.style.background = '#e74c3c';
+          setTimeout(function(){ el.style.display = 'none'; }, 4500);
+        }
+      });
+    </script>
   </body>
 </html>
