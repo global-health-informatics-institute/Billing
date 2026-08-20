@@ -122,6 +122,11 @@ class User < ActiveRecord::Base
       roles.any? {|x| ["Informatics Manager","Program Manager", "Superuser", "Superuser,Superuser,", "System Developer"].include? x}
     end
 
+    def is_superuser?
+      roles = self.user_roles.collect{|c| c.role}
+      roles.any? {|x| x == "Superuser" || x == "Superuser,Superuser,"}
+    end
+
     def role
       self.user_roles.first.role rescue ''
     end
