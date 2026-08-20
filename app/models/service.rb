@@ -6,6 +6,10 @@ class Service < ActiveRecord::Base
   has_many :service_prices
   has_many :service_price_histories
   belongs_to :service_type
+  has_many :service_set_maps
+  has_many :service_sets, through: :service_set_maps
+
+  validates :service_type_id, :name, :creator, presence: true
   attr_accessor :category
 
   before_create :before_create
