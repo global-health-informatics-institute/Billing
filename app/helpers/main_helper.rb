@@ -76,7 +76,6 @@ module MainHelper
   end
 
   def service_totals(cashier_id:, start_date:, end_date:)
-    # Define the service names and their corresponding keys
     service_keys = {
       'male adult' => :male_adult,
       'Female (non) antenatal' => :female_non_antenatal,
@@ -87,8 +86,7 @@ module MainHelper
       'Ambulance' => :ambulance,
       'Ambulance (non-paying)' => :ambulance_non_paying
     }
-  
-    # Initialize result hash
+
     totals = {
       male_adult_price: 0, male_adult_paid: 0,
       female_non_antenatal_price: 0, female_non_antenatal_paid: 0,
@@ -99,15 +97,25 @@ module MainHelper
       ambulance_price: 0, ambulance_paid: 0,
       ambulance_non_paying_price: 0, ambulance_non_paying_paid: 0
     }
-  
+
     service_keys.each do |service_name, key|
-      service_ids = Service.where(name: service_name).pluck(:service_id)
+      service_ids = service_ids_for_name(service_name)
       order_entries = OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: service_ids)
       totals["#{key}_price".to_sym] = order_entries.sum(:full_price)
       totals["#{key}_paid".to_sym] = OrderPayment.where(order_entry_id: order_entries.pluck(:order_entry_id)).sum(:amount)
     end
 
     totals
+  end
+
+  def service_ids_for_name(name)
+    set_name = name.downcase.gsub(' ', '_').gsub(/[()]/, '')
+    service_set = ServiceSet.find_by(name: set_name)
+    if service_set
+      service_set.services.pluck(:service_id)
+    else
+      Service.where(name: name).pluck(:service_id)
+    end
   end
   
   def voided_summary(cashier_id:, start_date:, end_date:)
@@ -164,12 +172,12 @@ module MainHelper
       service_name_1: 'Male adult',
       male_adult_price:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Male aldult').pluck(:service_id)
+        service_ids_for_name('Male adult')
         ).sum(:full_price),
       male_adult_paid:
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Male aldult').pluck(:service_id)
+        service_ids_for_name('Male adult')
         )
         .pluck(:order_entry_id)).sum(:amount),
 
@@ -177,84 +185,84 @@ module MainHelper
       service_name_2: 'Female non antenatal',
       female_non_antenatal_price: 
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Female (non) antenatal').pluck(:service_id)
+        service_ids_for_name('Female (non) antenatal')
         ).sum(:full_price),
       female_non_antenatal_paid: 
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Female (non) antenatal').pluck(:service_id)
+        service_ids_for_name('Female (non) antenatal')
         )
         .pluck(:order_entry_id)).sum(:amount),
       
       service_name_3: 'Under 5',
       under_five_price: 
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Child under 5').pluck(:service_id)
+        service_ids_for_name('Child under 5')
         ).sum(:full_price),
       under_five_paid: 
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Child under 5').pluck(:service_id)
+        service_ids_for_name('Child under 5')
         )
         .pluck(:order_entry_id)).sum(:amount),
 
       service_name_4: 'Female antenatal',
       female_antenatal_price:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Female antenatal').pluck(:service_id)
+        service_ids_for_name('Female antenatal')
         ).sum(:full_price),
       female_antenatal_paid:  
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Female antenatal').pluck(:service_id)
+        service_ids_for_name('Female antenatal')
         )
         .pluck(:order_entry_id)).sum(:amount),
 
       service_name_5: 'Kulera',
       kulera_price: 
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Kulera').pluck(:service_id)
+        service_ids_for_name('Kulera')
         ).sum(:full_price),
       kulera_paid:  
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Kulera').pluck(:service_id)
+        service_ids_for_name('Kulera')
         )
         .pluck(:order_entry_id)).sum(:amount),
 
       service_name_6: 'Scanning',
       scanning_price: 
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Scanning').pluck(:service_id)
+        service_ids_for_name('Scanning')
         ).sum(:full_price),
       scanning_paid: 
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Scanning').pluck(:service_id)
+        service_ids_for_name('Scanning')
         )
         .pluck(:order_entry_id)).sum(:amount),
 
       service_name_7: 'Ambulance',
       ambulance_price: 
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Ambulance').pluck(:service_id)
+        service_ids_for_name('Ambulance')
         ).sum(:full_price),
       mbulance_paid: 
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Ambulance').pluck(:service_id)
+        service_ids_for_name('Ambulance')
         )
         .pluck(:order_entry_id)).sum(:amount),
 
       service_name_8: 'Ambulance (non-paying)',
       ambulance_non_paying_price: 
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Ambulance (non-paying)').pluck(:service_id)
+        service_ids_for_name('Ambulance (non-paying)')
         ).sum(:full_price),
       ambulance_non_paying_paid:  
         OrderPayment.where(order_entry_id:
         OrderEntry.where(cashier: cashier_id, created_at: start_date..end_date, service_id: 
-        Service.where(name: 'Ambulance (non-paying)').pluck(:service_id)
+        service_ids_for_name('Ambulance (non-paying)')
         )
         .pluck(:order_entry_id)).sum(:amount),
     }
