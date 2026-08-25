@@ -19,13 +19,18 @@
             "bDestroy": true,
             "pageLength":7
         });
-        search_box = $('#serviceTypes').dataTable()
+        search_box = $('#serviceTypes').DataTable()
         search = document.getElementById('serviceTypes_filter').children[0].children[0];
         document.getElementById('serviceTypes_filter').setAttribute("onmousedown","showKeyboard();");
         keyboard = document.getElementsByClassName("keypad")[0]
         showAlphaKeypad();
+    });
 
-    } );
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            $('#serviceTypes').DataTable({"bLengthChange": false, "bDestroy": true, "pageLength":7});
+        }
+    });
 
     function showKeyboard(){
         console.log("show keyboard")
@@ -55,7 +60,7 @@
         <tr>
           <td style="text-align: left;padding-left: 5px;"><%= service.name%></td>
           <td><%= service.service_type.name %></td>
-          <td> <%= link_to 'View', "/services/#{service.id}" %> <%= link_to 'Edit', "/services/#{service.id}/edit" %></td>
+          <td> <%= link_to 'View', "/services/#{service.id}", style: "margin-right: 32px;" %> | <%= link_to 'Edit', "/services/#{service.id}/edit", style: "margin-left: 32px;" %></td>
         </tr>
     <% end %>
     </tbody>

@@ -5,6 +5,10 @@ class ServicesController < ApplicationController
 
   def show
     @service = Service.find(params[:id])
+    @service_sets = @service.service_sets
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
   end
 
   def new
