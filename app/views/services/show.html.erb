@@ -1,6 +1,6 @@
 <div class="section-header">
   <div style="display: table-cell;text-align: left; width: inherit;">
-    <b>Service :</b> <%= @service.name %> <span style="color: #999; font-weight: bold;">|</span> <b style="font-size: 0.75em; color: #666;">Service target:</b> <span style="font-size: 0.75em; color: #23538a;"><%= @service_sets.pluck(:name).map{ |n| n.humanize }.join(', ') %></span>
+    <b>Service :</b> <%= @service.name %> <span style="color: #999; font-weight: bold; margin: 0 12px;">|</span> <b style="font-size: 0.75em; color: #000;">Service target:</b> <span style="font-size: 0.75em; color: #0d1a29;"><%= @service_sets.pluck(:name).map{ |n| n.humanize }.join(', ') %></span>
   </div>
   <div style="display: table-cell;text-align: center; width: 30vw;border: 1px solid cornflowerblue;">
     <span style="font-size: 0.8em;">Current General Price</span>
