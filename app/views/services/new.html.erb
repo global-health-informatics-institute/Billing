@@ -12,7 +12,8 @@
 
     <%= select_tag "service[category]", category_options,
                    {:helptext => "Select service category",
-                    :doublepane => 'false'} %>
+                    :doublepane => 'false',
+                    :"no-blank-option" => "true"} %>
 
     <%= text_field_tag "service_price[general][price]", nil,
                        {:field_type => "number",
