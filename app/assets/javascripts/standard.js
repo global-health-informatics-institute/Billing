@@ -690,8 +690,8 @@ function getOptions() {
                     var selectOptions = tstFormElements[i].getElementsByTagName("option");
 
                     if (selectOptions.length > 0) {
-                        // Append an empty option first
-                        if (selectOptions[0].innerHTML.trim().length > 0) {
+                        // Append an empty option first (if not disabled via no-blank-option attribute)
+                        if (selectOptions[0].innerHTML.trim().length > 0 && tstFormElements[i].getAttribute("no-blank-option") != "true") {
                             tstFormElements[i].innerHTML = "<option></option>" + tstFormElements[i].innerHTML;
                         }
                     }
