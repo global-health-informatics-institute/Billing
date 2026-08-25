@@ -15,7 +15,7 @@ class Service < ActiveRecord::Base
   before_create :before_create
 
   def get_price(location)
-    self.service_prices.select(:price,:price_id).where(price_type: location).first rescue nil
+    self.service_prices.select(:price,:price_id).where(price_type: location).order('price_id DESC').first rescue nil
   end
 
   def before_create
