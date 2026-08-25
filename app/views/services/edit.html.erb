@@ -7,10 +7,9 @@
     <%= text_field_tag "service[name]", @service.name,
                        {:helptext => "Enter name of new service"}  %>
 
-    <%= select_tag "service[category]", category_options(@service.service_type_id),
+    <%= select_tag "service[category]", category_options,
                    {:helptext => "Select service category",
-                    :doublepane => 'false',
-                    :"no-blank-option" => "true"} %>
+                    :doublepane => 'false'} %>
 
     <%= text_field_tag "service_price[general][price]", nil,
                        {:field_type => "number",
@@ -25,13 +24,13 @@
     <div class="service-demographic-heading">Service target</div>
     <div class="service-demographic-flags">
       <% demo_value = @service.service_sets.pluck(:name).sort == ['under_5', 'male', 'female'] ? 'all' : (@service.service_sets.pluck(:name).sort == ['male', 'female'] ? 'male_female' : (@service.service_sets.pluck(:name).sort == ['male'] ? 'male' : (@service.service_sets.pluck(:name).sort == ['female'] ? 'female' : (@service.service_sets.pluck(:name).sort == ['under_5'] ? 'child' : '')))) %>
-      <%= radio_button_tag "service[demographics]", "child", demo_value == 'child', :helptext => "Service target", :tt_pageStyleClass => "NoKeyboard", :tt_onLoad => "tstInputTarget.value=''" %> <label for="service_demographics_child">Under 5</label><br/>
+      <%= radio_button_tag "service[demographics]", "child", demo_value == 'child' %> <label for="service_demographics_child">Under 5</label><br/>
       <%= radio_button_tag "service[demographics]", "male", demo_value == 'male' %> <label for="service_demographics_male">Male</label><br/>
       <%= radio_button_tag "service[demographics]", "female", demo_value == 'female' %> <label for="service_demographics_female">Female</label><br/>
       <%= radio_button_tag "service[demographics]", "male_female", demo_value == 'male_female' %> <label for="service_demographics_male_female">Male &amp; Female</label><br/>
       <%= radio_button_tag "service[demographics]", "all", demo_value == 'all' %> <label for="service_demographics_all">All (Under 5, Male, Female)</label>
     </div>
 
-    <%= hidden_field_tag "service[creator]", current_user.id %>
+    <%= hidden_field_tag "creator", current_user.id %>
 
 <% end %>
