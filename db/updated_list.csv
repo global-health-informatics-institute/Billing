@@ -568,7 +568,7 @@ Lymph node Biopsy,Other Procedures,10200,NULL
 Removal of foreign body,Other Procedures,10200,NULL
 limited repeat,Other Procedures,NULL,12000
 keratometry,Other Procedures,NULL,12000
-A/scanning,Other Procedures,NULL,12000
+A/scanning,Other Procedures,8000,12000
 retinoscopy+ subjective refraction,Other Procedures,NULL,12000
 Visual field testing,Other Procedures,NULL,12000
 Skin Traction,Other Procedures,12000,NULL
@@ -1048,7 +1048,7 @@ Hemiarthroplasty,Surgery,NULL,290000
 cricothyroidotomy,Surgery,NULL,365000
 Total hip replacement,Surgery,NULL,1145000
 Total knee replacement,Surgery,NULL,1145000
-Ambulance ,Surgery,10000,NULL
+Ambulance ,Surgery,15000,NULL
 Catheterisation,Casualty,2000,4000
 Dressing 2nd grade healing,Casualty,600,1500
 Ear Syringing,Casualty,2400,3500
@@ -1230,3 +1230,5 @@ Consultation ANC First (Catchment),Consultation,200,NULL
 Consultation ANC Subs (Catchment),Consultation,200,NULL
 Consultation ANC First (Other),Consultation,2500,NULL
 Consultation ANC Subs (Other),Consultation,1500,NULL
+Dental cleaning,Dental,15000,NULL
+Tooth removal,Dental,10000,NULL

@@ -25,15 +25,29 @@
     <% end %>
   </div>
   <% unless flash[:notice].nil? %>
-      <p id="flash_notice" style="color: green"><%= flash[:notice] %></p>
+      <p id="flash_notice" style="color: green; font-size: 1.5em; font-weight: bold;"><%= flash[:notice] %></p>
   <% end %>
   <% unless flash[:error].nil? %>
-      <p id="flash_error" style="color: red"><%= flash[:error] %></p>
+      <p id="flash_error" style="color: red; font-size: 1.5em; font-weight: bold;"><%= flash[:error] %></p>
   <% end %>
   <% unless flash[:error].nil? %>
-      <p id="flash_alert" style="color: green"><%= flash[:alert] %></p>
+      <p id="flash_alert" style="color: green; font-size: 1.5em; font-weight: bold;"><%= flash[:alert] %></p>
   <% end %>
   <%= yield %>
+  <div id="flash-snackbar" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:20px 30px; font-size:1.5em; border-radius:4px; z-index:10000;"></div>
+  <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+      var msg = "<%= j(flash[:success] || flash[:error] || flash[:errors] || '') %>";
+      if (msg && msg.length > 0) {
+        var el = document.getElementById('flash-snackbar');
+        el.textContent = msg;
+        el.style.display = 'block';
+        if (("<%= j flash[:success].present? %>") === 'true') el.style.background = '#2ecc71';
+        else el.style.background = '#e74c3c';
+        setTimeout(function(){ el.style.display = 'none'; }, 5000);
+      }
+    });
+  </script>
   <div id="footer">
   </div>
 </div>

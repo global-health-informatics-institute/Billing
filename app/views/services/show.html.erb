@@ -1,9 +1,9 @@
 <div class="section-header">
   <div style="display: table-cell;text-align: left; width: inherit;">
-    <b>Service :</b> <%= @service.name %>
+    <b>Service :</b> <%= @service.name %> <span style="color: #999; font-weight: bold; margin: 0 12px;">|</span> <b style="font-size: 0.75em; color: #000;">Service target:</b> <span style="font-size: 0.75em; color: #0d1a29;"><%= @service_sets.pluck(:name).map{ |n| n.humanize }.join(', ') %></span>
   </div>
   <div style="display: table-cell;text-align: center; width: 30vw;border: 1px solid cornflowerblue;">
-    <span style="font-size: 0.8em;">General Price</span>
+    <span style="font-size: 0.8em;">Current General Price</span>
     <div style="display: table-cell;vertical-align: middle;width: 60%;font-size: 0.5em;padding-left: 5px;">
       <%= "#{local_currency(@service.get_price("General").price) rescue ''}" %>
     </div>
@@ -12,7 +12,7 @@
     </div>
   </div>
   <div style="display: table-cell;text-align: center; width: 30vw;border: 1px solid cornflowerblue;">
-    <span style="font-size: 0.8em;">Private Price</span>
+    <span style="font-size: 0.8em;">Current Private Price</span>
     <div style="display: table-cell;vertical-align: middle;width: 60%;font-size: 0.5em;padding-left: 5px;">
       <%= "#{local_currency(@service.get_price("Private").price) rescue ''}" %>
     </div>
@@ -21,30 +21,38 @@
     </div>
   </div>
 </div>
-<div style="height: 70vh;">
-  <table class="dashboard-main" id="serviceTypes" >
-    <thead>
-      <tr>
-        <th style="text-align: left;padding-left: 5px;">Price Type</th>
-        <th>Price</th>
-        <th>Active From</th>
-        <th>Active To</th>
-        <th>Updated By</th>
-      </tr>
-    </thead>
-    <tbody>
-    <% (@service.service_price_histories || []).each do |history| %>
-        <tr>
-          <td style="text-align: left;padding-left: 5px;"><%= history.price_type%></td>
-          <td><%= local_currency(history.price) %></td>
-          <td><%= history.active_from.strftime('%d %b, %Y') %></td>
-          <td><%= history.active_to.strftime('%d %b, %Y') rescue '' %></td>
-          <td><%= history.user.name %></td>
-        </tr>
-    <% end %>
-    </tbody>
+<div style="height: 72vh; overflow-y: auto; margin-top: 0; margin-bottom: 10vh;">
+  <table class="dashboard-main" id="servicePriceHistories" style="margin: 0 auto;">
+     <thead>
+       <tr>
+         <th style="text-align: left;padding-left: 5px;">Price Type</th>
+         <th>Price</th>
+         <th>Active From</th>
+         <th>Active To</th>
+       </tr>
+     </thead>
+     <tbody>
+     <% (@service.service_price_histories.order(updated_at: :desc) || []).each do |history| %>
+         <tr>
+           <td style="text-align: left;padding-left: 5px;"><%= history.price_type%></td>
+           <td><%= local_currency(history.price) %></td>
+           <td><%= history.active_from.strftime('%d %b, %Y') %></td>
+           <td><%= history.active_to.strftime('%d %b, %Y') rescue '' %></td>
+         </tr>
+     <% end %>
+     </tbody>
   </table>
 </div>
+
 <div class="footer">
+  <button class="button blue" style="float: left;" onmousedown="window.location='/services/<%= @service.id %>/edit'">Back</button>
   <button class="button green" style="float: right;" onmousedown="window.location='/services'">Finish</button>
 </div>
+
+<script type="text/javascript">
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+</script>

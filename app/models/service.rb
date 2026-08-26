@@ -6,12 +6,16 @@ class Service < ActiveRecord::Base
   has_many :service_prices
   has_many :service_price_histories
   belongs_to :service_type
+  has_many :service_set_maps
+  has_many :service_sets, through: :service_set_maps
+
+  validates :service_type_id, :name, :creator, presence: true
   attr_accessor :category
 
   before_create :before_create
 
   def get_price(location)
-    self.service_prices.select(:price,:price_id).where(price_type: location).first rescue nil
+    self.service_prices.select(:price,:price_id).where(price_type: location).order('price_id DESC').first rescue nil
   end
 
   def before_create

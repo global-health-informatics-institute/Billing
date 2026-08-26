@@ -1,5 +1,8 @@
 <script type="text/javascript">
     tt_cancel_destination = "/services"
+    if (typeof $ !== 'undefined') {
+      $('input[name="service[demographics]"]').prop('checked', false);
+    }
 </script>
 
 <%= form_for :service, :method => "POST" ,:url => services_path  do |f| %>
@@ -9,7 +12,8 @@
 
     <%= select_tag "service[category]", category_options,
                    {:helptext => "Select service category",
-                    :doublepane => 'false'} %>
+                    :doublepane => 'false',
+                    :"no-blank-option" => "true"} %>
 
     <%= text_field_tag "service_price[general][price]", nil,
                        {:field_type => "number",
@@ -20,6 +24,15 @@
                        {:field_type => "number",
                         :tt_pageStyleClass => "NumbersOnly",
                         :helptext => "Enter private price for new service"}  %>
+
+    <div class="service-demographic-heading">Service target</div>
+    <div class="service-demographic-flags">
+      <%= radio_button_tag "service[demographics]", "child", false, :helptext => "Service target", :tt_pageStyleClass => "NoKeyboard", :tt_onLoad => "tstInputTarget.value=''" %> <label for="service_demographics_child">Under 5</label><br/>
+      <%= radio_button_tag "service[demographics]", "male" %> <label for="service_demographics_male">Male</label><br/>
+      <%= radio_button_tag "service[demographics]", "female" %> <label for="service_demographics_female">Female</label><br/>
+      <%= radio_button_tag "service[demographics]", "male_female" %> <label for="service_demographics_male_female">Male &amp; Female</label><br/>
+      <%= radio_button_tag "service[demographics]", "all" %> <label for="service_demographics_all">All (Under 5, Male, Female)</label>
+    </div>
 
     <%= hidden_field_tag "service[creator]", current_user.id %>
 

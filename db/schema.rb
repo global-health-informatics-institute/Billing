@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2017_08_21_153231) do
+ActiveRecord::Schema.define(version: 2026_08_24_100500) do
 
   create_table "active_list", primary_key: "active_list_id", id: :integer, charset: "latin1", collation: "latin1_swedish_ci", force: :cascade do |t|
     t.integer "active_list_type_id", null: false
@@ -364,6 +364,25 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["word"], name: "word_in_concept_name"
   end
 
+  create_table "damages", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.integer "general_inventory_id", null: false
+    t.integer "quantity", default: 0, null: false
+    t.string "reason"
+    t.integer "user_id"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.integer "reported_by"
+    t.integer "location_id"
+    t.datetime "damage_date", precision: 6
+    t.string "gn_identifier"
+    t.string "damage_type", default: "pack", null: false
+    t.bigint "prepack_id"
+    t.index ["damage_type"], name: "index_damages_on_damage_type"
+    t.index ["general_inventory_id"], name: "index_damages_on_general_inventory_id"
+    t.index ["gn_identifier"], name: "index_damages_on_gn_identifier"
+    t.index ["prepack_id"], name: "index_damages_on_prepack_id"
+  end
+
   create_table "deposits", primary_key: "deposit_id", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.integer "patient_id", null: false
     t.float "amount_received", default: 0.0
@@ -375,6 +394,18 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.datetime "date_voided"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "dispensations", primary_key: "dispensation_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.integer "rx_id"
+    t.string "inventory_id"
+    t.integer "patient_id"
+    t.integer "quantity"
+    t.datetime "dispensation_date"
+    t.integer "dispensed_by"
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "district", primary_key: "district_id", id: :integer, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
@@ -417,6 +448,13 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["uuid"], name: "drug_uuid_index", unique: true
   end
 
+  create_table "drug_categories", primary_key: "drug_category_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.string "category"
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "drug_ingredient", primary_key: ["ingredient_id", "concept_id"], charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
     t.integer "concept_id", default: 0, null: false
     t.integer "ingredient_id", default: 0, null: false
@@ -433,6 +471,26 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.integer "complex", limit: 2, default: 0, null: false
     t.integer "quantity"
     t.index ["drug_inventory_id"], name: "inventory_item"
+  end
+
+  create_table "drug_thresholds", primary_key: "threshold_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.string "drug_id"
+    t.integer "threshold"
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "drugs", primary_key: "drug_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.integer "drug_category_id"
+    t.string "name"
+    t.string "dose_strength"
+    t.string "dose_form", null: false
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "par_level"
+    t.string "item_code"
   end
 
   create_table "encounter", primary_key: "encounter_id", id: :integer, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
@@ -636,6 +694,24 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["form_id"], name: "Form with which this xsn is related"
   end
 
+  create_table "general_inventories", primary_key: "gn_inventory_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.integer "drug_id"
+    t.string "gn_identifier"
+    t.string "gn_sequence", limit: 4
+    t.date "expiration_date"
+    t.date "date_received"
+    t.integer "received_quantity", default: 0
+    t.integer "current_quantity", default: 0
+    t.integer "location_id", null: false
+    t.integer "created_by"
+    t.boolean "voided", default: false
+    t.string "void_reason"
+    t.integer "voided_by"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["gn_identifier"], name: "index_general_inventories_on_gn_identifier"
+  end
+
   create_table "global_property", primary_key: "property", id: { type: :binary, limit: 255, default: "" }, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
     t.text "property_value", size: :medium
     t.text "description"
@@ -700,6 +776,18 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["changed_by"], name: "User who changed htmlformentry_htmlform"
     t.index ["creator"], name: "User who created htmlformentry_htmlform"
     t.index ["form_id"], name: "Form with which this htmlform is related"
+  end
+
+  create_table "issues", primary_key: "issue_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.integer "inventory_id"
+    t.integer "location_id"
+    t.integer "issued_to"
+    t.integer "quantity"
+    t.datetime "issue_date"
+    t.integer "issued_by"
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "liquibasechangelog", primary_key: ["ID", "AUTHOR", "FILENAME"], charset: "latin1", collation: "latin1_swedish_ci", force: :cascade do |t|
@@ -871,6 +959,38 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["mime_type_id"], name: "mime_type_id"
   end
 
+  create_table "mobile_visit", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.date "visit_date", null: false
+    t.integer "visit_supervisor", null: false
+    t.text "notes"
+    t.boolean "voided", default: false
+    t.integer "creator"
+    t.datetime "date_created"
+    t.integer "changed_by"
+    t.datetime "date_changed"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.index ["visit_supervisor"], name: "index_mobile_visit_on_visit_supervisor"
+  end
+
+  create_table "mobile_visit_products", primary_key: "mvp_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.integer "mobile_visit_id"
+    t.string "gn_identifier"
+    t.integer "amount_taken"
+    t.integer "amount_used"
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "mobile_visits", primary_key: "mobile_visit_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.date "visit_date"
+    t.integer "visit_supervisor"
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "national_id", id: :integer, charset: "latin1", collation: "latin1_swedish_ci", options: "ENGINE=MyISAM", force: :cascade do |t|
     t.string "national_id", limit: 30, default: "", null: false
     t.boolean "assigned", default: false, null: false
@@ -996,6 +1116,10 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.string "voided_reason"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["order_date"], name: "index_order_entries_on_order_date"
+    t.index ["order_entry_id"], name: "index_order_entries_on_order_entry_id"
+    t.index ["patient_id"], name: "index_order_entries_on_patient_id"
+    t.index ["voided"], name: "index_order_entries_on_voided"
   end
 
   create_table "order_extension", primary_key: "order_extension_id", id: :integer, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
@@ -1022,6 +1146,11 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.string "voided_reason"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["created_at"], name: "index_order_payments_on_created_at"
+    t.index ["order_entry_id"], name: "index_order_payments_on_order_entry_id"
+    t.index ["order_payment_id"], name: "index_order_payments_on_order_payment_id"
+    t.index ["receipt_number"], name: "index_order_payments_on_receipt_number"
+    t.index ["voided"], name: "index_order_payments_on_voided"
   end
 
   create_table "order_type", primary_key: "order_type_id", id: :integer, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
@@ -1418,6 +1547,61 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.string "void_reason", limit: 225
   end
 
+  create_table "prepack_labels", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.bigint "prepack_id", null: false
+    t.integer "bottle_id", null: false
+    t.string "label_identifier", null: false
+    t.boolean "dispensed", default: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.boolean "deleted", default: false
+    t.boolean "voided", default: false
+    t.integer "patient_id"
+    t.integer "dispensed_by"
+    t.datetime "date_dispensed", precision: 6
+    t.index ["bottle_id"], name: "fk_prepack_labels_bottle"
+    t.index ["prepack_id"], name: "fk_rails_cadc42c7d0"
+  end
+
+  create_table "prepacks", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.integer "bottle_id", null: false
+    t.integer "drug_id", null: false
+    t.integer "quantity_per_pack", null: false
+    t.integer "num_packs", null: false
+    t.integer "total_quantity", null: false
+    t.string "directions"
+    t.integer "prepacked_by_id", null: false
+    t.string "status", default: "created", null: false
+    t.datetime "dispensed_at"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.string "pack_identifier", limit: 50
+    t.string "gn_identifier"
+    t.boolean "deleted", default: false
+    t.boolean "voided", default: false
+    t.integer "location_id"
+    t.integer "current_num_packs", default: 0, null: false
+    t.index ["bottle_id"], name: "fk_rails_7c59771cdf"
+    t.index ["drug_id"], name: "fk_rails_10a6425e68"
+    t.index ["gn_identifier"], name: "index_prepacks_on_gn_identifier"
+    t.index ["pack_identifier"], name: "pack_identifier", unique: true
+    t.index ["prepacked_by_id"], name: "fk_rails_9a9ad1026f"
+    t.index ["status"], name: "index_prepacks_on_status"
+  end
+
+  create_table "prescriptions", primary_key: "rx_id", id: :integer, charset: "utf8", collation: "utf8_unicode_ci", force: :cascade do |t|
+    t.integer "patient_id"
+    t.integer "drug_id"
+    t.datetime "date_prescribed"
+    t.integer "quantity"
+    t.integer "amount_dispensed"
+    t.string "directions"
+    t.integer "provider_id"
+    t.boolean "voided", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "privilege", primary_key: "privilege", id: { type: :string, limit: 50, default: "" }, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
     t.string "description", limit: 250, default: "", null: false
     t.string "uuid", limit: 38, null: false
@@ -1519,6 +1703,10 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.integer "voided_by"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["patient_id"], name: "index_receipts_on_patient_id"
+    t.index ["payment_stamp"], name: "index_receipts_on_payment_stamp"
+    t.index ["receipt_number"], name: "index_receipts_on_receipt_number"
+    t.index ["voided"], name: "index_receipts_on_voided"
   end
 
   create_table "regimen", primary_key: "regimen_id", id: :integer, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
@@ -1688,6 +1876,19 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["retired_by"], name: "retired_by for reporting_report_design_resource"
   end
 
+  create_table "requests", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.integer "drug_id", null: false
+    t.integer "location_id", null: false
+    t.string "gn_identifier", limit: 20
+    t.integer "quantity", null: false
+    t.integer "quantity_received", default: 0
+    t.boolean "fulfilled", default: false
+    t.datetime "fulfilled_at", precision: 6
+    t.integer "fulfilled_by"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
   create_table "role", primary_key: "role", id: { type: :string, limit: 50, default: "" }, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
     t.string "description", default: "", null: false
     t.string "uuid", limit: 38, null: false
@@ -1802,6 +2003,32 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.datetime "updated_at", precision: 6, null: false
   end
 
+  create_table "service_set_maps", primary_key: "service_set_map_id", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.integer "service_set_id", null: false
+    t.integer "service_id", null: false
+    t.integer "creator", null: false
+    t.boolean "voided", default: false
+    t.integer "voided_by"
+    t.string "voided_reason"
+    t.date "voided_date"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["service_id"], name: "index_service_set_maps_on_service_id"
+    t.index ["service_set_id", "service_id"], name: "index_service_set_maps_on_service_set_id_and_service_id"
+    t.index ["service_set_id"], name: "index_service_set_maps_on_service_set_id"
+  end
+
+  create_table "service_sets", primary_key: "service_set_id", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "creator", null: false
+    t.boolean "voided", default: false
+    t.integer "voided_by"
+    t.string "voided_reason"
+    t.date "voided_date"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
   create_table "service_types", primary_key: "service_type_id", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.string "name", null: false
     t.integer "creator", null: false
@@ -1882,6 +2109,7 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.string "retire_reason"
     t.index ["creator"], name: "user_who_created_traditional_authority"
     t.index ["district_id"], name: "district_for_ta"
+    t.index ["district_id"], name: "idx_traditional_authority_district_id"
     t.index ["retired"], name: "retired_status"
     t.index ["retired_by"], name: "user_who_retired_traditional_authority"
   end
@@ -1927,6 +2155,12 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.index ["retired_by"], name: "user_who_retired_this_user"
   end
 
+  create_table "users_location", primary_key: ["user_id", "location_id"], charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "location_id", null: false
+    t.index ["location_id"], name: "location_id"
+  end
+
   create_table "village", primary_key: "village_id", id: :integer, charset: "utf8", collation: "utf8_general_ci", force: :cascade do |t|
     t.string "name", default: "", null: false
     t.integer "traditional_authority_id", default: 0, null: false
@@ -1937,8 +2171,10 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
     t.datetime "date_retired"
     t.string "retire_reason"
     t.index ["creator"], name: "user_who_created_village"
+    t.index ["name"], name: "index_village_name"
     t.index ["retired"], name: "retired_status"
     t.index ["retired_by"], name: "user_who_retired_village"
+    t.index ["traditional_authority_id"], name: "idx_village_traditional_authority_id"
     t.index ["traditional_authority_id"], name: "ta_for_village"
   end
 
@@ -2054,6 +2290,7 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
   add_foreign_key "concept_synonym", "users", column: "creator", primary_key: "user_id", name: "synonym_creator"
   add_foreign_key "concept_word", "concept", primary_key: "concept_id", name: "word_for"
   add_foreign_key "concept_word", "concept_name", primary_key: "concept_name_id", name: "word_for_name"
+  add_foreign_key "damages", "prepacks"
   add_foreign_key "district", "region", primary_key: "region_id", name: "region_for_district"
   add_foreign_key "district", "users", column: "creator", primary_key: "user_id", name: "user_who_created_district"
   add_foreign_key "district", "users", column: "retired_by", primary_key: "user_id", name: "user_who_retired_district"
@@ -2111,7 +2348,6 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
   add_foreign_key "htmlformentry_html_form", "users", column: "changed_by", primary_key: "user_id", name: "User who changed htmlformentry_htmlform"
   add_foreign_key "htmlformentry_html_form", "users", column: "creator", primary_key: "user_id", name: "User who created htmlformentry_htmlform"
   add_foreign_key "location", "location", column: "parent_location", primary_key: "location_id", name: "parent_location"
-  add_foreign_key "location", "location_type", primary_key: "location_type_id", name: "location_type"
   add_foreign_key "location", "users", column: "creator", primary_key: "user_id", name: "user_who_created_location"
   add_foreign_key "location", "users", column: "retired_by", primary_key: "user_id", name: "user_who_retired_location"
   add_foreign_key "location_tag", "users", column: "creator", primary_key: "user_id", name: "location_tag_creator"
@@ -2205,6 +2441,11 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
   add_foreign_key "person_name", "users", column: "creator", primary_key: "user_id", name: "user_who_made_name"
   add_foreign_key "person_name", "users", column: "voided_by", primary_key: "user_id", name: "user_who_voided_name"
   add_foreign_key "person_name_code", "person_name", primary_key: "person_name_id", name: "code for name", on_update: :cascade
+  add_foreign_key "prepack_labels", "general_inventories", column: "bottle_id", primary_key: "gn_inventory_id", name: "fk_prepack_labels_bottle"
+  add_foreign_key "prepack_labels", "prepacks"
+  add_foreign_key "prepacks", "drugs", primary_key: "drug_id"
+  add_foreign_key "prepacks", "general_inventories", column: "bottle_id", primary_key: "gn_inventory_id"
+  add_foreign_key "prepacks", "users", column: "prepacked_by_id", primary_key: "user_id"
   add_foreign_key "program", "concept", primary_key: "concept_id", name: "program_concept"
   add_foreign_key "program", "users", column: "changed_by", primary_key: "user_id", name: "user_who_changed_program"
   add_foreign_key "program", "users", column: "creator", primary_key: "user_id", name: "program_creator"
@@ -2275,6 +2516,8 @@ ActiveRecord::Schema.define(version: 2017_08_21_153231) do
   add_foreign_key "users", "users", column: "changed_by", primary_key: "user_id", name: "user_who_changed_user"
   add_foreign_key "users", "users", column: "creator", primary_key: "user_id", name: "user_creator"
   add_foreign_key "users", "users", column: "retired_by", primary_key: "user_id", name: "user_who_retired_this_user"
+  add_foreign_key "users_location", "location", primary_key: "location_id", name: "users_location_ibfk_2"
+  add_foreign_key "users_location", "users", primary_key: "user_id", name: "users_location_ibfk_1"
   add_foreign_key "village", "traditional_authority", primary_key: "traditional_authority_id", name: "ta_for_village"
   add_foreign_key "village", "users", column: "creator", primary_key: "user_id", name: "user_who_created_village"
   add_foreign_key "village", "users", column: "retired_by", primary_key: "user_id", name: "user_who_retired_village"
